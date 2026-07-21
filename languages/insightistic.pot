@@ -1,0 +1,132 @@
+﻿# Copyright (C) 2024 WordPressistic
+# This file is distributed under the same license as the Insightistic plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Insightistic 3.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpressistic.com\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2024-01-01T00:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.x\n"
+"X-Domain: insightistic\n"
+
+#: insightistic.php
+msgid "Insightistic: Missing file %s. Please reinstall the plugin."
+msgstr ""
+
+#: includes/class-insightistic-ga.php
+msgid "Insufficient permissions."
+msgstr ""
+
+msgid "GA4 Property ID is not configured. Please visit Settings."
+msgstr ""
+
+msgid "Connection successful! Your GA4 property is accessible."
+msgstr ""
+
+#: includes/class-insightistic-gsc.php
+msgid "Search Console property URL is not configured. Please visit Settings."
+msgstr ""
+
+msgid "Search Console connection successful!"
+msgstr ""
+
+msgid "Search Console property URL is not configured."
+msgstr ""
+
+#: includes/class-insightistic-pagespeed.php
+msgid "PageSpeed API key is not configured. Please visit Settings."
+msgstr ""
+
+msgid "Invalid URL provided."
+msgstr ""
+
+#: templates/dashboard.php
+msgid "Insightistic Analytics"
+msgstr ""
+
+msgid "GA4  Search Console  PageSpeed  AI Insights"
+msgstr ""
+
+msgid "Connect GA4"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Addons"
+msgstr ""
+
+msgid "Connect your Google Analytics 4 property"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Search Console"
+msgstr ""
+
+msgid "PageSpeed"
+msgstr ""
+
+msgid "Setup"
+msgstr ""
+
+msgid "Sessions"
+msgstr ""
+
+msgid "Unique Visitors"
+msgstr ""
+
+msgid "Pageviews"
+msgstr ""
+
+msgid "Avg. Session"
+msgstr ""
+
+msgid "Bounce Rate"
+msgstr ""
+
+msgid "New vs Return"
+msgstr ""
+
+msgid "Revenue"
+msgstr ""
+
+msgid "Transactions"
+msgstr ""
+
+msgid "Traffic &amp; Revenue Over Time"
+msgstr ""
+
+msgid "Traffic by Source"
+msgstr ""
+
+msgid "Top Countries"
+msgstr ""
+
+msgid "Top Pages"
+msgstr ""
+
+msgid "Traffic Channels"
+msgstr ""
+
+msgid "Top Posts"
+msgstr ""
+
+msgid "Source / Medium Attribution"
+msgstr ""
+
+msgid "Get AI Insights"
+msgstr ""
+
+msgid "Refresh Data"
+msgstr ""
+
+
+
+

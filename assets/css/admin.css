@@ -1128,3 +1128,25 @@
     .isp-license-meta { gap: 18px; }
     .isp-license-banner .isp-btn { margin-left: 0; }
 }
+
+/* ── v4.4.1 UI upgrade: animated gradient gauge + addon polish (JOLLY 2026-09-09) ── */
+.isp-gauge { will-change: transform; }
+.isp-gauge-fill { transition: stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1); filter: drop-shadow(0 0 6px rgba(22,163,74,0.25)); }
+.isp-gauge:hover .isp-gauge-fill { filter: drop-shadow(0 0 10px rgba(22,163,74,0.45)); }
+.isp-ring-progress { transition: stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1); }
+/* addon cards: gradient border glow on hover + enabled accent */
+.isp-addon-card { position: relative; overflow: hidden; }
+.isp-addon-card::before {
+    content: ""; position: absolute; inset: 0; border-radius: 14px; padding: 1px;
+    background: linear-gradient(135deg, rgba(220,38,38,0.35), rgba(245,158,11,0.35), rgba(22,163,74,0.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity 0.25s; pointer-events: none;
+}
+.isp-addon-card:hover::before { opacity: 1; }
+.isp-addon-card[data-status="enabled"] { border-color: #bbf7d0; background: linear-gradient(180deg, #f0fdf4 0%, #fff 30%); }
+.isp-addon-toggle-input:checked ~ .isp-addon-toggle-track { background: linear-gradient(90deg, #16a34a, #22d3ee); }
+/* gauge pop-in on first render */
+@keyframes ispGaugePop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.isp-gauge { animation: ispGaugePop 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+@media (prefers-reduced-motion: reduce) { .isp-gauge, .isp-gauge-fill, .isp-ring-progress { animation: none !important; transition: none !important; } }

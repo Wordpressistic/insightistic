@@ -826,22 +826,21 @@
 		var score     = data.score || 0;
 		var cls       = score >= 90 ? 'good' : ( score >= 50 ? 'moderate' : 'poor' );
 		var label     = score >= 90 ? 'Good' : ( score >= 50 ? 'Needs Improvement' : 'Poor' );
-		var ringColor = score >= 90 ? '#10b981' : ( score >= 50 ? '#f59e0b' : '#ef4444' );
 
-		// Score text
+		// Score text (color still reflects the band for instant readability).
 		$( '#isp-' + device + '-score' )
 			.text( score )
 			.closest( '.isp-ring-container' )
 			.attr( 'class', 'isp-ring-container isp-score-' + cls );
 
-		// Animate the ring stroke.
+		// Ring stroke = red→orange→green gradient (filled portion = score).
 		var circumference = 2 * Math.PI * 54; // 339.3
 		var offset        = circumference - ( score / 100 ) * circumference;
 		var $ring         = $( '#isp-' + device + '-ring' );
-		$ring.attr( 'stroke', ringColor );
+		$ring.attr( 'stroke', 'url(#ispPsiGrad)' );
 		$ring.css( 'stroke-dashoffset', circumference );
 		setTimeout( function () {
-			$ring.css( { 'stroke-dashoffset': offset, 'stroke': ringColor } );
+			$ring.css( 'stroke-dashoffset', offset );
 		}, 80 );
 
 		// Label below ring.
@@ -2175,13 +2174,17 @@
 		var val = ( score === null || score === undefined ) ? null : Math.max( 0, Math.min( 100, score ) );
 		var col = scoreColor( val );
 		var off = val === null ? c : c - ( c * val / 100 );
+		var gid = 'ispGrad' + ( gaugeHtml._i = ( gaugeHtml._i || 0 ) + 1 );
 
 		return '' +
 			'<div class="isp-gauge" style="width:' + size + 'px">' +
 				'<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '">' +
+					'<defs><linearGradient id="' + gid + '" x1="0%" y1="100%" x2="100%" y2="0%">' +
+						'<stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#16a34a"/>' +
+					'</linearGradient></defs>' +
 					'<circle class="isp-gauge-track" cx="' + ( size / 2 ) + '" cy="' + ( size / 2 ) + '" r="' + r + '"/>' +
 					'<circle class="isp-gauge-fill" cx="' + ( size / 2 ) + '" cy="' + ( size / 2 ) + '" r="' + r + '"' +
-						' stroke="' + col + '" stroke-dasharray="' + c.toFixed( 1 ) + '"' +
+						' stroke="url(#' + gid + ')" stroke-dasharray="' + c.toFixed( 1 ) + '"' +
 						' stroke-dashoffset="' + c.toFixed( 1 ) + '" data-target-offset="' + off.toFixed( 1 ) + '"/>' +
 				'</svg>' +
 				'<div class="isp-gauge-value" data-count-to="' + ( val === null ? '' : val ) + '" style="color:' + col + '">' + ( val === null ? '–' : '0' ) + '</div>' +

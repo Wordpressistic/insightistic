@@ -438,6 +438,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 					<div class="isp-speed-label"> <?php esc_html_e( 'Mobile', 'insightistic' ); ?></div>
 					<div class="isp-ring-container">
 						<svg class="isp-score-ring" viewBox="0 0 120 120" aria-hidden="true">
+								<defs><linearGradient id="ispPsiGrad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs>
 							<circle class="isp-ring-track" cx="60" cy="60" r="54"/>
 							<circle class="isp-ring-progress" id="isp-mobile-ring" cx="60" cy="60" r="54"/>
 						</svg>

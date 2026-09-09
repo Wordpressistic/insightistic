@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 4.4.0
+Stable tag: 4.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,29 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.4.1 (2026-09-09) =
+
+**Fixed — Dashboard KPI cards & email digests showed N/A**
+
+The GA4 Data API returns data differently when date ranges carry names (`current`/`previous`): rows come back keyed by a dateRange dimension instead of the `totals` array the parser expected. Result: overview KPIs (Sessions, Users, Pageviews, Revenue, Transactions, Bounce Rate) rendered as N/A everywhere — dashboard cards AND scheduled email digests — while channel/page tables silently mixed current + previous periods into duplicated rows.
+
+* Fixed `get_overview()` to parse both response shapes (rows-by-dateRange and legacy totals), restoring real numbers with true period-over-period changes.
+* Fixed `get_traffic_channels()`, `get_top_pages()`, `get_countries()` to filter rows to the current period and map previous-period values correctly (the old code read a `metricValues[3]` index that never existed, so change % was always wrong).
+* Verified live: Sessions +40.2% period-over-period now renders instead of N/A; duplicated "Organic Search / Direct" rows are gone.
+
+**New — Animated red → green score gauges**
+
+* All score gauges (PageSpeed Performance / SEO / Accessibility / Best Practices, AI Readiness, and dashboard PSI rings) now render an animated SVG ring that fills through a red → amber → green gradient as the score climbs, with counting numbers, pop-in animation and hover glow.
+* Accessibility: animations respect `prefers-reduced-motion`.
+
+**New — Addons page polish**
+
+* Addon cards get a gradient border glow on hover and a green enabled-state tint; toggles use a green→cyan gradient when on.
+
+**Housekeeping**
+
+* Version bump 4.4.0 → 4.4.1 (busts asset caches).
 
 = 4.4.0 =
 * Release: first public WordPressistic release package for Insightistic, keeping the current plugin version at 4.4.0 and preparing the plugin for clean public distribution.

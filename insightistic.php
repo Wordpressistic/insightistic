@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION',  '4.4.0' );
+define( 'INSIGHTISTIC_VERSION',  '4.4.1' );
 define( 'INSIGHTISTIC_FILE',     __FILE__ );
 define( 'INSIGHTISTIC_PATH',     plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL',      plugin_dir_url( __FILE__ ) );

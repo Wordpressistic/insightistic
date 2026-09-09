@@ -393,12 +393,26 @@ class Insightistic_GA {
 		);
 
 		$data = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $data ) || ! isset( $data['totals'] ) ) {
+		if ( is_wp_error( $data ) || ( ! isset( $data['totals'] ) && ! isset( $data['rows'] ) ) ) {
 			return null;
 		}
 
-		$cur  = $data['totals'][0]['metricValues'];
-		$prev = $data['totals'][1]['metricValues'];
+		// GA4 Data API: named dateRanges return `rows` keyed by the dateRange
+		// dimension (no `totals`). Older/un-named ranges returned totals[].
+		if ( isset( $data['totals'] ) ) {
+			$cur  = $data['totals'][0]['metricValues'];
+			$prev = $data['totals'][1]['metricValues'];
+		} else {
+			$cur  = null;
+			$prev = null;
+			foreach ( $data['rows'] as $row ) {
+				$range = $row['dimensionValues'][0]['value'] ?? '';
+				if ( 'current' === $range ) { $cur = $row['metricValues']; }
+				if ( 'previous' === $range ) { $prev = $row['metricValues']; }
+			}
+			if ( null === $cur ) { return null; }
+			if ( null === $prev ) { $prev = $cur; }
+		}
 
 		$cur_new      = floatval( $cur[7]['value'] );
 		$cur_total    = floatval( $cur[1]['value'] );
@@ -478,6 +492,10 @@ class Insightistic_GA {
 		$rows_raw  = array();
 		foreach ( $data['rows'] as $row ) {
 			$cur_val    = intval( $row['metricValues'][0]['value'] );
+			$has_range_dim = isset( $data['rows'][0]['dimensionValues'][1]['value'] );
+			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? 'current' ) !== 'current' ) {
+				continue;
+			}
 			$prev_val   = intval( $row['metricValues'][3]['value'] ?? 0 );
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
@@ -531,9 +549,19 @@ class Insightistic_GA {
 
 		$total_cur = 0;
 		$rows_raw  = array();
+		$prev_map  = array();
+		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][2]['value'] );
 		foreach ( $data['rows'] as $row ) {
+			if ( $has_range_dim && ( $row['dimensionValues'][2]['value'] ?? '' ) === 'previous' ) {
+				$prev_map[ $row['dimensionValues'][1]['value'] ] = intval( $row['metricValues'][0]['value'] );
+			}
+		}
+		foreach ( $data['rows'] as $row ) {
+			if ( $has_range_dim && ( $row['dimensionValues'][2]['value'] ?? 'current' ) !== 'current' ) {
+				continue;
+			}
 			$cur_val    = intval( $row['metricValues'][0]['value'] );
-			$prev_val   = intval( $row['metricValues'][3]['value'] ?? 0 );
+			$prev_val   = $prev_map[ $row['dimensionValues'][1]['value'] ] ?? 0;
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
 				'title'       => $row['dimensionValues'][0]['value'],
@@ -590,9 +618,20 @@ class Insightistic_GA {
 
 		$total_cur = 0;
 		$rows_raw  = array();
+		$prev_map  = array();
+		// Named dateRanges append the range as an extra dimension — map previous-period values first.
+		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][1]['value'] );
 		foreach ( $data['rows'] as $row ) {
+			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? '' ) === 'previous' ) {
+				$prev_map[ $row['dimensionValues'][0]['value'] ] = intval( $row['metricValues'][0]['value'] );
+			}
+		}
+		foreach ( $data['rows'] as $row ) {
+			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? 'current' ) !== 'current' ) {
+				continue;
+			}
 			$cur_val    = intval( $row['metricValues'][0]['value'] );
-			$prev_val   = intval( $row['metricValues'][3]['value'] ?? 0 );
+			$prev_val   = $prev_map[ $row['dimensionValues'][0]['value'] ] ?? 0;
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
 				'channel' => $row['dimensionValues'][0]['value'],

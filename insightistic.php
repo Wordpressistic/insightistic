@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic - GA4 Analytics & AI Insights
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed and WooCommerce to your WordPress dashboard — fully free. Create a free Insightistic account to unlock AI Insights and email automation delivery.
- * Version:     4.4.0
+ * Version:     4.4.2
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0+
@@ -12,7 +12,7 @@
  * Domain Path: /languages
  * Requires at least: 5.6
  * Requires PHP: 8.0
- * Tested up to: 6.8
+ * Tested up to: 7.1
  *
  * @package Insightistic
  */
@@ -23,10 +23,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION',  '4.4.1' );
-define( 'INSIGHTISTIC_FILE',     __FILE__ );
-define( 'INSIGHTISTIC_PATH',     plugin_dir_path( __FILE__ ) );
-define( 'INSIGHTISTIC_URL',      plugin_dir_url( __FILE__ ) );
+define( 'INSIGHTISTIC_VERSION', '4.4.2' );
+define( 'INSIGHTISTIC_FILE', __FILE__ );
+define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
+define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
 define( 'INSIGHTISTIC_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
@@ -142,11 +142,11 @@ function insightistic_activate() {
 	add_option(
 		'insightistic_email_automations',
 		array(
-			'enabled'   => 0,
+			'enabled'    => 0,
 			'recipients' => get_option( 'admin_email' ),
-			'frequency' => 'weekly',
-			'day'       => 'monday',
-			'time'      => '09:00',
+			'frequency'  => 'weekly',
+			'day'        => 'monday',
+			'time'       => '09:00',
 		),
 		'',
 		'no'
@@ -183,32 +183,32 @@ function insightistic_migrate_legacy_keys() {
 	}
 
 	$map = array(
-		'Insightistic_property_id'             => 'insightistic_property_id',
-		'Insightistic_api_email'               => 'insightistic_api_email',
-		'Insightistic_api_private_key'         => 'insightistic_api_private_key',
-		'Insightistic_gsc_property_url'        => 'insightistic_gsc_property_url',
-		'Insightistic_pagespeed_api_key_enc'   => 'insightistic_pagespeed_api_key_enc',
-		'Insightistic_pagespeed_default_url'   => 'insightistic_pagespeed_default_url',
-		'Insightistic_engagement_enabled'      => 'insightistic_engagement_enabled',
-		'Insightistic_measurement_id'          => 'insightistic_measurement_id',
-		'Insightistic_measurement_secret'      => 'insightistic_measurement_secret',
-		'Insightistic_ai_enabled'              => 'insightistic_ai_enabled',
-		'Insightistic_ai_provider'             => 'insightistic_ai_provider',
-		'Insightistic_ai_skill_profile'        => 'insightistic_ai_skill_profile',
-		'Insightistic_openai_key'              => 'insightistic_openai_key',
-		'Insightistic_openai_model'            => 'insightistic_openai_model',
-		'Insightistic_gemini_key'              => 'insightistic_gemini_key',
-		'Insightistic_gemini_model'            => 'insightistic_gemini_model',
-		'Insightistic_openrouter_key'          => 'insightistic_openrouter_key',
-		'Insightistic_openrouter_model'        => 'insightistic_openrouter_model',
-		'Insightistic_claude_key'              => 'insightistic_claude_key',
-		'Insightistic_claude_model'            => 'insightistic_claude_model',
-		'Insightistic_groq_key'                => 'insightistic_groq_key',
-		'Insightistic_groq_model'              => 'insightistic_groq_model',
-		'Insightistic_video_guide_url'         => 'insightistic_video_guide_url',
-		'Insightistic_docs_url'                => 'insightistic_docs_url',
-		'Insightistic_addons'                  => 'insightistic_addons',
-		'Insightistic_email_automations'       => 'insightistic_email_automations',
+		'Insightistic_property_id'           => 'insightistic_property_id',
+		'Insightistic_api_email'             => 'insightistic_api_email',
+		'Insightistic_api_private_key'       => 'insightistic_api_private_key',
+		'Insightistic_gsc_property_url'      => 'insightistic_gsc_property_url',
+		'Insightistic_pagespeed_api_key_enc' => 'insightistic_pagespeed_api_key_enc',
+		'Insightistic_pagespeed_default_url' => 'insightistic_pagespeed_default_url',
+		'Insightistic_engagement_enabled'    => 'insightistic_engagement_enabled',
+		'Insightistic_measurement_id'        => 'insightistic_measurement_id',
+		'Insightistic_measurement_secret'    => 'insightistic_measurement_secret',
+		'Insightistic_ai_enabled'            => 'insightistic_ai_enabled',
+		'Insightistic_ai_provider'           => 'insightistic_ai_provider',
+		'Insightistic_ai_skill_profile'      => 'insightistic_ai_skill_profile',
+		'Insightistic_openai_key'            => 'insightistic_openai_key',
+		'Insightistic_openai_model'          => 'insightistic_openai_model',
+		'Insightistic_gemini_key'            => 'insightistic_gemini_key',
+		'Insightistic_gemini_model'          => 'insightistic_gemini_model',
+		'Insightistic_openrouter_key'        => 'insightistic_openrouter_key',
+		'Insightistic_openrouter_model'      => 'insightistic_openrouter_model',
+		'Insightistic_claude_key'            => 'insightistic_claude_key',
+		'Insightistic_claude_model'          => 'insightistic_claude_model',
+		'Insightistic_groq_key'              => 'insightistic_groq_key',
+		'Insightistic_groq_model'            => 'insightistic_groq_model',
+		'Insightistic_video_guide_url'       => 'insightistic_video_guide_url',
+		'Insightistic_docs_url'              => 'insightistic_docs_url',
+		'Insightistic_addons'                => 'insightistic_addons',
+		'Insightistic_email_automations'     => 'insightistic_email_automations',
 	);
 
 	foreach ( $map as $old_key => $new_key ) {

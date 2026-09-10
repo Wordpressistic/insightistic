@@ -18,12 +18,20 @@
         }
     },
     "scripts": {
-        "lint": "find insightistic -name '*.php' -print0 | xargs -0 -n1 -P4 php -l",
+        "lint": "@php scripts/lint-php.php",
         "phpcs": "phpcs",
         "phpcbf": "phpcbf",
-        "test": [
+        "test": "@php tests/run.php",
+        "make-pot": "@php scripts/make-pot.php",
+        "build:assets": "npm.cmd run build:assets",
+        "build:release": "@php scripts/build-release.php",
+        "release-check": [
+            "@php scripts/validate-release.php",
             "@lint",
-            "php tests/test-encryption.php"
+            "@test",
+            "@php scripts/validate-assets.php",
+            "@php scripts/build-release.php",
+            "@php scripts/validate-zip.php"
         ]
     }
 }

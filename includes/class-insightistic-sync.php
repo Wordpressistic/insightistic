@@ -231,7 +231,12 @@ class Insightistic_Sync {
 		}
 
 		if ( ! empty( $payload['daily'] ) ) {
-			$res = Insightistic_Saas_Client::sync_seo_daily( array( 'days' => $payload['daily'], 'sync_batch_id' => $batch_id ) );
+			$res = Insightistic_Saas_Client::sync_seo_daily(
+				array(
+					'days'          => $payload['daily'],
+					'sync_batch_id' => $batch_id,
+				)
+			);
 			$this->log( 'SEO daily: ' . ( $res['ok'] ? 'ok' : 'failed: ' . $res['error'] ), $res['ok'] ? 'info' : 'error' );
 		}
 
@@ -286,7 +291,12 @@ class Insightistic_Sync {
 			return;
 		}
 
-		$res = Insightistic_Saas_Client::sync_broken_links( array( 'links' => $links, 'sync_batch_id' => $batch_id ) );
+		$res = Insightistic_Saas_Client::sync_broken_links(
+			array(
+				'links'         => $links,
+				'sync_batch_id' => $batch_id,
+			)
+		);
 		$this->log( 'Broken links: ' . ( $res['ok'] ? 'ok' : 'failed: ' . $res['error'] ), $res['ok'] ? 'info' : 'error' );
 	}
 
@@ -439,8 +449,10 @@ class Insightistic_Sync {
 		}
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Mappers — business data only, never card/payment secrets.            */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Mappers — business data only, never card/payment secrets.            */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -467,18 +479,18 @@ class Insightistic_Sync {
 			'external_order_id'  => $order->get_id(),
 			'order_number'       => $order->get_order_number(),
 			'customer_id'        => $order->get_customer_id(),
-			'status'              => $order->get_status(),
-			'currency'            => $order->get_currency(),
-			'total'               => (float) $order->get_total(),
-			'subtotal'            => (float) $order->get_subtotal(),
-			'tax_total'           => (float) $order->get_total_tax(),
-			'shipping_total'      => (float) $order->get_shipping_total(),
-			'discount_total'      => (float) $order->get_total_discount(),
-			'refund_total'        => (float) $order->get_total_refunded(),
-			'payment_method'      => $order->get_payment_method_title(),
-			'created_at_store'    => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : null,
-			'completed_at_store'  => $order->get_date_completed() ? $order->get_date_completed()->date( 'c' ) : null,
-			'items'               => $items,
+			'status'             => $order->get_status(),
+			'currency'           => $order->get_currency(),
+			'total'              => (float) $order->get_total(),
+			'subtotal'           => (float) $order->get_subtotal(),
+			'tax_total'          => (float) $order->get_total_tax(),
+			'shipping_total'     => (float) $order->get_shipping_total(),
+			'discount_total'     => (float) $order->get_total_discount(),
+			'refund_total'       => (float) $order->get_total_refunded(),
+			'payment_method'     => $order->get_payment_method_title(),
+			'created_at_store'   => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : null,
+			'completed_at_store' => $order->get_date_completed() ? $order->get_date_completed()->date( 'c' ) : null,
+			'items'              => $items,
 		);
 	}
 
@@ -517,13 +529,13 @@ class Insightistic_Sync {
 		return array(
 			'external_customer_id' => $user->ID,
 			// Privacy: hash the email; the raw address never leaves the store.
-			'email_hash'            => hash( 'sha256', strtolower( trim( $user->user_email ) ) ),
-			'first_name'            => get_user_meta( $user->ID, 'first_name', true ) ?: null,
-			'last_name'             => get_user_meta( $user->ID, 'last_name', true ) ?: null,
-			'city'                  => get_user_meta( $user->ID, 'billing_city', true ) ?: null,
-			'country'               => get_user_meta( $user->ID, 'billing_country', true ) ?: null,
-			'total_spent'           => $total_spent,
-			'order_count'           => $order_count,
+			'email_hash'           => hash( 'sha256', strtolower( trim( $user->user_email ) ) ),
+			'first_name'           => get_user_meta( $user->ID, 'first_name', true ) ?: null,
+			'last_name'            => get_user_meta( $user->ID, 'last_name', true ) ?: null,
+			'city'                 => get_user_meta( $user->ID, 'billing_city', true ) ?: null,
+			'country'              => get_user_meta( $user->ID, 'billing_country', true ) ?: null,
+			'total_spent'          => $total_spent,
+			'order_count'          => $order_count,
 		);
 	}
 

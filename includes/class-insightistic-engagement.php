@@ -229,7 +229,7 @@ class Insightistic_Engagement {
 
 		// Load minified version in production; readable source in SCRIPT_DEBUG mode.
 		$script_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'assets/js/tracking.src.js'
+			? 'assets/js/tracking.js'
 			: 'assets/js/tracking.min.js';
 
 		wp_enqueue_script(
@@ -318,10 +318,10 @@ class Insightistic_Engagement {
 		wp_remote_post(
 			$endpoint,
 			array(
-				'timeout'     => 4,
-				'blocking'    => false,
-				'headers'     => array( 'Content-Type' => 'application/json' ),
-				'body'        => wp_json_encode(
+				'timeout'  => 4,
+				'blocking' => false,
+				'headers'  => array( 'Content-Type' => 'application/json' ),
+				'body'     => wp_json_encode(
 					array(
 						'client_id' => $client_id,
 						'events'    => array(

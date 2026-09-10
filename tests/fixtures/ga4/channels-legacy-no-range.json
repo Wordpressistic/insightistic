@@ -1,0 +1,25 @@
+{
+    "dimensionHeaders": [
+        { "name": "sessionDefaultChannelGroup" }
+    ],
+    "metricHeaders": [
+        { "name": "sessions", "type": "TYPE_INTEGER" },
+        { "name": "totalUsers", "type": "TYPE_INTEGER" },
+        { "name": "bounceRate", "type": "TYPE_FLOAT" }
+    ],
+    "rows": [
+        {
+            "dimensionValues": [ { "value": "Organic Search" } ],
+            "metricValues": [ { "value": "620" }, { "value": "410" }, { "value": "0.3911" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Direct" } ],
+            "metricValues": [ { "value": "310" }, { "value": "280" }, { "value": "0.512" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Referral" } ],
+            "metricValues": [ { "value": "180" }, { "value": "150" }, { "value": "0.4455" } ]
+        }
+    ],
+    "rowCount": 3
+}

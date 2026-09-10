@@ -18,7 +18,7 @@ class Insightistic_Admin {
 	 * Register hooks.
 	 */
 	public function init() {
-		add_action( 'admin_menu',            array( $this, 'register_menus' ) );
+		add_action( 'admin_menu', array( $this, 'register_menus' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_insightistic_toggle_addon', array( $this, 'ajax_toggle_addon' ) );
 		add_action( 'wp_ajax_insightistic_save_email_automation', array( $this, 'ajax_save_email_automation' ) );
@@ -43,13 +43,34 @@ class Insightistic_Admin {
 	 */
 	private function ai_provider_meta() {
 		return array(
-			'openai'             => array( 'label' => 'OpenAI', 'cost' => '~$0.01 / run' ),
-			'gemini'             => array( 'label' => 'Google Gemini', 'cost' => '~$0.005 / run' ),
-			'openrouter'         => array( 'label' => 'OpenRouter', 'cost' => __( 'Free models supported', 'insightistic' ) ),
-			'claude'             => array( 'label' => 'Anthropic Claude', 'cost' => '~$0.015 / run' ),
-			'groq'               => array( 'label' => 'Groq', 'cost' => __( 'Low cost / fast', 'insightistic' ) ),
-			'insightistic_cloud' => array( 'label' => 'Insightistic Cloud AI', 'cost' => __( 'Free with your account (usage limits apply)', 'insightistic' ) ),
-			'none'               => array( 'label' => __( 'None', 'insightistic' ), 'cost' => '' ),
+			'openai'             => array(
+				'label' => 'OpenAI',
+				'cost'  => '~$0.01 / run',
+			),
+			'gemini'             => array(
+				'label' => 'Google Gemini',
+				'cost'  => '~$0.005 / run',
+			),
+			'openrouter'         => array(
+				'label' => 'OpenRouter',
+				'cost'  => __( 'Free models supported', 'insightistic' ),
+			),
+			'claude'             => array(
+				'label' => 'Anthropic Claude',
+				'cost'  => '~$0.015 / run',
+			),
+			'groq'               => array(
+				'label' => 'Groq',
+				'cost'  => __( 'Low cost / fast', 'insightistic' ),
+			),
+			'insightistic_cloud' => array(
+				'label' => 'Insightistic Cloud AI',
+				'cost'  => __( 'Free with your account (usage limits apply)', 'insightistic' ),
+			),
+			'none'               => array(
+				'label' => __( 'None', 'insightistic' ),
+				'cost'  => '',
+			),
 		);
 	}
 
@@ -519,8 +540,10 @@ class Insightistic_Admin {
 		wp_send_json_success( __( 'Provider responded successfully. Key and model are working.', 'insightistic' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* License (SaaS connection)                                            */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	License (SaaS connection)                                            */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -570,7 +593,12 @@ class Insightistic_Admin {
 
 		$result = ( new Insightistic_License_Manager() )->refresh();
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'code' => $result->get_error_code(), 'message' => $result->get_error_message() ) );
+			wp_send_json_error(
+				array(
+					'code'    => $result->get_error_code(),
+					'message' => $result->get_error_message(),
+				)
+			);
 		}
 
 		wp_send_json_success(

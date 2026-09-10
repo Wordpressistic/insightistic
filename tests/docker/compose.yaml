@@ -1,0 +1,66 @@
+name: insightistic-release-gate
+
+services:
+  db:
+    image: mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    tmpfs:
+      - /var/lib/mysql
+
+  wp:
+    image: ${WP_IMAGE:-wordpress:latest}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WP_PORT:-8899}:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_DEBUG', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+        define('SCRIPT_DEBUG', ${SCRIPT_DEBUG:-true});
+        ${MULTISITE_CONF:-}
+    volumes:
+      - wp_data:/var/www/html
+
+  wpcli:
+    image: ${WPCLI_IMAGE:-wordpress:cli-php8.2}
+    depends_on:
+      wp:
+        condition: service_started
+      db:
+        condition: service_healthy
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
+      - ../../dist:/dist:ro
+      - ./gate.sh:/gate.sh:ro
+      - ./olders:/olders:ro
+      - ./check-zip-in-container.php:/check.php:ro
+      - ./zipdiff.php:/zipdiff.php:ro
+      - ./woo-probe.php:/woo-probe.php:ro
+      - ./multisite-probe.php:/multisite-probe.php:ro
+      - ./plugin-check.php:/plugin-check.php:ro
+      - ./pc-summary.sh:/pc-summary.sh:ro
+
+volumes:
+  wp_data:

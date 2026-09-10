@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'insightistic-*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release artifact (from tagged commit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+
+      - name: Derive expected plugin version from tag
+        id: ver
+        run: |
+          TAG="${GITHUB_REF_NAME#insightistic-}"
+          if [[ ! "$TAG" =~ ^[0-9]+(\.[0-9]+)*(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match insightistic-<version>"; exit 1
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: zip, openssl, mbstring
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: Enforce version contract against the tag
+        run: php scripts/validate-release.php "${{ steps.ver.outputs.version }}"
+
+      - name: PHP syntax lint
+        run: php scripts/lint-php.php
+
+      - name: Tests (incl. GA4 regression suites)
+        run: php tests/run.php
+
+      - name: Rebuild assets in-place & verify committed files are current
+        run: |
+          npm run build:assets
+          git diff --exit-code -- assets/ || { echo "::error::Assets in the tagged commit are stale."; exit 1; }
+
+      - name: Regenerate POT & verify committed template is current
+        run: |
+          cp languages/insightistic.pot /tmp/before.pot
+          php scripts/make-pot.php
+          # POT-Creation-Date is intentionally generated at build time; all
+          # other headers and extracted strings must match the tagged source.
+          grep -v 'POT-Creation-Date:' /tmp/before.pot > /tmp/before-normalized.pot
+          grep -v 'POT-Creation-Date:' languages/insightistic.pot > /tmp/after-normalized.pot
+          diff -u /tmp/before-normalized.pot /tmp/after-normalized.pot || { echo "::error::POT is stale in the tagged commit."; exit 1; }
+
+      - name: Build release ZIP from the tagged commit
+        run: php scripts/build-release.php
+
+      - name: Validate release ZIP
+        run: php scripts/validate-zip.php "dist/insightistic.${{ steps.ver.outputs.version }}.zip"
+
+      - name: Draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Insightistic ${{ steps.ver.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/insightistic.${{ steps.ver.outputs.version }}.zip
+            dist/insightistic.${{ steps.ver.outputs.version }}.zip.sha256

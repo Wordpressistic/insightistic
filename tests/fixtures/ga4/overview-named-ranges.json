@@ -1,0 +1,34 @@
+{
+    "dimensionHeaders": [
+        { "name": "dateRange" }
+    ],
+    "metricHeaders": [
+        { "name": "sessions", "type": "TYPE_INTEGER" },
+        { "name": "totalUsers", "type": "TYPE_INTEGER" },
+        { "name": "totalRevenue", "type": "TYPE_CURRENCY" },
+        { "name": "transactions", "type": "TYPE_INTEGER" },
+        { "name": "screenPageViews", "type": "TYPE_INTEGER" },
+        { "name": "averageSessionDuration", "type": "TYPE_SECONDS" },
+        { "name": "bounceRate", "type": "TYPE_FLOAT" },
+        { "name": "newUsers", "type": "TYPE_INTEGER" }
+    ],
+    "rows": [
+        {
+            "dimensionValues": [ { "value": "current" } ],
+            "metricValues": [
+                { "value": "1386" }, { "value": "921" }, { "value": "15420.55" },
+                { "value": "37" },   { "value": "4455" }, { "value": "214.6" },
+                { "value": "0.4231" }, { "value": "512" }
+            ]
+        },
+        {
+            "dimensionValues": [ { "value": "previous" } ],
+            "metricValues": [
+                { "value": "988" },  { "value": "700" }, { "value": "12000" },
+                { "value": "30" },   { "value": "3890" }, { "value": "195.2" },
+                { "value": "0.4512" }, { "value": "401" }
+            ]
+        }
+    ],
+    "rowCount": 2
+}

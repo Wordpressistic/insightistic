@@ -407,8 +407,10 @@ class Insightistic_AI {
 		return $prompt;
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Provider API Calls                                                   */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Provider API Calls                                                   */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -437,8 +439,14 @@ class Insightistic_AI {
 					array(
 						'model'           => $model,
 						'messages'        => array(
-							array( 'role' => 'system', 'content' => $this->system_prompt() ),
-							array( 'role' => 'user', 'content' => $prompt ),
+							array(
+								'role'    => 'system',
+								'content' => $this->system_prompt(),
+							),
+							array(
+								'role'    => 'user',
+								'content' => $prompt,
+							),
 						),
 						'temperature'     => 0.5,
 						'max_tokens'      => 2000,
@@ -479,8 +487,8 @@ class Insightistic_AI {
 							array( 'parts' => array( array( 'text' => $full_prompt ) ) ),
 						),
 						'generationConfig' => array(
-							'temperature'     => 0.5,
-							'maxOutputTokens' => 2000,
+							'temperature'      => 0.5,
+							'maxOutputTokens'  => 2000,
 							'responseMimeType' => 'application/json',
 						),
 					)
@@ -540,8 +548,14 @@ class Insightistic_AI {
 					array(
 						'model'       => $model,
 						'messages'    => array(
-							array( 'role' => 'system', 'content' => $this->system_prompt() ),
-							array( 'role' => 'user', 'content' => $prompt ),
+							array(
+								'role'    => 'system',
+								'content' => $this->system_prompt(),
+							),
+							array(
+								'role'    => 'user',
+								'content' => $prompt,
+							),
 						),
 						'temperature' => 0.3,
 						'max_tokens'  => 2000,
@@ -679,8 +693,14 @@ class Insightistic_AI {
 					array(
 						'model'       => $model,
 						'messages'    => array(
-							array( 'role' => 'system', 'content' => $this->system_prompt() ),
-							array( 'role' => 'user', 'content' => $prompt ),
+							array(
+								'role'    => 'system',
+								'content' => $this->system_prompt(),
+							),
+							array(
+								'role'    => 'user',
+								'content' => $prompt,
+							),
 						),
 						'temperature' => 0.3,
 						'max_tokens'  => 2000,
@@ -786,7 +806,10 @@ class Insightistic_AI {
 						'model'      => $model,
 						'system'     => $this->system_prompt(),
 						'messages'   => array(
-							array( 'role' => 'user', 'content' => $full_prompt ),
+							array(
+								'role'    => 'user',
+								'content' => $full_prompt,
+							),
 						),
 						'max_tokens' => 2000,
 					)
@@ -814,8 +837,10 @@ class Insightistic_AI {
 		return trim( $text );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Prompt Builders                                                      */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Prompt Builders                                                      */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -883,8 +908,10 @@ class Insightistic_AI {
 		return $prompt;
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Response Rendering                                                   */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Response Rendering                                                   */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -1022,8 +1049,10 @@ class Insightistic_AI {
 		return ob_get_clean();
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Helpers                                                              */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Helpers                                                              */
 	/* ------------------------------------------------------------------ */
 
 	/**

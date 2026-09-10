@@ -546,13 +546,41 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<div class="isp-provider-grid">
 						<?php
 						$providers = array(
-							'none'               => array( 'icon' => '', 'name' => __( 'None', 'insightistic' ), 'note' => __( 'Disabled', 'insightistic' ) ),
-							'openai'             => array( 'icon' => '', 'name' => 'OpenAI', 'note' => 'GPT-4o / GPT-4' ),
-							'gemini'             => array( 'icon' => '', 'name' => 'Google Gemini', 'note' => 'Gemini 1.5' ),
-							'openrouter'         => array( 'icon' => '', 'name' => 'OpenRouter', 'note' => __( 'Free models available', 'insightistic' ) ),
-							'groq'               => array( 'icon' => '', 'name' => 'Groq', 'note' => __( 'Fast and low-cost models', 'insightistic' ) ),
-							'claude'             => array( 'icon' => '', 'name' => 'Anthropic Claude', 'note' => 'Claude 3' ),
-							'insightistic_cloud' => array( 'icon' => '☁', 'name' => __( 'Insightistic Cloud AI', 'insightistic' ), 'note' => __( 'Free account • Ollama + Hermes SEO', 'insightistic' ) ),
+							'none'               => array(
+								'icon' => '',
+								'name' => __( 'None', 'insightistic' ),
+								'note' => __( 'Disabled', 'insightistic' ),
+							),
+							'openai'             => array(
+								'icon' => '',
+								'name' => 'OpenAI',
+								'note' => 'GPT-4o / GPT-4',
+							),
+							'gemini'             => array(
+								'icon' => '',
+								'name' => 'Google Gemini',
+								'note' => 'Gemini 1.5',
+							),
+							'openrouter'         => array(
+								'icon' => '',
+								'name' => 'OpenRouter',
+								'note' => __( 'Free models available', 'insightistic' ),
+							),
+							'groq'               => array(
+								'icon' => '',
+								'name' => 'Groq',
+								'note' => __( 'Fast and low-cost models', 'insightistic' ),
+							),
+							'claude'             => array(
+								'icon' => '',
+								'name' => 'Anthropic Claude',
+								'note' => 'Claude 3',
+							),
+							'insightistic_cloud' => array(
+								'icon' => '☁',
+								'name' => __( 'Insightistic Cloud AI', 'insightistic' ),
+								'note' => __( 'Free account • Ollama + Hermes SEO', 'insightistic' ),
+							),
 						);
 						foreach ( $providers as $key => $p ) :
 							$selected = $ai_provider === $key ? 'isp-provider-selected' : '';
@@ -579,40 +607,76 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 
 			<?php
 			foreach ( array( 'openai', 'gemini', 'openrouter', 'groq', 'claude' ) as $prov ) :
-				$display    = array( 'openai' => 'OpenAI', 'gemini' => 'Google Gemini', 'openrouter' => 'OpenRouter', 'groq' => 'Groq', 'claude' => 'Anthropic Claude' );
-				$key_stored = array( 'openai' => $openai_stored, 'gemini' => $gemini_stored, 'openrouter' => $openrouter_stored, 'groq' => $groq_stored, 'claude' => $claude_stored );
-				$cur_model  = array( 'openai' => $openai_model, 'gemini' => $gemini_model, 'openrouter' => $openrouter_model, 'groq' => $groq_model, 'claude' => $claude_model );
+				$display    = array(
+					'openai'     => 'OpenAI',
+					'gemini'     => 'Google Gemini',
+					'openrouter' => 'OpenRouter',
+					'groq'       => 'Groq',
+					'claude'     => 'Anthropic Claude',
+				);
+				$key_stored = array(
+					'openai'     => $openai_stored,
+					'gemini'     => $gemini_stored,
+					'openrouter' => $openrouter_stored,
+					'groq'       => $groq_stored,
+					'claude'     => $claude_stored,
+				);
+				$cur_model  = array(
+					'openai'     => $openai_model,
+					'gemini'     => $gemini_model,
+					'openrouter' => $openrouter_model,
+					'groq'       => $groq_model,
+					'claude'     => $claude_model,
+				);
 				$model_opts = array(
-					'openai'     => array( 'gpt-4o-mini' => 'GPT-4o Mini (recommended)', 'gpt-4o' => 'GPT-4o', 'gpt-4-turbo' => 'GPT-4 Turbo' ),
-					'gemini'     => array( 'gemini-1.5-flash' => 'Gemini 1.5 Flash (recommended)', 'gemini-1.5-pro' => 'Gemini 1.5 Pro', 'gemini-2.0-flash-exp' => 'Gemini 2.0 Flash' ),
+					'openai'     => array(
+						'gpt-4o-mini' => 'GPT-4o Mini (recommended)',
+						'gpt-4o'      => 'GPT-4o',
+						'gpt-4-turbo' => 'GPT-4 Turbo',
+					),
+					'gemini'     => array(
+						'gemini-1.5-flash'     => 'Gemini 1.5 Flash (recommended)',
+						'gemini-1.5-pro'       => 'Gemini 1.5 Pro',
+						'gemini-2.0-flash-exp' => 'Gemini 2.0 Flash',
+					),
 					'openrouter' => array(
 						// --- Free tier models (:free suffix = no API cost) ---
 						// Current as of the 3.2.1 release. If a slug ever 404s on
 						// OpenRouter, use the custom-model input below with any
 						// slug from https://openrouter.ai/models?max_price=0
-						'meta-llama/llama-3.3-70b-instruct:free'      => 'Meta Llama 3.3 70B (Free - recommended)',
-						'deepseek/deepseek-chat-v3-0324:free'         => 'DeepSeek Chat V3 (Free)',
-						'deepseek/deepseek-r1-0528:free'              => 'DeepSeek R1 (Free - reasoning)',
-						'google/gemma-2-9b-it:free'                   => 'Google Gemma 2 9B (Free)',
+						'meta-llama/llama-3.3-70b-instruct:free' => 'Meta Llama 3.3 70B (Free - recommended)',
+						'deepseek/deepseek-chat-v3-0324:free' => 'DeepSeek Chat V3 (Free)',
+						'deepseek/deepseek-r1-0528:free'  => 'DeepSeek R1 (Free - reasoning)',
+						'google/gemma-2-9b-it:free'       => 'Google Gemma 2 9B (Free)',
 						'mistralai/mistral-small-3.2-24b-instruct:free' => 'Mistral Small 3.2 24B (Free)',
 						'mistralai/mistral-small-3.1-24b-instruct:free' => 'Mistral Small 3.1 24B (Free)',
-						'qwen/qwen3-14b:free'                         => 'Qwen 3 14B (Free)',
-						'qwen/qwen3-8b:free'                          => 'Qwen 3 8B (Free)',
-						'meta-llama/llama-3.2-3b-instruct:free'       => 'Meta Llama 3.2 3B (Free - fast)',
-						'nvidia/nemotron-nano-9b-v2:free'             => 'NVIDIA Nemotron Nano 9B v2 (Free)',
+						'qwen/qwen3-14b:free'             => 'Qwen 3 14B (Free)',
+						'qwen/qwen3-8b:free'              => 'Qwen 3 8B (Free)',
+						'meta-llama/llama-3.2-3b-instruct:free' => 'Meta Llama 3.2 3B (Free - fast)',
+						'nvidia/nemotron-nano-9b-v2:free' => 'NVIDIA Nemotron Nano 9B v2 (Free)',
 						// --- Reliable paid fallbacks ---
-						'openai/gpt-4o-mini'                          => 'GPT-4o Mini (Paid)',
-						'anthropic/claude-3.5-haiku'                  => 'Claude 3.5 Haiku (Paid)',
+						'openai/gpt-4o-mini'              => 'GPT-4o Mini (Paid)',
+						'anthropic/claude-3.5-haiku'      => 'Claude 3.5 Haiku (Paid)',
 					),
 					'groq'       => array(
-						'llama-3.1-8b-instant' => 'Llama 3.1 8B Instant',
+						'llama-3.1-8b-instant'    => 'Llama 3.1 8B Instant',
 						'llama-3.3-70b-versatile' => 'Llama 3.3 70B Versatile',
-						'mixtral-8x7b-32768' => 'Mixtral 8x7B',
-						'gemma2-9b-it' => 'Gemma2 9B IT',
+						'mixtral-8x7b-32768'      => 'Mixtral 8x7B',
+						'gemma2-9b-it'            => 'Gemma2 9B IT',
 					),
-					'claude'     => array( 'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (recommended)', 'claude-sonnet-4-6' => 'Claude Sonnet 4.6', 'claude-opus-4-6' => 'Claude Opus 4.6' ),
+					'claude'     => array(
+						'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (recommended)',
+						'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
+						'claude-opus-4-6'           => 'Claude Opus 4.6',
+					),
 				);
-				$key_fields = array( 'openai' => 'openai_api_key', 'gemini' => 'gemini_api_key', 'openrouter' => 'openrouter_api_key', 'groq' => 'groq_api_key', 'claude' => 'claude_api_key' );
+				$key_fields = array(
+					'openai'     => 'openai_api_key',
+					'gemini'     => 'gemini_api_key',
+					'openrouter' => 'openrouter_api_key',
+					'groq'       => 'groq_api_key',
+					'claude'     => 'claude_api_key',
+				);
 				$vis        = $ai_provider === $prov ? '' : 'display:none;';
 				?>
 			<div class="isp-settings-card isp-provider-settings" id="isp-settings-<?php echo esc_attr( $prov ); ?>" style="<?php echo esc_attr( $vis ); ?>">

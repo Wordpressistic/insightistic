@@ -1,0 +1,29 @@
+{
+    "metricHeaders": [
+        { "name": "sessions", "type": "TYPE_INTEGER" },
+        { "name": "totalUsers", "type": "TYPE_INTEGER" },
+        { "name": "totalRevenue", "type": "TYPE_CURRENCY" },
+        { "name": "transactions", "type": "TYPE_INTEGER" },
+        { "name": "screenPageViews", "type": "TYPE_INTEGER" },
+        { "name": "averageSessionDuration", "type": "TYPE_SECONDS" },
+        { "name": "bounceRate", "type": "TYPE_FLOAT" },
+        { "name": "newUsers", "type": "TYPE_INTEGER" }
+    ],
+    "totals": [
+        {
+            "metricValues": [
+                { "value": "1200" }, { "value": "800" }, { "value": "9000.99" },
+                { "value": "18" },   { "value": "3100" }, { "value": "178.4" },
+                { "value": "0.512" }, { "value": "430" }
+            ]
+        },
+        {
+            "metricValues": [
+                { "value": "1000" }, { "value": "750" }, { "value": "8000.5" },
+                { "value": "20" },   { "value": "2900" }, { "value": "164.9" },
+                { "value": "0.488" }, { "value": "420" }
+            ]
+        }
+    ],
+    "rowCount": 1
+}

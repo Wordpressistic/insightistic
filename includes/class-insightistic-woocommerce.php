@@ -36,8 +36,10 @@ class Insightistic_Woocommerce {
 		add_action( 'wp_ajax_insightistic_woo_ai_analyze', array( $this, 'ajax_ai_analyze' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* AJAX handlers                                                        */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	AJAX handlers                                                        */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -102,8 +104,10 @@ class Insightistic_Woocommerce {
 		wp_send_json_success( $result );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Public helpers                                                       */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Public helpers                                                       */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -151,11 +155,11 @@ class Insightistic_Woocommerce {
 
 		$result = array(
 			'period'          => array(
-				'days'    => $days,
-				'start'   => $start,
-				'end'     => $end,
+				'days'     => $days,
+				'start'    => $start,
+				'end'      => $end,
 				'currency' => get_woocommerce_currency(),
-				'symbol'  => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
+				'symbol'   => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 			),
 			'overview'        => $this->build_overview( $current, $previous ),
 			'timeline'        => $this->build_timeline( $current['orders'], $days ),
@@ -177,8 +181,10 @@ class Insightistic_Woocommerce {
 		return $result;
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Data collection                                                      */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Data collection                                                      */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -245,14 +251,14 @@ class Insightistic_Woocommerce {
 				if ( ! isset( $line_items[ $pid ] ) ) {
 					$product            = $item->get_product();
 					$line_items[ $pid ] = array(
-						'id'         => $pid,
-						'name'       => $item->get_name(),
-						'sku'        => $product ? $product->get_sku() : '',
-						'category'   => $product ? $this->primary_category( $product ) : '',
-						'units'      => 0,
-						'revenue'    => 0.0,
-						'orders'     => 0,
-						'edit_url'   => $pid ? get_edit_post_link( $pid, '' ) : '',
+						'id'       => $pid,
+						'name'     => $item->get_name(),
+						'sku'      => $product ? $product->get_sku() : '',
+						'category' => $product ? $this->primary_category( $product ) : '',
+						'units'    => 0,
+						'revenue'  => 0.0,
+						'orders'   => 0,
+						'edit_url' => $pid ? get_edit_post_link( $pid, '' ) : '',
 					);
 				}
 				$line_items[ $pid ]['units']   += (float) $item->get_quantity();
@@ -267,20 +273,22 @@ class Insightistic_Woocommerce {
 		}
 
 		return array(
-			'orders'        => $orders,
-			'refunds'       => $refunds_query,
-			'gross'         => $gross,
-			'discount'      => $discount,
-			'tax'           => $tax,
-			'shipping'      => $shipping,
-			'refund_total'  => abs( $refund_total ),
-			'order_count'   => count( $orders ),
-			'line_items'    => $line_items,
+			'orders'       => $orders,
+			'refunds'      => $refunds_query,
+			'gross'        => $gross,
+			'discount'     => $discount,
+			'tax'          => $tax,
+			'shipping'     => $shipping,
+			'refund_total' => abs( $refund_total ),
+			'order_count'  => count( $orders ),
+			'line_items'   => $line_items,
 		);
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Builders                                                             */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Builders                                                             */
 	/* ------------------------------------------------------------------ */
 
 	private function build_overview( $current, $previous ) {
@@ -297,14 +305,14 @@ class Insightistic_Woocommerce {
 		$previous_net = $previous['gross'] - $previous['refund_total'];
 
 		return array(
-			'revenue'         => $this->kpi( $current['gross'],          $previous['gross'],          true ),
-			'net_revenue'     => $this->kpi( $current_net,                $previous_net,               true ),
-			'orders'          => $this->kpi( $current['order_count'],    $previous['order_count'],    false ),
-			'aov'             => $this->kpi( $current_aov,                $previous_aov,               true ),
-			'refund_rate'     => $this->kpi( round( $current_refund_rate, 2 ), round( $previous_refund_rate, 2 ), false, '%' ),
-			'new_customers'   => $this->kpi( $customer_stats['new'],     $prev_customers['new'],     false ),
-			'repeat_rate'     => $this->kpi( $customer_stats['repeat_rate'], $prev_customers['repeat_rate'], false, '%' ),
-			'units_sold'      => $this->kpi( $customer_stats['units'],    $prev_customers['units'],   false ),
+			'revenue'       => $this->kpi( $current['gross'], $previous['gross'], true ),
+			'net_revenue'   => $this->kpi( $current_net, $previous_net, true ),
+			'orders'        => $this->kpi( $current['order_count'], $previous['order_count'], false ),
+			'aov'           => $this->kpi( $current_aov, $previous_aov, true ),
+			'refund_rate'   => $this->kpi( round( $current_refund_rate, 2 ), round( $previous_refund_rate, 2 ), false, '%' ),
+			'new_customers' => $this->kpi( $customer_stats['new'], $prev_customers['new'], false ),
+			'repeat_rate'   => $this->kpi( $customer_stats['repeat_rate'], $prev_customers['repeat_rate'], false, '%' ),
+			'units_sold'    => $this->kpi( $customer_stats['units'], $prev_customers['units'], false ),
 		);
 	}
 
@@ -365,7 +373,10 @@ class Insightistic_Woocommerce {
 		// Pre-fill all days so the chart has zero entries for empty days.
 		for ( $i = $days - 1; $i >= 0; $i-- ) {
 			$key             = gmdate( 'Y-m-d', strtotime( "-{$i} days", current_time( 'timestamp' ) ) );
-			$buckets[ $key ] = array( 'rev' => 0.0, 'orders' => 0 );
+			$buckets[ $key ] = array(
+				'rev'    => 0.0,
+				'orders' => 0,
+			);
 			$labels[]        = $key;
 		}
 		foreach ( $orders as $order ) {
@@ -440,7 +451,10 @@ class Insightistic_Woocommerce {
 		foreach ( $line_items as $item ) {
 			$cat = $item['category'] ?: __( 'Uncategorised', 'insightistic' );
 			if ( ! isset( $cats[ $cat ] ) ) {
-				$cats[ $cat ] = array( 'revenue' => 0.0, 'units' => 0 );
+				$cats[ $cat ] = array(
+					'revenue' => 0.0,
+					'units'   => 0,
+				);
 			}
 			$cats[ $cat ]['revenue'] += $item['revenue'];
 			$cats[ $cat ]['units']   += $item['units'];
@@ -474,11 +488,11 @@ class Insightistic_Woocommerce {
 			$key   = $cid ? 'u_' . $cid : 'e_' . $email;
 			if ( ! isset( $people[ $key ] ) ) {
 				$people[ $key ] = array(
-					'id'       => $cid,
-					'name'     => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ?: $email,
-					'email'    => $email,
-					'orders'   => 0,
-					'revenue'  => 0.0,
+					'id'      => $cid,
+					'name'    => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ?: $email,
+					'email'   => $email,
+					'orders'  => 0,
+					'revenue' => 0.0,
 				);
 			}
 			$people[ $key ]['orders']  += 1;
@@ -534,7 +548,10 @@ class Insightistic_Woocommerce {
 				continue;
 			}
 			if ( ! isset( $by_country[ $country ] ) ) {
-				$by_country[ $country ] = array( 'orders' => 0, 'revenue' => 0.0 );
+				$by_country[ $country ] = array(
+					'orders'  => 0,
+					'revenue' => 0.0,
+				);
 			}
 			$by_country[ $country ]['orders']  += 1;
 			$by_country[ $country ]['revenue'] += (float) $order->get_total();
@@ -570,7 +587,11 @@ class Insightistic_Woocommerce {
 			$key  = $order->get_payment_method() ?: 'unknown';
 			$name = $order->get_payment_method_title() ?: $key;
 			if ( ! isset( $methods[ $key ] ) ) {
-				$methods[ $key ] = array( 'label' => $name, 'orders' => 0, 'revenue' => 0.0 );
+				$methods[ $key ] = array(
+					'label'   => $name,
+					'orders'  => 0,
+					'revenue' => 0.0,
+				);
 			}
 			$methods[ $key ]['orders']  += 1;
 			$methods[ $key ]['revenue'] += (float) $order->get_total();
@@ -601,7 +622,10 @@ class Insightistic_Woocommerce {
 			}
 			foreach ( $used as $code ) {
 				if ( ! isset( $coupons[ $code ] ) ) {
-					$coupons[ $code ] = array( 'uses' => 0, 'discount' => 0.0 );
+					$coupons[ $code ] = array(
+						'uses'     => 0,
+						'discount' => 0.0,
+					);
 				}
 				$coupons[ $code ]['uses']     += 1;
 				$coupons[ $code ]['discount'] += (float) $order->get_total_discount();
@@ -638,7 +662,10 @@ class Insightistic_Woocommerce {
 		arsort( $reasons );
 		$reason_rows = array();
 		foreach ( $reasons as $reason => $n ) {
-			$reason_rows[] = array( 'reason' => $reason, 'count' => $n );
+			$reason_rows[] = array(
+				'reason' => $reason,
+				'count'  => $n,
+			);
 		}
 		return array(
 			'count'   => $count,
@@ -715,19 +742,19 @@ class Insightistic_Woocommerce {
 	 */
 	private function build_structured_data( $current, $previous ) {
 		return array(
-			'currency'      => get_woocommerce_currency(),
-			'gross_revenue' => round( $current['gross'], 2 ),
-			'net_revenue'   => round( $current['gross'] - $current['refund_total'], 2 ),
-			'orders'        => $current['order_count'],
-			'aov'           => $current['order_count'] ? round( $current['gross'] / $current['order_count'], 2 ) : 0,
-			'refund_amount' => round( $current['refund_total'], 2 ),
-			'refund_rate'   => $current['gross'] ? round( ( $current['refund_total'] / $current['gross'] ) * 100, 2 ) : 0,
-			'previous'      => array(
+			'currency'       => get_woocommerce_currency(),
+			'gross_revenue'  => round( $current['gross'], 2 ),
+			'net_revenue'    => round( $current['gross'] - $current['refund_total'], 2 ),
+			'orders'         => $current['order_count'],
+			'aov'            => $current['order_count'] ? round( $current['gross'] / $current['order_count'], 2 ) : 0,
+			'refund_amount'  => round( $current['refund_total'], 2 ),
+			'refund_rate'    => $current['gross'] ? round( ( $current['refund_total'] / $current['gross'] ) * 100, 2 ) : 0,
+			'previous'       => array(
 				'gross_revenue' => round( $previous['gross'], 2 ),
 				'orders'        => $previous['order_count'],
 				'refund_amount' => round( $previous['refund_total'], 2 ),
 			),
-			'top_products'  => array_slice( $this->build_top_products( $current['line_items'], 5 ), 0, 5 ),
+			'top_products'   => array_slice( $this->build_top_products( $current['line_items'], 5 ), 0, 5 ),
 			'top_categories' => array_slice( $this->build_top_categories( $current['line_items'], 5 ), 0, 5 ),
 		);
 	}

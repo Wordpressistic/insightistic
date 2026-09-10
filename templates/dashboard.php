@@ -503,7 +503,13 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 				wp_kses(
 					/* translators: %s: Insightistic account URL */
 					__( 'Connect Cloudflare in your <a href="%s" target="_blank" rel="noopener">Insightistic account</a> to see Traffic Insights here — no Zone ID or API token needed.', 'insightistic' ),
-					array( 'a' => array( 'href' => array(), 'target' => array(), 'rel' => array() ) )
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
 				),
 				esc_url( 'https://app.insightistic.com/' )
 			);

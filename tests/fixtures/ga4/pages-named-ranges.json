@@ -1,0 +1,39 @@
+{
+    "dimensionHeaders": [
+        { "name": "pageTitle" },
+        { "name": "pagePath" },
+        { "name": "dateRange" }
+    ],
+    "metricHeaders": [
+        { "name": "screenPageViews", "type": "TYPE_INTEGER" },
+        { "name": "bounceRate", "type": "TYPE_FLOAT" },
+        { "name": "averageSessionDuration", "type": "TYPE_SECONDS" }
+    ],
+    "rows": [
+        {
+            "dimensionValues": [ { "value": "Home" }, { "value": "/" }, { "value": "current" } ],
+            "metricValues": [ { "value": "1420" }, { "value": "0.3891" }, { "value": "142.4" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Home" }, { "value": "/" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "1210" }, { "value": "0.4012" }, { "value": "135.2" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Pricing" }, { "value": "/pricing/" }, { "value": "current" } ],
+            "metricValues": [ { "value": "640" }, { "value": "0.4123" }, { "value": "98.7" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Pricing" }, { "value": "/pricing/" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "480" }, { "value": "0.4419" }, { "value": "91.3" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Blog: GA4 guide" }, { "value": "/blog/ga4-guide/" }, { "value": "current" } ],
+            "metricValues": [ { "value": "410" }, { "value": "0.2876" }, { "value": "220.9" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Blog: GA4 guide" }, { "value": "/blog/ga4-guide/" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "205" }, { "value": "0.3011" }, { "value": "201.5" } ]
+        }
+    ],
+    "rowCount": 6
+}

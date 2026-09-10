@@ -396,56 +396,66 @@ class Insightistic_GA {
 		if ( is_wp_error( $data ) || ( ! isset( $data['totals'] ) && ! isset( $data['rows'] ) ) ) {
 			return null;
 		}
+		// A malformed payload (rows not an array) must degrade to "no data".
+		if ( isset( $data['rows'] ) && ! is_array( $data['rows'] ) && ! isset( $data['totals'] ) ) {
+			return null;
+		}
 
 		// GA4 Data API: named dateRanges return `rows` keyed by the dateRange
 		// dimension (no `totals`). Older/un-named ranges returned totals[].
 		if ( isset( $data['totals'] ) ) {
-			$cur  = $data['totals'][0]['metricValues'];
-			$prev = $data['totals'][1]['metricValues'];
+			$cur  = $data['totals'][0]['metricValues'] ?? array();
+			$prev = $data['totals'][1]['metricValues'] ?? $cur;
 		} else {
 			$cur  = null;
 			$prev = null;
-			foreach ( $data['rows'] as $row ) {
+			foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 				$range = $row['dimensionValues'][0]['value'] ?? '';
-				if ( 'current' === $range ) { $cur = $row['metricValues']; }
-				if ( 'previous' === $range ) { $prev = $row['metricValues']; }
+				if ( 'current' === $range ) { $cur = $row['metricValues'] ?? array(); }
+				if ( 'previous' === $range ) { $prev = $row['metricValues'] ?? array(); }
 			}
 			if ( null === $cur ) { return null; }
 			if ( null === $prev ) { $prev = $cur; }
 		}
 
-		$cur_new      = floatval( $cur[7]['value'] );
-		$cur_total    = floatval( $cur[1]['value'] );
+		// Null-safe metric access — degrade to 0 when a metric is missing or
+		// a row is malformed instead of raising PHP notices.
+		$metric = static function ( $set, $i ) {
+			return isset( $set[ $i ]['value'] ) ? $set[ $i ]['value'] : '0';
+		};
+
+		$cur_new      = floatval( $metric( $cur, 7 ) );
+		$cur_total    = floatval( $metric( $cur, 1 ) );
 		$return_ratio = $cur_total > 0 ? round( ( ( $cur_total - $cur_new ) / $cur_total ) * 100, 1 ) : 0;
 		$new_ratio    = $cur_total > 0 ? round( ( $cur_new / $cur_total ) * 100, 1 ) : 0;
 
 		// Format avg session duration as m:ss.
-		$avg_dur_sec = floatval( $cur[5]['value'] );
+		$avg_dur_sec = floatval( $metric( $cur, 5 ) );
 		$dur_min     = floor( $avg_dur_sec / 60 );
-		$dur_sec     = str_pad( (int) ( $avg_dur_sec % 60 ), 2, '0', STR_PAD_LEFT );
+		$dur_sec     = str_pad( (int) $avg_dur_sec % 60, 2, '0', STR_PAD_LEFT );
 
-		$prev_dur_sec = floatval( $prev[5]['value'] );
+		$prev_dur_sec = floatval( $metric( $prev, 5 ) );
 
 		return array(
 			'sessions'     => array(
-				'value'  => intval( $cur[0]['value'] ),
-				'change' => $this->percent_change( floatval( $prev[0]['value'] ), floatval( $cur[0]['value'] ) ),
+				'value'  => intval( $metric( $cur, 0 ) ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 0 ) ), floatval( $metric( $cur, 0 ) ) ),
 			),
 			'unique_users' => array(
-				'value'  => intval( $cur[1]['value'] ),
-				'change' => $this->percent_change( floatval( $prev[1]['value'] ), floatval( $cur[1]['value'] ) ),
+				'value'  => intval( $metric( $cur, 1 ) ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 1 ) ), floatval( $metric( $cur, 1 ) ) ),
 			),
 			'revenue'      => array(
-				'value'  => round( floatval( $cur[2]['value'] ), 2 ),
-				'change' => $this->percent_change( floatval( $prev[2]['value'] ), floatval( $cur[2]['value'] ) ),
+				'value'  => round( floatval( $metric( $cur, 2 ) ), 2 ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 2 ) ), floatval( $metric( $cur, 2 ) ) ),
 			),
 			'transactions' => array(
-				'value'  => intval( $cur[3]['value'] ),
-				'change' => $this->percent_change( floatval( $prev[3]['value'] ), floatval( $cur[3]['value'] ) ),
+				'value'  => intval( $metric( $cur, 3 ) ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 3 ) ), floatval( $metric( $cur, 3 ) ) ),
 			),
 			'pageviews'    => array(
-				'value'  => intval( $cur[4]['value'] ),
-				'change' => $this->percent_change( floatval( $prev[4]['value'] ), floatval( $cur[4]['value'] ) ),
+				'value'  => intval( $metric( $cur, 4 ) ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 4 ) ), floatval( $metric( $cur, 4 ) ) ),
 			),
 			'avg_duration' => array(
 				'value'       => $dur_min . ':' . $dur_sec,
@@ -453,8 +463,8 @@ class Insightistic_GA {
 				'change'      => $this->percent_change( $prev_dur_sec, $avg_dur_sec ),
 			),
 			'bounce_rate'  => array(
-				'value'  => round( floatval( $cur[6]['value'] ) * 100, 1 ),
-				'change' => $this->percent_change( floatval( $prev[6]['value'] ), floatval( $cur[6]['value'] ) ),
+				'value'  => round( floatval( $metric( $cur, 6 ) ) * 100, 1 ),
+				'change' => $this->percent_change( floatval( $metric( $prev, 6 ) ), floatval( $metric( $cur, 6 ) ) ),
 			),
 			'new_vs_return' => array(
 				'new_pct'     => $new_ratio,
@@ -484,22 +494,32 @@ class Insightistic_GA {
 		);
 
 		$data = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) ) {
+		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) || ! is_array( $data['rows'] ) ) {
 			return array();
 		}
 
 		$total_cur = 0;
 		$rows_raw  = array();
-		foreach ( $data['rows'] as $row ) {
-			$cur_val    = intval( $row['metricValues'][0]['value'] );
-			$has_range_dim = isset( $data['rows'][0]['dimensionValues'][1]['value'] );
+		$prev_map  = array();
+		// Named dateRanges append the range as an extra dimension — map
+		// previous-period sessions per country first (the pre-4.4.2 code read
+		// metricValues[3], an index that never exists in this 1-metric report,
+		// so every country's change % was fixed at 100/0).
+		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][1]['value'] );
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
+			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? '' ) === 'previous' ) {
+				$prev_map[ $row['dimensionValues'][0]['value'] ?? '' ] = intval( $row['metricValues'][0]['value'] ?? 0 );
+			}
+		}
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? 'current' ) !== 'current' ) {
 				continue;
 			}
-			$prev_val   = intval( $row['metricValues'][3]['value'] ?? 0 );
+			$cur_val    = intval( $row['metricValues'][0]['value'] ?? 0 );
+			$prev_val   = $has_range_dim ? ( $prev_map[ $row['dimensionValues'][0]['value'] ?? '' ] ?? 0 ) : intval( $row['metricValues'][3]['value'] ?? 0 );
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
-				'country' => $row['dimensionValues'][0]['value'],
+				'country' => $row['dimensionValues'][0]['value'] ?? '',
 				'current' => $cur_val,
 				'prev'    => $prev_val,
 			);
@@ -543,7 +563,7 @@ class Insightistic_GA {
 		);
 
 		$data = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) ) {
+		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) || ! is_array( $data['rows'] ) ) {
 			return array();
 		}
 
@@ -551,25 +571,25 @@ class Insightistic_GA {
 		$rows_raw  = array();
 		$prev_map  = array();
 		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][2]['value'] );
-		foreach ( $data['rows'] as $row ) {
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][2]['value'] ?? '' ) === 'previous' ) {
-				$prev_map[ $row['dimensionValues'][1]['value'] ] = intval( $row['metricValues'][0]['value'] );
+				$prev_map[ $row['dimensionValues'][1]['value'] ?? '' ] = intval( $row['metricValues'][0]['value'] ?? 0 );
 			}
 		}
-		foreach ( $data['rows'] as $row ) {
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][2]['value'] ?? 'current' ) !== 'current' ) {
 				continue;
 			}
-			$cur_val    = intval( $row['metricValues'][0]['value'] );
-			$prev_val   = $prev_map[ $row['dimensionValues'][1]['value'] ] ?? 0;
+			$cur_val    = intval( $row['metricValues'][0]['value'] ?? 0 );
+			$prev_val   = $prev_map[ $row['dimensionValues'][1]['value'] ?? '' ] ?? 0;
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
-				'title'       => $row['dimensionValues'][0]['value'],
-				'path'        => $row['dimensionValues'][1]['value'],
+				'title'       => $row['dimensionValues'][0]['value'] ?? '',
+				'path'        => $row['dimensionValues'][1]['value'] ?? '',
 				'current'     => $cur_val,
 				'prev'        => $prev_val,
-				'bounce_rate' => round( floatval( $row['metricValues'][1]['value'] ) * 100, 1 ),
-				'avg_time'    => floatval( $row['metricValues'][2]['value'] ),
+				'bounce_rate' => round( floatval( $row['metricValues'][1]['value'] ?? 0 ) * 100, 1 ),
+				'avg_time'    => floatval( $row['metricValues'][2]['value'] ?? 0 ),
 			);
 		}
 
@@ -583,7 +603,7 @@ class Insightistic_GA {
 				'share'      => $total_cur > 0 ? round( ( $r['current'] / $total_cur ) * 100, 1 ) : 0,
 				'change'     => $this->percent_change( $r['prev'], $r['current'] ),
 				'bounce'     => $r['bounce_rate'],
-				'avg_time'   => floor( $avg_sec / 60 ) . ':' . str_pad( (int) ( $avg_sec % 60 ), 2, '0', STR_PAD_LEFT ),
+				'avg_time'   => floor( $avg_sec / 60 ) . ':' . str_pad( (int) $avg_sec % 60, 2, '0', STR_PAD_LEFT ),
 			);
 		}
 		return $result;
@@ -612,7 +632,7 @@ class Insightistic_GA {
 		);
 
 		$data = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) ) {
+		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) || ! is_array( $data['rows'] ) ) {
 			return array();
 		}
 
@@ -621,23 +641,23 @@ class Insightistic_GA {
 		$prev_map  = array();
 		// Named dateRanges append the range as an extra dimension — map previous-period values first.
 		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][1]['value'] );
-		foreach ( $data['rows'] as $row ) {
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? '' ) === 'previous' ) {
-				$prev_map[ $row['dimensionValues'][0]['value'] ] = intval( $row['metricValues'][0]['value'] );
+				$prev_map[ $row['dimensionValues'][0]['value'] ?? '' ] = intval( $row['metricValues'][0]['value'] ?? 0 );
 			}
 		}
-		foreach ( $data['rows'] as $row ) {
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][1]['value'] ?? 'current' ) !== 'current' ) {
 				continue;
 			}
-			$cur_val    = intval( $row['metricValues'][0]['value'] );
-			$prev_val   = $prev_map[ $row['dimensionValues'][0]['value'] ] ?? 0;
+			$cur_val    = intval( $row['metricValues'][0]['value'] ?? 0 );
+			$prev_val   = $prev_map[ $row['dimensionValues'][0]['value'] ?? '' ] ?? 0;
 			$total_cur += $cur_val;
 			$rows_raw[] = array(
-				'channel' => $row['dimensionValues'][0]['value'],
+				'channel' => $row['dimensionValues'][0]['value'] ?? '',
 				'current' => $cur_val,
-				'users'   => intval( $row['metricValues'][1]['value'] ),
-				'bounce'  => round( floatval( $row['metricValues'][2]['value'] ) * 100, 1 ),
+				'users'   => intval( $row['metricValues'][1]['value'] ?? 0 ),
+				'bounce'  => round( floatval( $row['metricValues'][2]['value'] ?? 0 ) * 100, 1 ),
 				'prev'    => $prev_val,
 			);
 		}

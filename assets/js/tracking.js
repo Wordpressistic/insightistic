@@ -3,7 +3,7 @@
  * Posts custom events to the Insightistic server-side collector, which then
  * forwards them to the GA4 Measurement Protocol. The Measurement Protocol
  * secret stays on the server and is never exposed to the browser.
- * < 2KB minified. Loaded only when enabled in Settings.
+ * < 3KB minified (budget enforced by `npm run size`). Loaded only when enabled in Settings.
  *
  * @package Insightistic
  */
@@ -14,6 +14,10 @@
 
 	var cfg    = ispTracking;
 	var origin = window.location.hostname;
+
+	function pageUrl() {
+		return window.location.href;
+	}
 
 	/* ------------------------------------------------------------------ */
 	/* Server-side collector helper                                        */
@@ -109,7 +113,7 @@
 					scrollFired[ milestone ] = true;
 					sendEvent( 'scroll_depth', {
 						percent_scrolled: milestone,
-						page_location   : window.location.href
+						page_location   : pageUrl()
 					} );
 				}
 			}
@@ -123,6 +127,57 @@
 	}
 
 	/* ------------------------------------------------------------------ */
+	/* Form Submit + Site Search Tracking                                  */
+	/* ------------------------------------------------------------------ */
+	document.addEventListener( 'submit', function ( e ) {
+		var f = e.target;
+		if ( ! f || f.tagName !== 'FORM' ) return;
+		var q = f.querySelector( 'input[name="s"],input[type="search"]' );
+		if ( q && q.value ) {
+			sendEvent( 'site_search', {
+				search_term  : ( q.value + '' ).slice( 0, 100 ),
+				page_location: pageUrl()
+			} );
+			return;
+		}
+		sendEvent( 'form_submit', {
+			form_id      : f.id || '',
+			form_action  : ( f.action || '' ).slice( 0, 150 ),
+			page_location: pageUrl()
+		} );
+	}, true );
+
+	/* ------------------------------------------------------------------ */
+	/* Video Play Tracking (first play per video)                          */
+	/* ------------------------------------------------------------------ */
+	var playedVideos = {};
+	document.addEventListener( 'play', function ( e ) {
+		var v = e.target;
+		if ( ! v || v.tagName !== 'VIDEO' ) return;
+		var src = v.currentSrc || v.src || '';
+		if ( playedVideos[ src ] ) return;
+		playedVideos[ src ] = 1;
+		sendEvent( 'video_play', {
+			video_url    : src.slice( 0, 150 ),
+			page_location: pageUrl()
+		} );
+	}, true );
+
+	/* ------------------------------------------------------------------ */
+	/* Content Copy Tracking (once per page view)                          */
+	/* ------------------------------------------------------------------ */
+	var copyFired = false;
+	document.addEventListener( 'copy', function () {
+		if ( copyFired ) return;
+		copyFired = true;
+		var sel = String( ( window.getSelection && window.getSelection() ) || '' );
+		sendEvent( 'content_copy', {
+			copy_length  : sel.length,
+			page_location: pageUrl()
+		} );
+	} );
+
+	/* ------------------------------------------------------------------ */
 	/* Element Click Tracking (.isp-track)                                */
 	/* ------------------------------------------------------------------ */
 	if ( cfg.trackEvents && cfg.eventSelectors && cfg.eventSelectors.length ) {
@@ -134,7 +189,7 @@
 						element_id   : el.id || '',
 						element_class: el.className || '',
 						element_text : ( el.textContent || '' ).trim().slice( 0, 100 ),
-						page_location: window.location.href
+						page_location: pageUrl()
 					} );
 					break;
 				}

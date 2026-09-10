@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 4.4.1
+Stable tag: 4.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,22 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.4.2 (2026-09-10) =
+
+Release integrity and compatibility hotfix.
+
+* Fixed the plugin header/runtime version mismatch left over from 4.4.1 (header still said 4.4.0 while the runtime constant said 4.4.1). Both now read 4.4.2.
+* Synchronized all release metadata: plugin header, INSIGHTISTIC_VERSION constant, readme.txt stable tag, README, translation template, release ZIP name, and the git tag all agree on 4.4.2.
+* Rebuilt the translation template (POT) from current source — it previously advertised "Insightistic 3.0.0". Removed the byte-order mark (BOM) from the POT and from admin.css.
+* Repaired CI: .github/workflows/php.yml contained Composer JSON instead of a GitHub Actions workflow. Restored a real lint/test/build workflow plus a tag-driven release workflow that builds the ZIP from the tagged commit.
+* Fixed the release ZIP structure: files now sit inside a single insightistic/ directory instead of at the archive root.
+* Cleaned the production package: source maps (admin.min.js.map) and the tracking.src.js debug file are no longer shipped. The tracker source was consolidated to tracking.js (loaded only in SCRIPT_DEBUG mode) and is built to tracking.min.js, matching the admin.js/admin.min.js pattern.
+* Restored the GPL-2.0-or-later LICENSE file to the distribution package.
+* Added automated GA4 regression tests covering both named-dateRange and legacy totals[] response shapes, plus edge cases (zero previous period, empty rows, missing metrics, malformed responses, API errors, division-by-zero, numeric strings, extra dimensions).
+* Added a release validation gate (`composer release-check`) that fails on any version mismatch, stale minified assets, bad ZIP structure, or missing required files.
+* Added fresh-install and upgrade release gates (4.4.0 → 4.4.2, 4.4.1 → 4.4.2) exercised against real WordPress environments.
+* Updated WordPress compatibility metadata after successful testing.
 
 = 4.4.1 (2026-09-09) =
 

@@ -1,0 +1,36 @@
+{
+    "dimensionHeaders": [
+        { "name": "country" },
+        { "name": "dateRange" }
+    ],
+    "metricHeaders": [
+        { "name": "sessions", "type": "TYPE_INTEGER" }
+    ],
+    "rows": [
+        {
+            "dimensionValues": [ { "value": "United States" }, { "value": "current" } ],
+            "metricValues": [ { "value": "500" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "United States" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "400" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "United Kingdom" }, { "value": "current" } ],
+            "metricValues": [ { "value": "300" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "United Kingdom" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "350" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Germany" }, { "value": "current" } ],
+            "metricValues": [ { "value": "200" } ]
+        },
+        {
+            "dimensionValues": [ { "value": "Germany" }, { "value": "previous" } ],
+            "metricValues": [ { "value": "120" } ]
+        }
+    ],
+    "rowCount": 6
+}

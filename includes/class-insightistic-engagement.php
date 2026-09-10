@@ -229,7 +229,7 @@ class Insightistic_Engagement {
 
 		// Load minified version in production; readable source in SCRIPT_DEBUG mode.
 		$script_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'assets/js/tracking.src.js'
+			? 'assets/js/tracking.js'
 			: 'assets/js/tracking.min.js';
 
 		wp_enqueue_script(

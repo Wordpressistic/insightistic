@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic - GA4 Analytics & AI Insights
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed and WooCommerce to your WordPress dashboard — fully free. Create a free Insightistic account to unlock AI Insights and email automation delivery.
- * Version:     4.4.0
+ * Version:     4.4.2
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION',  '4.4.1' );
+define( 'INSIGHTISTIC_VERSION', '4.4.2' );
 define( 'INSIGHTISTIC_FILE',     __FILE__ );
 define( 'INSIGHTISTIC_PATH',     plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL',      plugin_dir_url( __FILE__ ) );

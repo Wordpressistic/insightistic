@@ -66,6 +66,7 @@ foreach ( $entries as $e ) {
 		$roots[ $parts[0] ] = true;
 	}
 }
+if ( array( 'insightistic' ) !== array_keys( $roots ) ) {
 	$failures[] = 'Archive must contain exactly one root directory "insightistic/", found: ' . implode( ', ', array_keys( $roots ) );
 } else {
 	echo "OK   single root directory: insightistic/\n";
@@ -134,8 +135,8 @@ if ( $found_forbidden ) {
 }
 
 /* 4. Version agreement inside the packaged plugin. */
-$plugin_src = $zip->getFromName( 'insightistic/insightistic.php' );
-$readme_src = $zip->getFromName( 'insightistic/readme.txt' );
+$plugin_src = $zip->contents( 'insightistic/insightistic.php' );
+$readme_src = $zip->contents( 'insightistic/readme.txt' );
 if ( false === $plugin_src || false === $readme_src ) {
 	$failures[] = 'Cannot read packaged insightistic.php/readme.txt for version inspection.';
 } else {
@@ -163,7 +164,7 @@ if ( false === $plugin_src || false === $readme_src ) {
 	}
 
 	/* 5. Chart.js dependency version guard inside the package. */
-	$admin_src = $zip->getFromName( 'insightistic/includes/class-insightistic-admin.php' );
+	$admin_src = $zip->contents( 'insightistic/includes/class-insightistic-admin.php' );
 	if ( false === $admin_src || ! preg_match( "/wp_register_script\(\s*'insightistic-chartjs'.*?'(\d+\.\d+\.\d+)'\s*,\s*true/s", $admin_src, $gm ) ) {
 		$failures[] = 'Cannot verify Chart.js registration inside package.';
 	} elseif ( $version && $gm[1] === $version && '4.4.4' !== $version ) {
@@ -186,8 +187,6 @@ if ( file_exists( $sha_file ) ) {
 } else {
 	echo "note: no checksum file next to ZIP (fine in CI; the release job writes one)\n";
 }
-
-$zip->close();
 
 if ( $failures ) {
 	echo "\nZIP VALIDATION: FAIL\n";

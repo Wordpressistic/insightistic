@@ -26,8 +26,10 @@ class Insightistic_PageSpeed {
 		add_action( 'wp_ajax_insightistic_speed_test', array( $this, 'ajax_speed_test' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* AJAX Handler                                                         */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	AJAX Handler                                                         */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -174,19 +176,23 @@ class Insightistic_PageSpeed {
 
 		$report = $this->parse_detailed_report( $raw );
 		$status = static function ( $metric ) {
-			$map = array( 'good' => 'good', 'moderate' => 'needs_improvement', 'poor' => 'poor' );
+			$map = array(
+				'good'     => 'good',
+				'moderate' => 'needs_improvement',
+				'poor'     => 'poor',
+			);
 			return $map[ $metric['status'] ] ?? null;
 		};
 
 		$issues = array();
 		foreach ( $report['opportunities'] as $op ) {
 			$issues[] = array(
-				'audit_key'     => sanitize_key( $op['title'] ),
-				'category'      => 'performance',
-				'title'         => $op['title'],
-				'severity'      => $op['savings_ms'] >= 1000 ? 'high' : ( $op['savings_ms'] >= 300 ? 'medium' : 'low' ),
-				'savings_ms'    => $op['savings_ms'],
-				'description'   => $op['desc'],
+				'audit_key'   => sanitize_key( $op['title'] ),
+				'category'    => 'performance',
+				'title'       => $op['title'],
+				'severity'    => $op['savings_ms'] >= 1000 ? 'high' : ( $op['savings_ms'] >= 300 ? 'medium' : 'low' ),
+				'savings_ms'  => $op['savings_ms'],
+				'description' => $op['desc'],
 			);
 		}
 		foreach ( $report['diagnostics'] as $d ) {
@@ -200,35 +206,37 @@ class Insightistic_PageSpeed {
 		}
 
 		return array(
-			'url'                   => $url,
-			'strategy'              => 'mobile',
-			'run_at'                => current_time( 'c' ),
-			'lighthouse_version'    => $report['lh_version'] ?: null,
-			'fetch_time'            => $report['fetched'] ?: null,
-			'performance_score'     => $report['scores']['performance'],
-			'accessibility_score'   => $report['scores']['accessibility'],
-			'best_practices_score'  => $report['scores']['best_practices'],
-			'seo_score'             => $report['scores']['seo'],
-			'ai_readiness_score'    => $report['ai_readiness']['score'],
-			'lcp_ms'                => $report['cwv']['lcp']['value'],
-			'lcp_status'            => $status( $report['cwv']['lcp'] ),
-			'inp_ms'                => $report['cwv']['inp']['value'],
-			'inp_status'            => $status( $report['cwv']['inp'] ),
-			'cls'                   => $report['cwv']['cls']['value'],
-			'cls_status'            => $status( $report['cwv']['cls'] ),
-			'fcp_ms'                => $report['cwv']['fcp']['value'],
-			'tbt_ms'                => $report['cwv']['tbt']['value'],
-			'speed_index_ms'        => $report['cwv']['si']['value'],
-			'ttfb_ms'               => $report['cwv']['ttfb']['value'],
-			'field_data_available'  => false,
-			'lab_data_available'    => true,
-			'status'                => 'complete',
-			'issues'                => $issues,
+			'url'                  => $url,
+			'strategy'             => 'mobile',
+			'run_at'               => current_time( 'c' ),
+			'lighthouse_version'   => $report['lh_version'] ?: null,
+			'fetch_time'           => $report['fetched'] ?: null,
+			'performance_score'    => $report['scores']['performance'],
+			'accessibility_score'  => $report['scores']['accessibility'],
+			'best_practices_score' => $report['scores']['best_practices'],
+			'seo_score'            => $report['scores']['seo'],
+			'ai_readiness_score'   => $report['ai_readiness']['score'],
+			'lcp_ms'               => $report['cwv']['lcp']['value'],
+			'lcp_status'           => $status( $report['cwv']['lcp'] ),
+			'inp_ms'               => $report['cwv']['inp']['value'],
+			'inp_status'           => $status( $report['cwv']['inp'] ),
+			'cls'                  => $report['cwv']['cls']['value'],
+			'cls_status'           => $status( $report['cwv']['cls'] ),
+			'fcp_ms'               => $report['cwv']['fcp']['value'],
+			'tbt_ms'               => $report['cwv']['tbt']['value'],
+			'speed_index_ms'       => $report['cwv']['si']['value'],
+			'ttfb_ms'              => $report['cwv']['ttfb']['value'],
+			'field_data_available' => false,
+			'lab_data_available'   => true,
+			'status'               => 'complete',
+			'issues'               => $issues,
 		);
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Core Methods                                                         */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Core Methods                                                         */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -318,7 +326,12 @@ class Insightistic_PageSpeed {
 	 */
 	private function parse_metric( $audit, $good, $moderate, $is_ms = true ) {
 		if ( ! $audit ) {
-			return array( 'display' => 'N/A', 'value' => null, 'status' => 'unknown', 'label' => '' );
+			return array(
+				'display' => 'N/A',
+				'value'   => null,
+				'status'  => 'unknown',
+				'label'   => '',
+			);
 		}
 
 		$raw_value = $audit['numericValue'] ?? null;
@@ -342,8 +355,10 @@ class Insightistic_PageSpeed {
 		);
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Detailed Speed Test parsing                                          */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Detailed Speed Test parsing                                          */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -373,12 +388,12 @@ class Insightistic_PageSpeed {
 
 		// Core Web Vitals (same thresholds as the dashboard widget).
 		$cwv = array(
-			'lcp' => $this->parse_metric( $audits['largest-contentful-paint'] ?? null, 2500, 4000 ),
-			'inp' => $this->parse_metric( $audits['interaction-to-next-paint'] ?? ( $audits['total-blocking-time'] ?? null ), 200, 500 ),
-			'cls' => $this->parse_metric( $audits['cumulative-layout-shift'] ?? null, 0.1, 0.25, false ),
-			'fcp' => $this->parse_metric( $audits['first-contentful-paint'] ?? null, 1800, 3000 ),
-			'tbt' => $this->parse_metric( $audits['total-blocking-time'] ?? null, 200, 600 ),
-			'si'  => $this->parse_metric( $audits['speed-index'] ?? null, 3400, 5800 ),
+			'lcp'  => $this->parse_metric( $audits['largest-contentful-paint'] ?? null, 2500, 4000 ),
+			'inp'  => $this->parse_metric( $audits['interaction-to-next-paint'] ?? ( $audits['total-blocking-time'] ?? null ), 200, 500 ),
+			'cls'  => $this->parse_metric( $audits['cumulative-layout-shift'] ?? null, 0.1, 0.25, false ),
+			'fcp'  => $this->parse_metric( $audits['first-contentful-paint'] ?? null, 1800, 3000 ),
+			'tbt'  => $this->parse_metric( $audits['total-blocking-time'] ?? null, 200, 600 ),
+			'si'   => $this->parse_metric( $audits['speed-index'] ?? null, 3400, 5800 ),
 			'ttfb' => $this->parse_metric( $audits['server-response-time'] ?? null, 800, 1800 ),
 		);
 

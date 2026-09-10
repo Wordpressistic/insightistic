@@ -318,10 +318,10 @@ class Insightistic_Engagement {
 		wp_remote_post(
 			$endpoint,
 			array(
-				'timeout'     => 4,
-				'blocking'    => false,
-				'headers'     => array( 'Content-Type' => 'application/json' ),
-				'body'        => wp_json_encode(
+				'timeout'  => 4,
+				'blocking' => false,
+				'headers'  => array( 'Content-Type' => 'application/json' ),
+				'body'     => wp_json_encode(
 					array(
 						'client_id' => $client_id,
 						'events'    => array(

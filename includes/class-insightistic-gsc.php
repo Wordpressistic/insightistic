@@ -22,12 +22,14 @@ class Insightistic_GSC {
 	 * Register AJAX hooks.
 	 */
 	public function init() {
-		add_action( 'wp_ajax_insightistic_get_gsc_data',      array( $this, 'ajax_get_data' ) );
-		add_action( 'wp_ajax_insightistic_test_gsc',          array( $this, 'ajax_test_connection' ) );
+		add_action( 'wp_ajax_insightistic_get_gsc_data', array( $this, 'ajax_get_data' ) );
+		add_action( 'wp_ajax_insightistic_test_gsc', array( $this, 'ajax_test_connection' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* AJAX Handlers                                                        */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	AJAX Handlers                                                        */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -128,8 +130,10 @@ class Insightistic_GSC {
 		wp_send_json_success( __( 'Search Console connection successful!', 'insightistic' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* GSC Report Methods                                                   */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	GSC Report Methods                                                   */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -139,8 +143,24 @@ class Insightistic_GSC {
 		$url = self::API_BASE . $site_url . '/searchAnalytics/query';
 
 		// Current period.
-		$cur_data  = $this->api_request( $url, array( 'startDate' => $start, 'endDate' => $end, 'rowLimit' => 1 ), $token );
-		$prev_data = $this->api_request( $url, array( 'startDate' => $prev_start, 'endDate' => $prev_end, 'rowLimit' => 1 ), $token );
+		$cur_data  = $this->api_request(
+			$url,
+			array(
+				'startDate' => $start,
+				'endDate'   => $end,
+				'rowLimit'  => 1,
+			),
+			$token
+		);
+		$prev_data = $this->api_request(
+			$url,
+			array(
+				'startDate' => $prev_start,
+				'endDate'   => $prev_end,
+				'rowLimit'  => 1,
+			),
+			$token
+		);
 
 		$cur  = ! is_wp_error( $cur_data ) && isset( $cur_data['rows'][0] ) ? $cur_data['rows'][0] : null;
 		$prev = ! is_wp_error( $prev_data ) && isset( $prev_data['rows'][0] ) ? $prev_data['rows'][0] : null;
@@ -355,7 +375,7 @@ class Insightistic_GSC {
 		$rows = array();
 		foreach ( $data['rows'] as $row ) {
 			$rows[] = array(
-				$key_field   => $row['keys'][0],
+				$key_field    => $row['keys'][0],
 				'clicks'      => intval( $row['clicks'] ),
 				'impressions' => intval( $row['impressions'] ),
 				'ctr'         => round( floatval( $row['ctr'] ), 4 ),
@@ -365,8 +385,10 @@ class Insightistic_GSC {
 		return $rows;
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Helpers                                                             */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Helpers                                                             */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -402,7 +424,7 @@ class Insightistic_GSC {
 	 * Calculate percent change.
 	 */
 	private function pct_change( $old, $new ) {
-		if ( 0 == $old ) {
+		if ( 0 === $old ) {
 			return $new > 0 ? 100 : 0;
 		}
 		return round( ( ( $new - $old ) / abs( $old ) ) * 100, 1 );

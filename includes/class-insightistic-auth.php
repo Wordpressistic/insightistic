@@ -53,7 +53,14 @@ class Insightistic_Auth {
 
 		// Build JWT.
 		$now    = time();
-		$header = self::base64url( wp_json_encode( array( 'alg' => 'RS256', 'typ' => 'JWT' ) ) );
+		$header = self::base64url(
+			wp_json_encode(
+				array(
+					'alg' => 'RS256',
+					'typ' => 'JWT',
+				)
+			)
+		);
 		$claims = self::base64url(
 			wp_json_encode(
 				array(

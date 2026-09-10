@@ -41,7 +41,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 | --- | --- |
 | Plugin version | 4.4.2 |
 | WordPress requirement | 5.6 or newer |
-| Tested up to | WordPress 6.8 |
+| Tested up to | WordPress 7.1 |
 | PHP requirement | 8.0 or newer |
 | License | GPLv2 or later |
 | Publisher | WordPressistic |

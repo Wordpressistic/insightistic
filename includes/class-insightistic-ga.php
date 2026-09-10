@@ -19,12 +19,14 @@ class Insightistic_GA {
 	 * Register AJAX hooks.
 	 */
 	public function init() {
-		add_action( 'wp_ajax_insightistic_get_data',        array( $this, 'ajax_get_data' ) );
-		add_action( 'wp_ajax_insightistic_test_connection',  array( $this, 'ajax_test_connection' ) );
+		add_action( 'wp_ajax_insightistic_get_data', array( $this, 'ajax_get_data' ) );
+		add_action( 'wp_ajax_insightistic_test_connection', array( $this, 'ajax_test_connection' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* AJAX Handlers                                                        */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	AJAX Handlers                                                        */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -139,7 +141,7 @@ class Insightistic_GA {
 			return null;
 		}
 
-		$days = min( max( intval( $days ), 1 ), 90 );
+		$days  = min( max( intval( $days ), 1 ), 90 );
 		$token = Insightistic_Auth::get_token( 'https://www.googleapis.com/auth/analytics.readonly', 'ga4' );
 		if ( is_wp_error( $token ) ) {
 			return $token;
@@ -161,7 +163,12 @@ class Insightistic_GA {
 	private function get_sync_daily( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
-			'dateRanges' => array( array( 'startDate' => $start, 'endDate' => $end ) ),
+			'dateRanges' => array(
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+				),
+			),
 			'dimensions' => array( array( 'name' => 'date' ) ),
 			'metrics'    => array(
 				array( 'name' => 'totalUsers' ),
@@ -187,21 +194,21 @@ class Insightistic_GA {
 
 		$rows = array();
 		foreach ( $data['rows'] as $row ) {
-			$raw = $row['dimensionValues'][0]['value']; // YYYYMMDD
-			$m   = $row['metricValues'];
+			$raw    = $row['dimensionValues'][0]['value']; // YYYYMMDD
+			$m      = $row['metricValues'];
 			$rows[] = array(
-				'date'                             => substr( $raw, 0, 4 ) . '-' . substr( $raw, 4, 2 ) . '-' . substr( $raw, 6, 2 ),
-				'users'                            => intval( $m[0]['value'] ),
-				'new_users'                        => intval( $m[1]['value'] ),
-				'sessions'                         => intval( $m[2]['value'] ),
-				'engaged_sessions'                 => intval( $m[3]['value'] ),
-				'page_views'                       => intval( $m[4]['value'] ),
-				'engagement_rate'                  => round( floatval( $m[5]['value'] ) * 100, 2 ),
-				'bounce_rate'                      => round( floatval( $m[6]['value'] ) * 100, 2 ),
-				'avg_engagement_duration_seconds'  => intval( round( floatval( $m[7]['value'] ) ) ),
-				'conversions'                      => intval( $m[8]['value'] ),
-				'transactions'                     => intval( $m[9]['value'] ),
-				'revenue'                          => round( floatval( $m[10]['value'] ), 2 ),
+				'date'                            => substr( $raw, 0, 4 ) . '-' . substr( $raw, 4, 2 ) . '-' . substr( $raw, 6, 2 ),
+				'users'                           => intval( $m[0]['value'] ),
+				'new_users'                       => intval( $m[1]['value'] ),
+				'sessions'                        => intval( $m[2]['value'] ),
+				'engaged_sessions'                => intval( $m[3]['value'] ),
+				'page_views'                      => intval( $m[4]['value'] ),
+				'engagement_rate'                 => round( floatval( $m[5]['value'] ) * 100, 2 ),
+				'bounce_rate'                     => round( floatval( $m[6]['value'] ) * 100, 2 ),
+				'avg_engagement_duration_seconds' => intval( round( floatval( $m[7]['value'] ) ) ),
+				'conversions'                     => intval( $m[8]['value'] ),
+				'transactions'                    => intval( $m[9]['value'] ),
+				'revenue'                         => round( floatval( $m[10]['value'] ), 2 ),
 			);
 		}
 		return $rows;
@@ -211,7 +218,12 @@ class Insightistic_GA {
 	private function get_sync_channel_breakdown( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
-			'dateRanges' => array( array( 'startDate' => $start, 'endDate' => $end ) ),
+			'dateRanges' => array(
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+				),
+			),
 			'dimensions' => array( array( 'name' => 'sessionDefaultChannelGroup' ) ),
 			'metrics'    => array(
 				array( 'name' => 'sessions' ),
@@ -221,7 +233,12 @@ class Insightistic_GA {
 				array( 'name' => 'totalRevenue' ),
 				array( 'name' => 'engagementRate' ),
 			),
-			'orderBys'   => array( array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ) ),
+			'orderBys'   => array(
+				array(
+					'metric' => array( 'metricName' => 'sessions' ),
+					'desc'   => true,
+				),
+			),
 			'limit'      => 15,
 		);
 
@@ -266,7 +283,12 @@ class Insightistic_GA {
 		$property_id = get_option( 'insightistic_property_id' );
 		$url         = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body        = array(
-			'dateRanges' => array( array( 'startDate' => '7daysAgo', 'endDate' => 'today' ) ),
+			'dateRanges' => array(
+				array(
+					'startDate' => '7daysAgo',
+					'endDate'   => 'today',
+				),
+			),
 			'metrics'    => array( array( 'name' => 'sessions' ) ),
 			'limit'      => 1,
 		);
@@ -279,8 +301,10 @@ class Insightistic_GA {
 		wp_send_json_success( __( 'Connection successful! Your GA4 property is accessible.', 'insightistic' ) );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* GA4 Report Methods                                                   */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	GA4 Report Methods                                                   */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -289,7 +313,12 @@ class Insightistic_GA {
 	private function get_attribution_report( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
-			'dateRanges' => array( array( 'startDate' => $start, 'endDate' => $end ) ),
+			'dateRanges' => array(
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+				),
+			),
 			'dimensions' => array(
 				array( 'name' => 'sessionSource' ),
 				array( 'name' => 'sessionMedium' ),
@@ -302,7 +331,10 @@ class Insightistic_GA {
 				array( 'name' => 'averagePurchaseRevenue' ),
 			),
 			'orderBys'   => array(
-				array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ),
+				array(
+					'metric' => array( 'metricName' => 'sessions' ),
+					'desc'   => true,
+				),
 			),
 			'limit'      => 50,
 		);
@@ -337,7 +369,12 @@ class Insightistic_GA {
 	private function get_time_series( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
-			'dateRanges' => array( array( 'startDate' => $start, 'endDate' => $end ) ),
+			'dateRanges' => array(
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+				),
+			),
 			'dimensions' => array( array( 'name' => 'date' ) ),
 			'metrics'    => array(
 				array( 'name' => 'sessions' ),
@@ -377,8 +414,16 @@ class Insightistic_GA {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
 			'dateRanges' => array(
-				array( 'startDate' => $start, 'endDate' => $end, 'name' => 'current' ),
-				array( 'startDate' => $prev_start, 'endDate' => $prev_end, 'name' => 'previous' ),
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+					'name'      => 'current',
+				),
+				array(
+					'startDate' => $prev_start,
+					'endDate'   => $prev_end,
+					'name'      => 'previous',
+				),
 			),
 			'metrics'    => array(
 				array( 'name' => 'sessions' ),
@@ -411,11 +456,15 @@ class Insightistic_GA {
 			$prev = null;
 			foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 				$range = $row['dimensionValues'][0]['value'] ?? '';
-				if ( 'current' === $range ) { $cur = $row['metricValues'] ?? array(); }
-				if ( 'previous' === $range ) { $prev = $row['metricValues'] ?? array(); }
+				if ( 'current' === $range ) {
+					$cur = $row['metricValues'] ?? array(); }
+				if ( 'previous' === $range ) {
+					$prev = $row['metricValues'] ?? array(); }
 			}
-			if ( null === $cur ) { return null; }
-			if ( null === $prev ) { $prev = $cur; }
+			if ( null === $cur ) {
+				return null; }
+			if ( null === $prev ) {
+				$prev = $cur; }
 		}
 
 		// Null-safe metric access — degrade to 0 when a metric is missing or
@@ -437,32 +486,32 @@ class Insightistic_GA {
 		$prev_dur_sec = floatval( $metric( $prev, 5 ) );
 
 		return array(
-			'sessions'     => array(
+			'sessions'      => array(
 				'value'  => intval( $metric( $cur, 0 ) ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 0 ) ), floatval( $metric( $cur, 0 ) ) ),
 			),
-			'unique_users' => array(
+			'unique_users'  => array(
 				'value'  => intval( $metric( $cur, 1 ) ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 1 ) ), floatval( $metric( $cur, 1 ) ) ),
 			),
-			'revenue'      => array(
+			'revenue'       => array(
 				'value'  => round( floatval( $metric( $cur, 2 ) ), 2 ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 2 ) ), floatval( $metric( $cur, 2 ) ) ),
 			),
-			'transactions' => array(
+			'transactions'  => array(
 				'value'  => intval( $metric( $cur, 3 ) ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 3 ) ), floatval( $metric( $cur, 3 ) ) ),
 			),
-			'pageviews'    => array(
+			'pageviews'     => array(
 				'value'  => intval( $metric( $cur, 4 ) ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 4 ) ), floatval( $metric( $cur, 4 ) ) ),
 			),
-			'avg_duration' => array(
-				'value'       => $dur_min . ':' . $dur_sec,
-				'value_raw'   => $avg_dur_sec,
-				'change'      => $this->percent_change( $prev_dur_sec, $avg_dur_sec ),
+			'avg_duration'  => array(
+				'value'     => $dur_min . ':' . $dur_sec,
+				'value_raw' => $avg_dur_sec,
+				'change'    => $this->percent_change( $prev_dur_sec, $avg_dur_sec ),
 			),
-			'bounce_rate'  => array(
+			'bounce_rate'   => array(
 				'value'  => round( floatval( $metric( $cur, 6 ) ) * 100, 1 ),
 				'change' => $this->percent_change( floatval( $metric( $prev, 6 ) ), floatval( $metric( $cur, 6 ) ) ),
 			),
@@ -482,13 +531,24 @@ class Insightistic_GA {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
 			'dateRanges' => array(
-				array( 'startDate' => $start, 'endDate' => $end, 'name' => 'current' ),
-				array( 'startDate' => $prev_start, 'endDate' => $prev_end, 'name' => 'previous' ),
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+					'name'      => 'current',
+				),
+				array(
+					'startDate' => $prev_start,
+					'endDate'   => $prev_end,
+					'name'      => 'previous',
+				),
 			),
 			'dimensions' => array( array( 'name' => 'country' ) ),
 			'metrics'    => array( array( 'name' => 'sessions' ) ),
 			'orderBys'   => array(
-				array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ),
+				array(
+					'metric' => array( 'metricName' => 'sessions' ),
+					'desc'   => true,
+				),
 			),
 			'limit'      => 5,
 		);
@@ -544,8 +604,16 @@ class Insightistic_GA {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
 			'dateRanges' => array(
-				array( 'startDate' => $start, 'endDate' => $end, 'name' => 'current' ),
-				array( 'startDate' => $prev_start, 'endDate' => $prev_end, 'name' => 'previous' ),
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+					'name'      => 'current',
+				),
+				array(
+					'startDate' => $prev_start,
+					'endDate'   => $prev_end,
+					'name'      => 'previous',
+				),
 			),
 			'dimensions' => array(
 				array( 'name' => 'pageTitle' ),
@@ -557,7 +625,10 @@ class Insightistic_GA {
 				array( 'name' => 'averageSessionDuration' ),
 			),
 			'orderBys'   => array(
-				array( 'metric' => array( 'metricName' => 'screenPageViews' ), 'desc' => true ),
+				array(
+					'metric' => array( 'metricName' => 'screenPageViews' ),
+					'desc'   => true,
+				),
 			),
 			'limit'      => 5,
 		);
@@ -567,9 +638,9 @@ class Insightistic_GA {
 			return array();
 		}
 
-		$total_cur = 0;
-		$rows_raw  = array();
-		$prev_map  = array();
+		$total_cur     = 0;
+		$rows_raw      = array();
+		$prev_map      = array();
 		$has_range_dim = isset( $data['rows'][0]['dimensionValues'][2]['value'] );
 		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
 			if ( $has_range_dim && ( $row['dimensionValues'][2]['value'] ?? '' ) === 'previous' ) {
@@ -597,13 +668,13 @@ class Insightistic_GA {
 		foreach ( $rows_raw as $r ) {
 			$avg_sec  = $r['avg_time'];
 			$result[] = array(
-				'title'      => $r['title'],
-				'path'       => $r['path'],
-				'views'      => $r['current'],
-				'share'      => $total_cur > 0 ? round( ( $r['current'] / $total_cur ) * 100, 1 ) : 0,
-				'change'     => $this->percent_change( $r['prev'], $r['current'] ),
-				'bounce'     => $r['bounce_rate'],
-				'avg_time'   => floor( $avg_sec / 60 ) . ':' . str_pad( (int) $avg_sec % 60, 2, '0', STR_PAD_LEFT ),
+				'title'    => $r['title'],
+				'path'     => $r['path'],
+				'views'    => $r['current'],
+				'share'    => $total_cur > 0 ? round( ( $r['current'] / $total_cur ) * 100, 1 ) : 0,
+				'change'   => $this->percent_change( $r['prev'], $r['current'] ),
+				'bounce'   => $r['bounce_rate'],
+				'avg_time' => floor( $avg_sec / 60 ) . ':' . str_pad( (int) $avg_sec % 60, 2, '0', STR_PAD_LEFT ),
 			);
 		}
 		return $result;
@@ -616,8 +687,16 @@ class Insightistic_GA {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
 			'dateRanges' => array(
-				array( 'startDate' => $start, 'endDate' => $end, 'name' => 'current' ),
-				array( 'startDate' => $prev_start, 'endDate' => $prev_end, 'name' => 'previous' ),
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+					'name'      => 'current',
+				),
+				array(
+					'startDate' => $prev_start,
+					'endDate'   => $prev_end,
+					'name'      => 'previous',
+				),
 			),
 			'dimensions' => array( array( 'name' => 'sessionDefaultChannelGroup' ) ),
 			'metrics'    => array(
@@ -626,7 +705,10 @@ class Insightistic_GA {
 				array( 'name' => 'bounceRate' ),
 			),
 			'orderBys'   => array(
-				array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ),
+				array(
+					'metric' => array( 'metricName' => 'sessions' ),
+					'desc'   => true,
+				),
 			),
 			'limit'      => 10,
 		);
@@ -665,12 +747,12 @@ class Insightistic_GA {
 		$result = array();
 		foreach ( $rows_raw as $r ) {
 			$result[] = array(
-				'channel' => $r['channel'],
+				'channel'  => $r['channel'],
 				'sessions' => $r['current'],
-				'users'   => $r['users'],
-				'bounce'  => $r['bounce'],
-				'share'   => $total_cur > 0 ? round( ( $r['current'] / $total_cur ) * 100, 1 ) : 0,
-				'change'  => $this->percent_change( $r['prev'], $r['current'] ),
+				'users'    => $r['users'],
+				'bounce'   => $r['bounce'],
+				'share'    => $total_cur > 0 ? round( ( $r['current'] / $total_cur ) * 100, 1 ) : 0,
+				'change'   => $this->percent_change( $r['prev'], $r['current'] ),
 			);
 		}
 		return $result;
@@ -682,12 +764,17 @@ class Insightistic_GA {
 	private function get_top_posts( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
 		$body = array(
-			'dateRanges' => array( array( 'startDate' => $start, 'endDate' => $end ) ),
-			'dimensions' => array(
+			'dateRanges'      => array(
+				array(
+					'startDate' => $start,
+					'endDate'   => $end,
+				),
+			),
+			'dimensions'      => array(
 				array( 'name' => 'pageTitle' ),
 				array( 'name' => 'pagePath' ),
 			),
-			'metrics'    => array(
+			'metrics'         => array(
 				array( 'name' => 'screenPageViews' ),
 				array( 'name' => 'averageSessionDuration' ),
 			),
@@ -697,34 +784,49 @@ class Insightistic_GA {
 						array(
 							'filter' => array(
 								'fieldName'    => 'pagePath',
-								'stringFilter' => array( 'matchType' => 'CONTAINS', 'value' => '/blog/' ),
+								'stringFilter' => array(
+									'matchType' => 'CONTAINS',
+									'value'     => '/blog/',
+								),
 							),
 						),
 						array(
 							'filter' => array(
 								'fieldName'    => 'pagePath',
-								'stringFilter' => array( 'matchType' => 'CONTAINS', 'value' => '/post/' ),
+								'stringFilter' => array(
+									'matchType' => 'CONTAINS',
+									'value'     => '/post/',
+								),
 							),
 						),
 						array(
 							'filter' => array(
 								'fieldName'    => 'pagePath',
-								'stringFilter' => array( 'matchType' => 'CONTAINS', 'value' => '/article/' ),
+								'stringFilter' => array(
+									'matchType' => 'CONTAINS',
+									'value'     => '/article/',
+								),
 							),
 						),
 						array(
 							'filter' => array(
 								'fieldName'    => 'pagePath',
-								'stringFilter' => array( 'matchType' => 'CONTAINS', 'value' => '/news/' ),
+								'stringFilter' => array(
+									'matchType' => 'CONTAINS',
+									'value'     => '/news/',
+								),
 							),
 						),
 					),
 				),
 			),
-			'orderBys'   => array(
-				array( 'metric' => array( 'metricName' => 'screenPageViews' ), 'desc' => true ),
+			'orderBys'        => array(
+				array(
+					'metric' => array( 'metricName' => 'screenPageViews' ),
+					'desc'   => true,
+				),
 			),
-			'limit'      => 5,
+			'limit'           => 5,
 		);
 
 		$data = $this->api_request( $url, $body, $token );
@@ -745,8 +847,10 @@ class Insightistic_GA {
 		return $result;
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Table Renderer                                                       */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Table Renderer                                                       */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -755,7 +859,11 @@ class Insightistic_GA {
 	private function build_structured_data( $data ) {
 		$structured = array(
 			'channels' => array(),
-			'totals'   => array( 'visitors' => 0, 'revenue' => 0, 'transactions' => 0 ),
+			'totals'   => array(
+				'visitors'     => 0,
+				'revenue'      => 0,
+				'transactions' => 0,
+			),
 		);
 		if ( empty( $data['rows'] ) ) {
 			return $structured;
@@ -795,15 +903,15 @@ class Insightistic_GA {
 				$buyers        = $basic ? $tx : intval( $row['metricValues'][3]['value'] ?? $tx );
 				$aov           = $basic ? ( $tx > 0 ? $rev / $tx : 0 ) : floatval( $row['metricValues'][4]['value'] ?? 0 );
 				$source_data[] = array(
-					'source'  => $row['dimensionValues'][0]['value'],
-					'medium'  => $row['dimensionValues'][1]['value'],
+					'source'   => $row['dimensionValues'][0]['value'],
+					'medium'   => $row['dimensionValues'][1]['value'],
 					'sessions' => $v,
-					'revenue' => $rev,
-					'tx'      => $tx,
-					'buyers'  => $buyers,
-					'rpv'     => $v > 0 ? $rev / $v : 0,
-					'conv'    => $buyers > 0 && $v > 0 ? ( $buyers / $v ) * 100 : 0,
-					'aov'     => $aov,
+					'revenue'  => $rev,
+					'tx'       => $tx,
+					'buyers'   => $buyers,
+					'rpv'      => $v > 0 ? $rev / $v : 0,
+					'conv'     => $buyers > 0 && $v > 0 ? ( $buyers / $v ) * 100 : 0,
+					'aov'      => $aov,
 				);
 			}
 		}
@@ -838,7 +946,12 @@ class Insightistic_GA {
 					<tr><td colspan="<?php echo $has_rev ? 7 : 3; ?>" class="isp-no-data"><?php esc_html_e( 'No data found for this period.', 'insightistic' ); ?></td></tr>
 					<?php
 				else :
-					$totals = array( 'sessions' => 0, 'revenue' => 0, 'tx' => 0, 'buyers' => 0 );
+					$totals = array(
+						'sessions' => 0,
+						'revenue'  => 0,
+						'tx'       => 0,
+						'buyers'   => 0,
+					);
 					foreach ( $source_data as $row ) :
 						$rev_pct             = $has_rev && $total_rev > 0 ? ( $row['revenue'] / $total_rev ) * 100 : 0;
 						$rpv_class           = $this->perf_class( $row['rpv'], $avg_rpv );
@@ -897,8 +1010,10 @@ class Insightistic_GA {
 		return ob_get_clean();
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Helpers                                                             */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Helpers                                                             */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -1004,7 +1119,7 @@ class Insightistic_GA {
 	 * Return CSS class for performance indicator.
 	 */
 	private function perf_class( $value, $average ) {
-		if ( 0 == $average ) {
+		if ( 0 === $average ) {
 			return 'isp-perf-neutral';
 		}
 		if ( $value >= $average * 1.2 ) {

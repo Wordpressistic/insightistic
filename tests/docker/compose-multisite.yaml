@@ -1,4 +1,4 @@
-name: insightistic-release-gate
+name: insightistic-ms-gate
 
 services:
   db:
@@ -17,12 +17,12 @@ services:
       - /var/lib/mysql
 
   wp:
-    image: ${WP_IMAGE:-wordpress:latest}
+    image: wordpress:latest
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "${WP_PORT:-8899}:80"
+      - "8898:80"
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wp
@@ -32,13 +32,18 @@ services:
         define('WP_DEBUG', true);
         define('WP_DEBUG_LOG', true);
         define('WP_DEBUG_DISPLAY', false);
-        define('SCRIPT_DEBUG', ${SCRIPT_DEBUG:-true});
-        ${MULTISITE_CONF:-}
+        define('WP_ALLOW_MULTISITE', true);
+        define('MULTISITE', true);
+        define('SUBDOMAIN_INSTALL', false);
+        define('DOMAIN_CURRENT_SITE', 'localhost');
+        define('PATH_CURRENT_SITE', '/');
+        define('SITE_ID_CURRENT_SITE', 1);
+        define('BLOG_ID_CURRENT_SITE', 1);
     volumes:
       - wp_data:/var/www/html
 
   wpcli:
-    image: ${WPCLI_IMAGE:-wordpress:cli-php8.2}
+    image: wordpress:cli-php8.2
     depends_on:
       wp:
         condition: service_started
@@ -53,14 +58,8 @@ services:
     volumes:
       - wp_data:/var/www/html
       - ../../dist:/dist:ro
-      - ./gate.sh:/gate.sh:ro
-      - ./olders:/olders:ro
-      - ./check-zip-in-container.php:/check.php:ro
-      - ./zipdiff.php:/zipdiff.php:ro
-      - ./woo-probe.php:/woo-probe.php:ro
       - ./multisite-probe.php:/multisite-probe.php:ro
-      - ./plugin-check.php:/plugin-check.php:ro
-      - ./pc-summary.sh:/pc-summary.sh:ro
+      - ./ms-run.sh:/ms-run.sh:ro
 
 volumes:
   wp_data:

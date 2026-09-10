@@ -2,7 +2,7 @@
 Contributors: wordpressistic
 Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 8.0
 Stable tag: 4.4.2
 License: GPLv2 or later
@@ -180,7 +180,7 @@ Release integrity and compatibility hotfix.
 * Added automated GA4 regression tests covering both named-dateRange and legacy totals[] response shapes, plus edge cases (zero previous period, empty rows, missing metrics, malformed responses, API errors, division-by-zero, numeric strings, extra dimensions).
 * Added a release validation gate (`composer release-check`) that fails on any version mismatch, stale minified assets, bad ZIP structure, or missing required files.
 * Added fresh-install and upgrade release gates (4.4.0 → 4.4.2, 4.4.1 → 4.4.2) exercised against real WordPress environments.
-* Updated WordPress compatibility metadata after successful testing.
+* Updated WordPress compatibility metadata after successful testing: tested up to WordPress 7.1 (fresh install, both upgrade paths, WooCommerce active/inactive, and multisite network activation all verified on WordPress 7.1 / PHP 8.2).
 
 = 4.4.1 (2026-09-09) =
 

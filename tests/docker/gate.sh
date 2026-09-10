@@ -45,6 +45,14 @@ case "$SCENARIO" in
     ;;
   upgrade-4.4.0|upgrade-4.4.1)
     prep_older
+    # NOTE: the published 4.4.1 tag carries the ORIGINAL header bug — its
+    # plugin header still says "Version: 4.4.0" (runtime constant 4.4.1).
+    # WordPress therefore reports the installed version as 4.4.0. This gate
+    # expects exactly that, proving the defect existed and that 4.4.2
+    # repairs it.
+    EXPECT_HEADER="4.4.0"
+    if [ "$SCENARIO" = "upgrade-4.4.0" ]; then EXPECT_HEADER="4.4.0"; fi
+    check "$($WP plugin get insightistic --field=version)" "$EXPECT_HEADER" "wp-reported version before upgrade (${SCENARIO#upgrade-} artifact, header says $EXPECT_HEADER)"
     # Representative settings + encrypted credential on the old version.
     $WP option update insightistic_property_id 123456789 >/dev/null
     $WP option update insightistic_measurement_id G-TESTMEAS >/dev/null
@@ -52,7 +60,6 @@ case "$SCENARIO" in
     $WP post create --post_title='probe' --post_status=publish --post_content='[404-probe]' >/dev/null 2>&1
     # Simulate an existing encrypted secret via the plugin's own encryptor.
     $WP eval 'require_once WP_PLUGIN_DIR . "/insightistic/includes/class-insightistic-encryption.php"; update_option("insightistic_pagespeed_api_key_enc", Insightistic_Encryption::encrypt("AIzaTESTKEY-DO-NOT-USE"));' >/dev/null 2>&1
-    check "$($WP plugin get insightistic --field=version)" "${SCENARIO#upgrade-}" "old version ${SCENARIO#upgrade-} active before upgrade"
     # Upgrade in place: `install --force` drives the same Plugin_Upgrader
     # WordPress core uses for one-click plugin updates.
     $WP plugin install "$ZIP" --force --activate >/dev/null 2>&1 && ok "upgrade via 4.4.2 ZIP (Plugin_Upgrader)" || bad "upgrade via 4.4.2 ZIP (Plugin_Upgrader)"

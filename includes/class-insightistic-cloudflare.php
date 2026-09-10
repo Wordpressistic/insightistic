@@ -508,7 +508,10 @@ class Insightistic_Cloudflare {
 				if ( ! $name ) {
 					continue;
 				}
-				$countries[ $name ]            ??= array( 'requests' => 0, 'threats' => 0 );
+				$countries[ $name ]            ??= array(
+					'requests' => 0,
+					'threats'  => 0,
+				);
 				$countries[ $name ]['requests'] += (int) ( $c['requests'] ?? 0 );
 				$countries[ $name ]['threats']  += (int) ( $c['threats'] ?? 0 );
 			}

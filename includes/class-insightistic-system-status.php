@@ -24,19 +24,19 @@ class Insightistic_System_Status {
 		$addons   = admin_url( 'admin.php?page=insightistic-addons' );
 
 		$checks = array(
-			self::check( __( 'GA4 property configured', 'insightistic' ),       (bool) get_option( 'insightistic_property_id' ),                                                __( 'Required for dashboard, digests, anomaly alerts, and content lab.', 'insightistic' ),      false, $settings . '&active_tab=ga4#ga4',             __( 'Open GA4 settings', 'insightistic' ) ),
-			self::check( __( 'Service account email configured', 'insightistic' ), (bool) get_option( 'insightistic_api_email' ),                                              __( 'Required for Google API authentication.', 'insightistic' ),                              false, $settings . '&active_tab=ga4#ga4',             __( 'Open GA4 settings', 'insightistic' ) ),
-			self::check( __( 'Private key encrypted', 'insightistic' ),         (bool) get_option( 'insightistic_api_private_key' ),                                            __( 'Credentials should never be stored in plaintext.', 'insightistic' ),                     false, $settings . '&active_tab=ga4#ga4',             __( 'Import service-account key', 'insightistic' ) ),
-			self::check( __( 'Search Console configured', 'insightistic' ),     (bool) get_option( 'insightistic_gsc_property_url' ),                                           __( 'Required for SEO Opportunity Finder.', 'insightistic' ),                                  false, $settings . '&active_tab=gsc#gsc',             __( 'Connect Search Console', 'insightistic' ) ),
-			self::check( __( 'PageSpeed configured', 'insightistic' ),          (bool) get_option( 'insightistic_pagespeed_api_key_enc' ),                                      __( 'Required for Core Web Vitals reports.', 'insightistic' ),                                false, $settings . '&active_tab=pagespeed#pagespeed', __( 'Add PageSpeed API key', 'insightistic' ) ),
-			self::check( __( 'Cloudflare Traffic Insights available', 'insightistic' ), class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudflare::is_available(), __( 'Optional  works automatically once a free account is connected; a Cloudflare API token is only needed as an alternative.', 'insightistic' ), true,  admin_url( 'admin.php?page=insightistic-license' ), __( 'Create a free account', 'insightistic' ) ),
-			self::check( __( 'AI provider enabled', 'insightistic' ),           (bool) get_option( 'insightistic_ai_enabled' ),                                                 __( 'Optional, but important for AI insight positioning.', 'insightistic' ),                  false, $settings . '&active_tab=ai#ai',               __( 'Enable AI Insights', 'insightistic' ) ),
-			self::check( __( 'Email automation scheduled', 'insightistic' ),    (bool) wp_next_scheduled( Insightistic_Email_Automations::CRON_HOOK ),                          __( 'Required for scheduled growth digests.', 'insightistic' ),                               false, $addons,                                       __( 'Configure Email Automations', 'insightistic' ) ),
-			self::check( __( 'WordPress mail function available', 'insightistic' ), function_exists( 'wp_mail' ),                                                               __( 'SMTP plugin is recommended for reliable delivery.', 'insightistic' ),                    false, 'https://wordpress.org/plugins/wp-mail-smtp/', __( 'Install SMTP plugin', 'insightistic' ) ),
-			self::check( __( 'Current minified admin JS', 'insightistic' ),     self::asset_is_current( 'assets/js/admin.js', 'assets/js/admin.min.js' ),                       __( 'Production should load current minified JavaScript.', 'insightistic' ),                  false, null, null ),
-			self::check( __( 'Current minified admin CSS', 'insightistic' ),    self::asset_is_current( 'assets/css/admin.css', 'assets/css/admin.min.css' ),                   __( 'Production should load current minified CSS.', 'insightistic' ),                         false, null, null ),
-			self::check( __( 'Frontend tracker under 3KB', 'insightistic' ),  self::tracker_under_limit(),                                                                    __( 'Keeps frontend tracking lightweight.', 'insightistic' ),                                 false, null, null ),
-			self::check( __( 'WooCommerce detected', 'insightistic' ),          function_exists( 'wc_get_orders' ),                                                             __( 'Only required for WooCommerce Intelligence Pro.', 'insightistic' ),                      true,  'https://wordpress.org/plugins/woocommerce/',  __( 'Install WooCommerce', 'insightistic' ) ),
+			self::check( __( 'GA4 property configured', 'insightistic' ), (bool) get_option( 'insightistic_property_id' ), __( 'Required for dashboard, digests, anomaly alerts, and content lab.', 'insightistic' ), false, $settings . '&active_tab=ga4#ga4', __( 'Open GA4 settings', 'insightistic' ) ),
+			self::check( __( 'Service account email configured', 'insightistic' ), (bool) get_option( 'insightistic_api_email' ), __( 'Required for Google API authentication.', 'insightistic' ), false, $settings . '&active_tab=ga4#ga4', __( 'Open GA4 settings', 'insightistic' ) ),
+			self::check( __( 'Private key encrypted', 'insightistic' ), (bool) get_option( 'insightistic_api_private_key' ), __( 'Credentials should never be stored in plaintext.', 'insightistic' ), false, $settings . '&active_tab=ga4#ga4', __( 'Import service-account key', 'insightistic' ) ),
+			self::check( __( 'Search Console configured', 'insightistic' ), (bool) get_option( 'insightistic_gsc_property_url' ), __( 'Required for SEO Opportunity Finder.', 'insightistic' ), false, $settings . '&active_tab=gsc#gsc', __( 'Connect Search Console', 'insightistic' ) ),
+			self::check( __( 'PageSpeed configured', 'insightistic' ), (bool) get_option( 'insightistic_pagespeed_api_key_enc' ), __( 'Required for Core Web Vitals reports.', 'insightistic' ), false, $settings . '&active_tab=pagespeed#pagespeed', __( 'Add PageSpeed API key', 'insightistic' ) ),
+			self::check( __( 'Cloudflare Traffic Insights available', 'insightistic' ), class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudflare::is_available(), __( 'Optional  works automatically once a free account is connected; a Cloudflare API token is only needed as an alternative.', 'insightistic' ), true, admin_url( 'admin.php?page=insightistic-license' ), __( 'Create a free account', 'insightistic' ) ),
+			self::check( __( 'AI provider enabled', 'insightistic' ), (bool) get_option( 'insightistic_ai_enabled' ), __( 'Optional, but important for AI insight positioning.', 'insightistic' ), false, $settings . '&active_tab=ai#ai', __( 'Enable AI Insights', 'insightistic' ) ),
+			self::check( __( 'Email automation scheduled', 'insightistic' ), (bool) wp_next_scheduled( Insightistic_Email_Automations::CRON_HOOK ), __( 'Required for scheduled growth digests.', 'insightistic' ), false, $addons, __( 'Configure Email Automations', 'insightistic' ) ),
+			self::check( __( 'WordPress mail function available', 'insightistic' ), function_exists( 'wp_mail' ), __( 'SMTP plugin is recommended for reliable delivery.', 'insightistic' ), false, 'https://wordpress.org/plugins/wp-mail-smtp/', __( 'Install SMTP plugin', 'insightistic' ) ),
+			self::check( __( 'Current minified admin JS', 'insightistic' ), self::asset_is_current( 'assets/js/admin.js', 'assets/js/admin.min.js' ), __( 'Production should load current minified JavaScript.', 'insightistic' ), false, null, null ),
+			self::check( __( 'Current minified admin CSS', 'insightistic' ), self::asset_is_current( 'assets/css/admin.css', 'assets/css/admin.min.css' ), __( 'Production should load current minified CSS.', 'insightistic' ), false, null, null ),
+			self::check( __( 'Frontend tracker under 3KB', 'insightistic' ), self::tracker_under_limit(), __( 'Keeps frontend tracking lightweight.', 'insightistic' ), false, null, null ),
+			self::check( __( 'WooCommerce detected', 'insightistic' ), function_exists( 'wc_get_orders' ), __( 'Only required for WooCommerce Intelligence Pro.', 'insightistic' ), true, 'https://wordpress.org/plugins/woocommerce/', __( 'Install WooCommerce', 'insightistic' ) ),
 		);
 
 		return $checks;
@@ -73,10 +73,10 @@ class Insightistic_System_Status {
 		);
 
 		$out = array(
-			'plugin'  => 'insightistic',
-			'version' => INSIGHTISTIC_VERSION,
-			'site'    => home_url( '/' ),
-			'created' => gmdate( 'c' ),
+			'plugin'   => 'insightistic',
+			'version'  => INSIGHTISTIC_VERSION,
+			'site'     => home_url( '/' ),
+			'created'  => gmdate( 'c' ),
 			'settings' => array(),
 		);
 

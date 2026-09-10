@@ -123,11 +123,16 @@ class Insightistic_Saas_Client {
 		return self::request( 'POST', '/api/plugin/cloudflare-traffic', $body, true );
 	}
 
-	/* ------------------------------------------------------------------ */
-	/* Connector v2 — expanded ingestion (Milestone 3, spec §7.2/§8).        */
-	/* Each wraps one sync/* endpoint 1:1; all are HMAC-signed like every    */
-	/* connector call. See Insightistic_Sync::sync_expanded() for the        */
-	/* orchestration that calls these.                                      */
+	/*
+	------------------------------------------------------------------ */
+	/*
+	Connector v2 — expanded ingestion (Milestone 3, spec §7.2/§8).        */
+	/*
+	Each wraps one sync/* endpoint 1:1; all are HMAC-signed like every    */
+	/*
+	connector call. See Insightistic_Sync::sync_expanded() for the        */
+	/*
+	orchestration that calls these.                                      */
 	/* ------------------------------------------------------------------ */
 
 	/** Begin a sync batch; response carries `sync_batch_id` for the calls below. */

@@ -58,9 +58,11 @@ jobs:
         run: |
           cp languages/insightistic.pot /tmp/before.pot
           php scripts/make-pot.php
-          sed -i '/^"POT-Creation-Date:/d' /tmp/before.pot
-          sed -i '/^"POT-Creation-Date:/d' languages/insightistic.pot
-          diff -u /tmp/before.pot languages/insightistic.pot || { echo "::error::POT is stale in the tagged commit."; exit 1; }
+          # POT-Creation-Date is intentionally generated at build time; all
+          # other headers and extracted strings must match the tagged source.
+          grep -v 'POT-Creation-Date:' /tmp/before.pot > /tmp/before-normalized.pot
+          grep -v 'POT-Creation-Date:' languages/insightistic.pot > /tmp/after-normalized.pot
+          diff -u /tmp/before-normalized.pot /tmp/after-normalized.pot || { echo "::error::POT is stale in the tagged commit."; exit 1; }
 
       - name: Build release ZIP from the tagged commit
         run: php scripts/build-release.php

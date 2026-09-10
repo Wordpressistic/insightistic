@@ -52,9 +52,11 @@ services:
       WORDPRESS_DB_NAME: wordpress
     volumes:
       - wp_data:/var/www/html
-      - ../dist:/dist:ro
+      - ../../dist:/dist:ro
       - ./gate.sh:/gate.sh:ro
       - ./olders:/olders:ro
+      - ./check-zip-in-container.php:/check.php:ro
+      - ./zipdiff.php:/zipdiff.php:ro
 
 volumes:
   wp_data:

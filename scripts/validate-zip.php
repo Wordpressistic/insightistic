@@ -106,17 +106,17 @@ $forbidden_res = array(
 	'#(^|/)\.git(/|$)#'                 => '.git metadata',
 	'#(^|/)\.github(/|$)#'              => 'CI configuration',
 	'#(^|/)node_modules(/|$)#'          => 'node_modules',
-	'#(^|/)vendor(/|$)#'                => 'Composer vendor',
+	'#^insightistic/vendor(/|$)#'       => 'Composer vendor (assets/js/vendor/ Chart.js is allowed)',
 	'#(^|/)tests(/|$)#'                 => 'tests',
 	'#(^|/)scripts(/|$)#'               => 'build scripts',
 	'#\.map$#'                          => 'source maps',
 	'#\.src\.js$#'                      => 'debug source files (*.src.js)',
 	'#(^|/)\.env(\.|$)#'                => '.env files',
-	'#composer\.(json|lock)$#'          => 'composer files',
-	'#package(-lock)?\.json$#'          => 'npm files',
-	'#phpcs\.xml(\.dist)?$#'            => 'PHPCS config',
-	'#(^|/)README\.md$#'                => 'developer README (readme.txt ships instead)',
-	'#\.vscode(/|$)|\.idea(/|$)#'       => 'IDE configuration',
+	'#^insightistic/composer\.(json|lock)$#' => 'composer files',
+	'#^insightistic/package(-lock)?\.json$#'  => 'npm files',
+	'#^insightistic/phpcs\.xml(\.dist)?$#'    => 'PHPCS config',
+	'#^insightistic/README\.md$#'       => 'developer README (readme.txt ships instead)',
+	'#(^|/)\.vscode(/|$)|(^|/)\.idea(/|$)#' => 'IDE configuration',
 );
 $found_forbidden = array();
 foreach ( $entries as $e ) {

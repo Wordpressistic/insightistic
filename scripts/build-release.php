@@ -43,26 +43,28 @@ $allowlist = array(
 	'languages/',
 );
 
-/* Development-only files that must never leak into the package. */
+/* Development-only files that must never leak into the package.
+ * Patterns are matched against paths relative to the repository root.
+ * Root-anchored patterns only exclude repo-level tooling, so the bundled
+ * assets/js/vendor/ Chart.js library ships normally. */
 $deny_patterns = array(
-	'#(^|/)\.git(/|$)#',
-	'#(^|/)\.github(/|$)#',
-	'#(^|/)node_modules(/|$)#',
-	'#(^|/)vendor(/|$)#',
-	'#(^|/)tests(/|$)#',
-	'#(^|/)scripts(/|$)#',
-	'#(^|/)build(/|$)#',
-	'#(^|/)dist(/|$)#',
+	'#^\.git(/|$)#',
+	'#^\.github(/|$)#',
+	'#^node_modules(/|$)#',
+	'#^vendor(/|$)#',
+	'#^tests(/|$)#',
+	'#^scripts(/|$)#',
+	'#^build(/|$)#',
+	'#^dist(/|$)#',
 	'#\.map$#',
 	'#\.src\.js$#',
 	'#(^|/)\.env(\.|$)#',
-	'#(^|/)\.(?!gitattributes|gitignore)[A-Za-z0-9_-]+($|/)#',
-	'#composer\.(json|lock)$#',
-	'#package(-lock)?\.json$#',
-	'#phpcs\.xml(\.dist)?$#',
-	'#\.vscode(/|$)#',
-	'#\.idea(/|$)#',
-	'#(^|/)composer\.phar$#',
+	'#^composer\.(json|lock)$#',
+	'#^package(-lock)?\.json$#',
+	'#^phpcs\.xml(\.dist)?$#',
+	'#^README\.md$#',
+	'#(^|/)\.vscode(/|$)#',
+	'#(^|/)\.idea(/|$)#',
 );
 
 /**

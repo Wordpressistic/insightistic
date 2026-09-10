@@ -52,8 +52,11 @@ $noop     = '_n_noop';
 $entries = array(); // key: msgctx||msgid -> [refs[], plural or null]
 
 foreach ( $targets as $file ) {
-	$rel  = str_replace( $root . DIRECTORY_SEPARATOR, '', $file );
-	$rel  = str_replace( '\\', '/', $rel );
+	$root_normalized = rtrim( str_replace( '\\', '/', realpath( $root ) ), '/' ) . '/';
+	$file_normalized = str_replace( '\\', '/', realpath( $file ) );
+	$rel             = str_starts_with( $file_normalized, $root_normalized )
+		? substr( $file_normalized, strlen( $root_normalized ) )
+		: basename( $file_normalized );
 	$lines = file( $file );
 	if ( false === $lines ) {
 		continue;

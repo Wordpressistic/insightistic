@@ -47,6 +47,50 @@ class Insightistic_Saas_Client {
 	 * @param string $license_key Raw license key pasted by the user.
 	 * @return array{ok:bool,status:int,data:mixed,error:string|null}
 	 */
+	/**
+	 * WPistic platform licensing (api.wpistic.com) — one key, every
+	 * Wordpressistic plugin. Called by License Manager before the
+	 * SaaS exchange: a WPistic key (prefix WPI-) activates against the
+	 * platform; an Insightistic key continues to the SaaS as before.
+	 */
+	public static function wpistic_activate( $license_key ) {
+		$response = wp_remote_post(
+			'https://api.wpistic.com/wp-json/licenseistic/v1/license/activate',
+			array(
+				'timeout' => 20,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array(
+					'license_key' => $license_key,
+					'site_url'    => home_url( '/' ),
+				) ),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			return array( 'ok' => false, 'error' => $response->get_error_message() );
+		}
+		$d = json_decode( wp_remote_retrieve_body( $response ), true );
+		return is_array( $d ) ? $d : array( 'ok' => false, 'error' => 'bad response' );
+	}
+
+	public static function wpistic_validate( $license_key ) {
+		$response = wp_remote_post(
+			'https://api.wpistic.com/wp-json/licenseistic/v1/license/validate',
+			array(
+				'timeout' => 20,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array(
+					'license_key' => $license_key,
+					'site_url'    => home_url( '/' ),
+				) ),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			return array( 'ok' => false, 'error' => $response->get_error_message() );
+		}
+		$d = json_decode( wp_remote_retrieve_body( $response ), true );
+		return is_array( $d ) ? $d : array( 'ok' => false, 'error' => 'bad response' );
+	}
+
 	public static function activate( $license_key ) {
 		$body = array(
 			'license_key'        => $license_key,

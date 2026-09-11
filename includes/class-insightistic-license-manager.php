@@ -134,14 +134,21 @@ class Insightistic_License_Manager {
 	public function activate( $raw_key ) {
 		$raw_key = trim( (string) $raw_key );
 
-		if ( ! preg_match( '/^insightistic_[A-Za-z0-9]{20,40}$/', $raw_key ) ) {
+		$is_wpistic = ( 0 === strpos( $raw_key, 'WPI-' ) );
+
+		if ( ! $is_wpistic && ! preg_match( '/^insightistic_[A-Za-z0-9]{20,40}$/', $raw_key ) ) {
 			return new WP_Error(
 				'invalid_format',
-				__( 'That does not look like an Insightistic license key. Keys start with "insightistic_".', 'insightistic' )
+				__( 'That does not look like an Insightistic or WPistic license key. Insightistic keys start with "insightistic_", WPistic keys with "WPI-".', 'insightistic' )
 			);
 		}
 
-		$result = Insightistic_Saas_Client::activate( $raw_key );
+		// One key, everywhere: WPI- keys activate against the WPistic
+		// platform (api.wpistic.com); classic insightistic_ keys use the
+		// Insightistic SaaS as before.
+		$result = $is_wpistic
+			? $this->activate_wpistic( $raw_key )
+			: Insightistic_Saas_Client::activate( $raw_key );
 
 		if ( ! $result['ok'] ) {
 			$code = is_array( $result['data'] ) && ! empty( $result['data']['code'] ) ? $result['data']['code'] : 'activation_failed';
@@ -179,7 +186,50 @@ class Insightistic_License_Manager {
 		wp_schedule_event( time() + 60, 'daily', Insightistic_Sync::RUN_HOOK );
 
 		// The one-time key leaves memory here; only last4 remains.
+		update_option( 'insightistic_license_state_key_type', $state['key_type'], false );
+
 		return $state;
+	}
+
+	/**
+	 * WPistic platform activation (WPI- keys). Exchanges the key for
+	 * plan entitlements on api.wpistic.com and stores them in the same
+	 * cached-state shape the dashboard already renders. Connector sync
+	 * credentials are not issued on this path (plugin data stays local);
+	 * AI credits are enforced at ai.wpistic.com via the key hint.
+	 */
+	private function activate_wpistic( $raw_key ) {
+		$res = Insightistic_Saas_Client::wpistic_activate( $raw_key );
+
+		if ( empty( $res['success'] ) ) {
+			$code = $res['code'] ?? ( $res['error'] ?? 'activation_failed' );
+			return new WP_Error( 'wpistic_' . $code, $this->human_error( 'wpistic_' . $code, $res['message'] ?? ( $res['error'] ?? 'WPistic activation failed.' ) ), $res );
+		}
+
+		update_option( 'insightistic_license_last4', substr( $raw_key, -4 ), false );
+		update_option( 'insightistic_license_key_hint', substr( $raw_key, 0, 7 ) . '…' . substr( $raw_key, -4 ), false );
+
+		$license = array(
+			'status'       => 'active',
+			'plan'         => $res['plan']['name'] ?? 'WPistic',
+			'plan_name'    => $res['plan']['name'] ?? 'WPistic',
+			'features'     => $res['entitlements']['features'] ?? array( 'ai_insights', 'email_automations' ),
+			'ai_credits'   => $res['entitlements']['ai_credits'] ?? array( 'included' => 0, 'used' => 0 ),
+			'expires_at'   => $res['expires_at'] ?? null,
+			'grace_hours'  => 72,
+			'key_type'     => 'wpistic',
+		);
+
+		// Fresh daily validation schedule.
+		wp_clear_scheduled_hook( self::CRON_HOOK );
+		wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', self::CRON_HOOK );
+
+		return $this->store_state( $license );
+	}
+
+	/** Public key hint (masked) for AI-gateway credit checks. */
+	public static function get_key_hint() {
+		return get_option( 'insightistic_license_key_hint', '' );
 	}
 
 	/**
@@ -192,10 +242,29 @@ class Insightistic_License_Manager {
 			return new WP_Error( 'not_connected', __( 'No license is active on this site yet.', 'insightistic' ) );
 		}
 
-		$result = Insightistic_Saas_Client::validate();
-
-		if ( $result['ok'] && ! empty( $result['data']['license'] ) ) {
-			return $this->store_state( $result['data']['license'] );
+		// WPI- keys validate against the WPistic platform.
+		if ( 'wpistic' === get_option( 'insightistic_license_state_key_type' ) ) {
+			$hint = self::get_key_hint();
+			$res  = Insightistic_Saas_Client::wpistic_validate( $hint );
+			if ( ! empty( $res['success'] ) ) {
+				$license = array(
+					'status'      => 'active',
+					'plan'        => $res['plan']['name'] ?? 'WPistic',
+					'plan_name'   => $res['plan']['name'] ?? 'WPistic',
+					'features'    => $res['entitlements']['features'] ?? array( 'ai_insights', 'email_automations' ),
+					'ai_credits'  => $res['entitlements']['ai_credits'] ?? array( 'included' => 0, 'used' => 0 ),
+					'expires_at'  => $res['expires_at'] ?? null,
+					'grace_hours' => 72,
+					'key_type'    => 'wpistic',
+				);
+				return $this->store_state( $license );
+			}
+			// fall through to grace handling below on failure.
+		} else {
+			$result = Insightistic_Saas_Client::validate();
+			if ( $result['ok'] && ! empty( $result['data']['license'] ) ) {
+				return $this->store_state( $result['data']['license'] );
+			}
 		}
 
 		// Denied by the server (revoked key, deactivated site, ...): downgrade
@@ -284,6 +353,7 @@ class Insightistic_License_Manager {
 			'validate_interval' => absint( $license['validate_interval'] ?? DAY_IN_SECONDS ),
 			'grace_hours'       => absint( $license['grace_hours'] ?? 72 ),
 			'validated_at'      => time(),
+			'key_type'          => sanitize_key( $license['key_type'] ?? 'insightistic' ),
 		);
 
 		update_option( 'insightistic_license_state', $state, false );

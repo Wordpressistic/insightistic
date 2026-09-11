@@ -63,6 +63,10 @@ class Insightistic_Admin {
 				'label' => 'Groq',
 				'cost'  => __( 'Low cost / fast', 'insightistic' ),
 			),
+			'wpistic' => array(
+				'label' => 'WPistic AI (GLM)',
+				'cost'  => __( 'Included credits with your plan — no API key needed', 'insightistic' ),
+			),
 			'insightistic_cloud' => array(
 				'label' => 'Insightistic Cloud AI',
 				'cost'  => __( 'Free with your account (usage limits apply)', 'insightistic' ),

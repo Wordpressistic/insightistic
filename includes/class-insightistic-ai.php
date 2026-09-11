@@ -105,6 +105,10 @@ class Insightistic_AI {
 		$prompt = $this->build_prompt( $data, $days );
 
 		switch ( $provider ) {
+			case 'wpistic':
+				$result = $this->call_wpistic( $prompt );
+				break;
+
 			case 'openai':
 				$result = $this->call_openai( $prompt );
 				break;
@@ -419,6 +423,77 @@ class Insightistic_AI {
 	 * @param string $prompt User prompt.
 	 * @return string|WP_Error JSON content string.
 	 */
+	/**
+	 * Call WPistic AI (GLM via ai.wpistic.com) — our own model gateway.
+	 * Credits come with your WPistic plan; the license activation ties
+	 * the site to the plan, no API key needed on the client.
+	 */
+	private function call_wpistic( $prompt ) {
+		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
+			return new WP_Error(
+				'no_license',
+				__( 'Connect your WPistic account (Insightistic → License) to use WPistic AI credits.', 'insightistic' )
+			);
+		}
+
+		$model = get_option( 'insightistic_wpistic_model', 'glm-5.3' );
+
+		$response = wp_remote_post(
+			'https://ai.wpistic.com/v1/chat/completions',
+			array(
+				'timeout' => 60,
+				'headers' => array(
+					'Content-Type'  => 'application/json',
+					'X-WPI-License' => Insightistic_License_Manager::get_key_hint(),
+					'X-WPI-Site'    => home_url( '/' ),
+				),
+				'body'    => wp_json_encode(
+					array(
+						'model'           => $model,
+						'messages'        => array(
+							array(
+								'role'    => 'system',
+								'content' => $this->system_prompt(),
+							),
+							array(
+								'role'    => 'user',
+								'content' => $prompt,
+							),
+						),
+						'temperature'     => 0.5,
+						'max_tokens'      => 2000,
+						'response_format' => array( 'type' => 'json_object' ),
+					)
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'wpistic_network', __( 'Could not reach WPistic AI. Please try again shortly.', 'insightistic' ) );
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( 402 === $code || ( is_array( $body ) && ( $body['code'] ?? '' ) === 'credits_exhausted' ) ) {
+			return new WP_Error( 'wpistic_credits', __( 'Your plan’s AI credits are used up. Upgrade your plan at wpistic.com to get more.', 'insightistic' ) );
+		}
+		if ( 401 === $code || 403 === $code ) {
+			return new WP_Error( 'wpistic_unauthorized', __( 'Your WPistic license could not be verified. Reconnect in Insightistic → License.', 'insightistic' ) );
+		}
+		if ( $code < 200 || $code >= 300 ) {
+			return new WP_Error( 'wpistic_error', 'WPistic AI HTTP ' . $code );
+		}
+
+		$content = $body['choices'][0]['message']['content'] ?? '';
+		if ( ! $content ) {
+			return new WP_Error( 'wpistic_empty', __( 'WPistic AI returned an empty response.', 'insightistic' ) );
+		}
+		$content = preg_replace( '/^```json\s*/i', '', $content );
+		$content = preg_replace( '/```\s*$/', '', $content );
+		return trim( $content );
+	}
+
 	private function call_openai( $prompt ) {
 		$key = $this->get_key( 'insightistic_openai_key' );
 		if ( is_wp_error( $key ) ) {

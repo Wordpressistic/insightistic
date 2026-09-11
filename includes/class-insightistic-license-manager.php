@@ -392,6 +392,10 @@ class Insightistic_License_Manager {
 			'grace_hours'       => absint( $license['grace_hours'] ?? 72 ),
 			'validated_at'      => time(),
 			'key_type'          => sanitize_key( $license['key_type'] ?? 'insightistic' ),
+			'ai_credits'        => array(
+				'included' => absint( $license['ai_credits']['included'] ?? 0 ),
+				'used'     => absint( $license['ai_credits']['used'] ?? 0 ),
+			),
 		);
 
 		update_option( 'insightistic_license_state', $state, false );

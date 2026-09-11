@@ -429,7 +429,8 @@ class Insightistic_AI {
 	 * the site to the plan, no API key needed on the client.
 	 */
 	private function call_wpistic( $prompt ) {
-		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
+		$key = Insightistic_License_Manager::get_wpistic_key();
+		if ( is_wp_error( $key ) || ! $key ) {
 			return new WP_Error(
 				'no_license',
 				__( 'Connect your WPistic account (Insightistic → License) to use WPistic AI credits.', 'insightistic' )
@@ -439,32 +440,25 @@ class Insightistic_AI {
 		$model = get_option( 'insightistic_wpistic_model', 'glm-5.3' );
 
 		$response = wp_remote_post(
-			'https://ai.wpistic.com/v1/chat/completions',
+			'https://registry.wpistic.com/wpistic/v1/ai/chat',
 			array(
 				'timeout' => 60,
-				'headers' => array(
-					'Content-Type'  => 'application/json',
-					'X-WPI-License' => Insightistic_License_Manager::get_key_hint(),
-					'X-WPI-Site'    => home_url( '/' ),
-				),
-				'body'    => wp_json_encode(
-					array(
-						'model'           => $model,
-						'messages'        => array(
-							array(
-								'role'    => 'system',
-								'content' => $this->system_prompt(),
-							),
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array(
+					'license_key' => $key,
+					'site_url'    => home_url( '/' ),
+					'model'       => $model,
+					'messages'    => array(
+						array(
+							'role'    => 'system',
+							'content' => $this->system_prompt(),
 						),
-						'temperature'     => 0.5,
-						'max_tokens'      => 2000,
-						'response_format' => array( 'type' => 'json_object' ),
-					)
-				),
+						array(
+							'role'    => 'user',
+							'content' => $prompt,
+						),
+					),
+				) ),
 			)
 		);
 
@@ -475,17 +469,18 @@ class Insightistic_AI {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( 402 === $code || ( is_array( $body ) && ( $body['code'] ?? '' ) === 'credits_exhausted' ) ) {
+		if ( 402 === $code || ( is_array( $body ) && ( $body['error'] ?? '' ) === 'credits_exhausted' ) ) {
 			return new WP_Error( 'wpistic_credits', __( 'Your plan’s AI credits are used up. Upgrade your plan at wpistic.com to get more.', 'insightistic' ) );
 		}
 		if ( 401 === $code || 403 === $code ) {
-			return new WP_Error( 'wpistic_unauthorized', __( 'Your WPistic license could not be verified. Reconnect in Insightistic → License.', 'insightistic' ) );
+			$msg = is_array( $body ) && ! empty( $body['message'] ) ? $body['message'] : '';
+			return new WP_Error( 'wpistic_unauthorized', $msg ? $msg : __( 'Your WPistic license could not be verified. Reconnect in Insightistic → License.', 'insightistic' ) );
 		}
 		if ( $code < 200 || $code >= 300 ) {
 			return new WP_Error( 'wpistic_error', 'WPistic AI HTTP ' . $code );
 		}
 
-		$content = $body['choices'][0]['message']['content'] ?? '';
+		$content = is_array( $body ) ? ( $body['content'] ?? '' ) : '';
 		if ( ! $content ) {
 			return new WP_Error( 'wpistic_empty', __( 'WPistic AI returned an empty response.', 'insightistic' ) );
 		}

@@ -55,7 +55,7 @@ class Insightistic_Saas_Client {
 	 */
 	public static function wpistic_activate( $license_key ) {
 		$response = wp_remote_post(
-			'https://api.wpistic.com/wp-json/licenseistic/v1/license/activate',
+			'https://registry.wpistic.com/licenseistic/v1/license/activate',
 			array(
 				'timeout' => 20,
 				'headers' => array( 'Content-Type' => 'application/json' ),
@@ -74,7 +74,7 @@ class Insightistic_Saas_Client {
 
 	public static function wpistic_validate( $license_key ) {
 		$response = wp_remote_post(
-			'https://api.wpistic.com/wp-json/licenseistic/v1/license/validate',
+			'https://registry.wpistic.com/licenseistic/v1/license/verify',
 			array(
 				'timeout' => 20,
 				'headers' => array( 'Content-Type' => 'application/json' ),

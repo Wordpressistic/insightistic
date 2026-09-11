@@ -207,15 +207,29 @@ class Insightistic_License_Manager {
 		}
 
 		update_option( 'insightistic_license_last4', substr( $raw_key, -4 ), false );
+
+		// The registry engine hashes keys server-side, so the raw key is
+		// needed on every AI call. Store it encrypted at rest, never
+		// rendered, never sent anywhere except registry.wpistic.com.
+		$enc = Insightistic_Encryption::encrypt( $raw_key );
+		if ( $enc ) {
+			update_option( 'insightistic_wpistic_key_enc', $enc, false );
+		}
+		// is_connected() gate + display hint.
+		update_option( 'insightistic_connector_key_id', 'wpistic-' . substr( hash( 'sha256', $raw_key ), 0, 12 ), false );
 		update_option( 'insightistic_license_key_hint', substr( $raw_key, 0, 7 ) . '…' . substr( $raw_key, -4 ), false );
 
+		$usage = is_array( $res['usage'] ?? null ) ? $res['usage'] : array();
 		$license = array(
 			'status'       => 'active',
-			'plan'         => $res['plan']['name'] ?? 'WPistic',
-			'plan_name'    => $res['plan']['name'] ?? 'WPistic',
-			'features'     => $res['entitlements']['features'] ?? array( 'ai_insights', 'email_automations' ),
-			'ai_credits'   => $res['entitlements']['ai_credits'] ?? array( 'included' => 0, 'used' => 0 ),
-			'expires_at'   => $res['expires_at'] ?? null,
+			'plan'         => sanitize_key( $res['plan'] ?? 'wpistic' ),
+			'plan_name'    => sanitize_text_field( (string) ( $res['plan'] ?? 'WPistic' ) ),
+			'features'     => array( 'ai_insights', 'email_automations' ),
+			'ai_credits'   => array(
+				'included' => $usage['limit'] ?? 0,
+				'used'     => $usage['used'] ?? 0,
+			),
+			'expires_at'   => $res['expires'] ?? null,
 			'grace_hours'  => 72,
 			'key_type'     => 'wpistic',
 		);
@@ -233,6 +247,20 @@ class Insightistic_License_Manager {
 	}
 
 	/**
+	 * Raw WPistic key (encrypted at rest), or '' / WP_Error when absent.
+	 * Used ONLY for registry.wpistic.com license + AI-credit calls.
+	 * @return string|WP_Error
+	 */
+	public static function get_wpistic_key() {
+		$enc = get_option( 'insightistic_wpistic_key_enc', '' );
+		if ( ! $enc ) {
+			return new WP_Error( 'no_key', __( 'No WPistic key stored on this site.', 'insightistic' ) );
+		}
+		$key = Insightistic_Encryption::decrypt( $enc );
+		return $key ? $key : new WP_Error( 'decrypt_failed', __( 'Stored key could not be decrypted.', 'insightistic' ) );
+	}
+
+	/**
 	 * Refresh entitlements from the SaaS (cron, manual button, post-update).
 	 *
 	 * @return array|WP_Error Fresh (or grace-period cached) state.
@@ -244,20 +272,26 @@ class Insightistic_License_Manager {
 
 		// WPI- keys validate against the WPistic platform.
 		if ( 'wpistic' === get_option( 'insightistic_license_state_key_type' ) ) {
-			$hint = self::get_key_hint();
-			$res  = Insightistic_Saas_Client::wpistic_validate( $hint );
-			if ( ! empty( $res['success'] ) ) {
-				$license = array(
-					'status'      => 'active',
-					'plan'        => $res['plan']['name'] ?? 'WPistic',
-					'plan_name'   => $res['plan']['name'] ?? 'WPistic',
-					'features'    => $res['entitlements']['features'] ?? array( 'ai_insights', 'email_automations' ),
-					'ai_credits'  => $res['entitlements']['ai_credits'] ?? array( 'included' => 0, 'used' => 0 ),
-					'expires_at'  => $res['expires_at'] ?? null,
-					'grace_hours' => 72,
-					'key_type'    => 'wpistic',
-				);
-				return $this->store_state( $license );
+			$key = self::get_wpistic_key();
+			if ( $key && ! is_wp_error( $key ) ) {
+				$res = Insightistic_Saas_Client::wpistic_validate( $key );
+				if ( ! empty( $res['success'] ) ) {
+					$usage = is_array( $res['usage'] ?? null ) ? $res['usage'] : array();
+					$license = array(
+						'status'      => 'active',
+						'plan'        => sanitize_key( $res['plan'] ?? 'wpistic' ),
+						'plan_name'   => sanitize_text_field( (string) ( $res['plan'] ?? 'WPistic' ) ),
+						'features'    => array( 'ai_insights', 'email_automations' ),
+						'ai_credits'  => array(
+							'included' => $usage['limit'] ?? 0,
+							'used'     => $usage['used'] ?? 0,
+						),
+						'expires_at'  => $res['expires'] ?? null,
+						'grace_hours' => 72,
+						'key_type'    => 'wpistic',
+					);
+					return $this->store_state( $license );
+				}
 			}
 			// fall through to grace handling below on failure.
 		} else {
@@ -291,6 +325,10 @@ class Insightistic_License_Manager {
 	 */
 	public function disconnect() {
 		if ( self::is_connected() ) {
+			if ( 'wpistic' === get_option( 'insightistic_license_state_key_type' ) ) {
+				delete_option( 'insightistic_wpistic_key_enc' );
+				delete_option( 'insightistic_connector_key_id' );
+			}
 			Insightistic_Saas_Client::deactivate(); // best effort, result ignored.
 		}
 

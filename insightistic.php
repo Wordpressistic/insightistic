@@ -43,6 +43,7 @@ function insightistic_load() {
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-saas-client.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-sync.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-license-manager.php',
+		INSIGHTISTIC_PATH . 'includes/class-insightistic-platform-bridge.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-feature-gate.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-ga.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-gsc.php',

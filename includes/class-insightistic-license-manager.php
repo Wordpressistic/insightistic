@@ -147,8 +147,7 @@ class Insightistic_License_Manager {
 		// platform (api.wpistic.com); classic insightistic_ keys use the
 		// Insightistic SaaS as before.
 		if ( $is_wpistic ) {
-			$state = $this->activate_wpistic( $raw_key );
-			return is_wp_error( $state ) ? $state : $state;
+			return $this->activate_wpistic( $raw_key );
 		}
 
 		$result = Insightistic_Saas_Client::activate( $raw_key );
@@ -276,7 +275,7 @@ class Insightistic_License_Manager {
 			$key = self::get_wpistic_key();
 			if ( $key && ! is_wp_error( $key ) ) {
 				$res = Insightistic_Saas_Client::wpistic_validate( $key );
-				if ( ! empty( $res['success'] ) ) {
+				if ( ! empty( $res['plan'] ) && 'active' === ( $res['status'] ?? '' ) ) {
 					$usage = is_array( $res['usage'] ?? null ) ? $res['usage'] : array();
 					$license = array(
 						'status'      => 'active',

@@ -73,16 +73,9 @@ class Insightistic_Saas_Client {
 	}
 
 	public static function wpistic_validate( $license_key ) {
-		$response = wp_remote_post(
-			'https://registry.wpistic.com/licenseistic/v1/license/verify',
-			array(
-				'timeout' => 20,
-				'headers' => array( 'Content-Type' => 'application/json' ),
-				'body'    => wp_json_encode( array(
-					'license_key' => $license_key,
-					'site_url'    => home_url( '/' ),
-				) ),
-			)
+		$response = wp_remote_get(
+			add_query_arg( 'license_key', rawurlencode( $license_key ), 'https://registry.wpistic.com/licenseistic/v1/usage' ),
+			array( 'timeout' => 20 )
 		);
 		if ( is_wp_error( $response ) ) {
 			return array( 'ok' => false, 'error' => $response->get_error_message() );

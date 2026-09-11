@@ -173,16 +173,16 @@ class Insightistic_Platform_Bridge {
 		}
 
 		return array(
-			'source'             => self::source(),
-			'wpisticSdkLoaded'   => self::sdk_available(),
-			'wpisticConnected'   => self::wpistic_connected(),
-			'wpisticStatus'      => $status,
-			'legacyConnected'    => self::legacy_connected(),
-			'sitesMax'           => self::max( 'insightistic.sites.max', 0 ),
-			'aiMonthlyCredits'   => self::max( 'insightistic.ai.monthly_credits', 0 ),
-			'clientWorkspacesMax'=> self::max( 'insightistic.client_workspaces.max', 0 ),
-			'whiteLabel'         => self::allows( 'insightistic.white_label', false ),
-			'agencyDashboard'    => self::allows( 'insightistic.agency.dashboard', false ),
+			'source'              => self::source(),
+			'wpisticSdkLoaded'    => self::sdk_available(),
+			'wpisticConnected'    => self::wpistic_connected(),
+			'wpisticStatus'       => $status,
+			'legacyConnected'     => self::legacy_connected(),
+			'sitesMax'            => self::max( 'insightistic.sites.max', 0 ),
+			'aiMonthlyCredits'    => self::max( 'insightistic.ai.monthly_credits', 0 ),
+			'clientWorkspacesMax' => self::max( 'insightistic.client_workspaces.max', 0 ),
+			'whiteLabel'          => self::allows( 'insightistic.white_label', false ),
+			'agencyDashboard'     => self::allows( 'insightistic.agency.dashboard', false ),
 		);
 	}
 }

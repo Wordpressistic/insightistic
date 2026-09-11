@@ -146,9 +146,12 @@ class Insightistic_License_Manager {
 		// One key, everywhere: WPI- keys activate against the WPistic
 		// platform (api.wpistic.com); classic insightistic_ keys use the
 		// Insightistic SaaS as before.
-		$result = $is_wpistic
-			? $this->activate_wpistic( $raw_key )
-			: Insightistic_Saas_Client::activate( $raw_key );
+		if ( $is_wpistic ) {
+			$state = $this->activate_wpistic( $raw_key );
+			return is_wp_error( $state ) ? $state : $state;
+		}
+
+		$result = Insightistic_Saas_Client::activate( $raw_key );
 
 		if ( ! $result['ok'] ) {
 			$code = is_array( $result['data'] ) && ! empty( $result['data']['code'] ) ? $result['data']['code'] : 'activation_failed';
@@ -186,8 +189,6 @@ class Insightistic_License_Manager {
 		wp_schedule_event( time() + 60, 'daily', Insightistic_Sync::RUN_HOOK );
 
 		// The one-time key leaves memory here; only last4 remains.
-		update_option( 'insightistic_license_state_key_type', $state['key_type'], false );
-
 		return $state;
 	}
 
@@ -395,6 +396,7 @@ class Insightistic_License_Manager {
 		);
 
 		update_option( 'insightistic_license_state', $state, false );
+		update_option( 'insightistic_license_state_key_type', $state['key_type'], false );
 
 		return $state;
 	}

@@ -76,6 +76,8 @@ function insightistic_load() {
 		require_once $file;
 	}
 
+	require_once INSIGHTISTIC_PATH . 'includes/class-insightistic-platform-bridge.php';
+
 	load_plugin_textdomain( 'insightistic', false, dirname( INSIGHTISTIC_BASENAME ) . '/languages' );
 
 	( new Insightistic_Admin() )->init();

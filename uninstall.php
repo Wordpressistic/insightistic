@@ -82,15 +82,21 @@ $options = array(
 	'insightistic_sync_settings',
 	'insightistic_last_sync',
 	'insightistic_sync_log',
+	// IndexNow URL submission pipeline (v4.4.3). The {key}.txt key file at
+	// the site root is left in place: deleting it from the uninstaller would
+	// require the filesystem API, and a stale key file is harmless.
+	'insightistic_indexnow',
+	'insightistic_indexnow_queue',
 );
 
 foreach ( $options as $option ) {
 	delete_option( $option );
 }
 
-// Clear the daily license validation + sync crons.
+// Clear the daily license validation + sync crons and the IndexNow flush.
 wp_clear_scheduled_hook( 'insightistic_license_validate' );
 wp_clear_scheduled_hook( 'insightistic_run_sync' );
+wp_clear_scheduled_hook( 'insightistic_indexnow_flush' );
 
 // Sweep any remaining plugin options (e.g. dynamically-named rotation
 // timestamps) plus all plugin transients.

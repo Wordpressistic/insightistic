@@ -1,6 +1,6 @@
 {
     "name": "insightistic",
-    "version": "4.4.2",
+    "version": "4.4.3",
     "private": true,
     "description": "Build tooling for the Insightistic WordPress plugin (assets are distributed inside the plugin, not as an npm package).",
     "license": "GPL-2.0-or-later",

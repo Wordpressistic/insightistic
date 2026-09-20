@@ -111,11 +111,11 @@ class Insightistic_IndexNow {
 		return wp_parse_args(
 			get_option( self::OPT, array() ),
 			array(
-				'key'                => '',
-				'key_location'       => '',
-				'key_file_confirmed' => false,
+				'key'                 => '',
+				'key_location'        => '',
+				'key_file_confirmed'  => false,
 				'auto_submit_enabled' => 'yes',
-				'last_submitted'     => '',
+				'last_submitted'      => '',
 			)
 		);
 	}
@@ -157,7 +157,7 @@ class Insightistic_IndexNow {
 	/* ------------------------------------------------------------------ */
 
 	/**
-	 * save_post callback. Runs the eligibility gate and — and only then —
+	 * The save_post callback. Runs the eligibility gate and — and only then —
 	 * defers the real work to a background action. All the cheap checks run
 	 * here so the save request stays fast; no network I/O ever happens here.
 	 *
@@ -200,7 +200,7 @@ class Insightistic_IndexNow {
 		if ( function_exists( 'as_enqueue_async_action' ) ) {
 			as_enqueue_async_action( self::SUBMIT_HOOK, array( 'post_id' => (int) $post_id ), 'insightistic' );
 		} else {
-			do_action( self::SUBMIT_HOOK, (int) $post_id );
+			do_action( self::SUBMIT_HOOK, (int) $post_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Resolves to the prefixed constant insightistic_indexnow_submit_single; the sniff cannot see class constants.
 		}
 	}
 
@@ -339,7 +339,7 @@ class Insightistic_IndexNow {
 		}
 
 		if ( $sent > 0 ) {
-			$settings             = self::settings();
+			$settings                   = self::settings();
 			$settings['last_submitted'] = current_time( 'mysql' );
 			update_option( self::OPT, $settings, false );
 			self::log( sprintf( 'IndexNow: submitted %d URL(s) to the SaaS.', $sent ) );
@@ -426,9 +426,9 @@ class Insightistic_IndexNow {
 		$res       = Insightistic_Saas_Client::indexnow_confirm_key();
 		$confirmed = $res['ok'] && is_array( $res['data'] ) && ! empty( $res['data']['key_file_confirmed'] );
 
-		$settings                        = self::settings();
-		$settings['key']                 = $key;
-		$settings['key_file_confirmed']  = (bool) $confirmed;
+		$settings                       = self::settings();
+		$settings['key']                = $key;
+		$settings['key_file_confirmed'] = (bool) $confirmed;
 		update_option( self::OPT, $settings, false );
 
 		if ( $confirmed ) {
@@ -472,7 +472,7 @@ class Insightistic_IndexNow {
 		$content = $key; // The file's body must be exactly the key.
 
 		if ( ! defined( 'FS_CHMOD_FILE' ) ) {
-			define( 'FS_CHMOD_FILE', 0644 );
+			define( 'FS_CHMOD_FILE', 0644 ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant, defined defensively for the filesystem API fallback.
 		}
 
 		if ( ! function_exists( 'WP_Filesystem' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
@@ -492,8 +492,10 @@ class Insightistic_IndexNow {
 		}
 
 		// Direct fallback — ABSPATH is writable in the overwhelming majority
-		// of installs (that is where wp-config.php lives).
-		return false !== @file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.FileSystemOperations
+		// of installs (that is where wp-config.php lives). A failed write
+		// returns false and is logged by the caller.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged -- Direct write is the documented fallback when the filesystem API cannot initialize (credentials required).
+		return false !== @file_put_contents( $path, $content );
 	}
 
 	/*
@@ -529,7 +531,7 @@ class Insightistic_IndexNow {
 			}
 		} else {
 			if ( 'publish' !== $status ) {
-				return false; // Drafts, pending, private, future, trash, ...
+				return false; // Drafts and every other non-published status stay out.
 			}
 			$type_obj = function_exists( 'get_post_type_object' ) ? get_post_type_object( $type ) : null;
 			if ( ! $type_obj || empty( $type_obj->public ) ) {

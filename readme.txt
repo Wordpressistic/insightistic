@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.4.2
+Stable tag: 4.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,18 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.4.3 (2026-09-20) =
+
+**New — IndexNow URL submission**
+
+* Published and updated posts are now submitted to the IndexNow pipeline through your connected Insightistic account (connector API, HMAC-signed like every other call), so new content reaches IndexNow-participating search engines faster — no extra configuration.
+* Strict eligibility gate before anything is sent: only public, indexable URLs are submitted. Drafts, pending/private/future posts, password-protected posts, posts marked noindex by Yoast SEO, Rank Math or All in One SEO, and attachments of non-public posts are always skipped.
+* Zero impact on the save request: submissions are batched in a background queue (deduped, capped) and flushed in chunks via Action Scheduler or a lightweight 15-minute cron — never synchronously while editing.
+* The IndexNow key is provisioned automatically on first use: fetched from the SaaS, served from yoursite.com/{key}.txt, and confirmed back. Transient failures are retried quietly and appear in the sync log on the License page.
+* Developers: disable per-site with the `insightistic_indexnow_enabled` filter.
+
+* Version bump 4.4.2 → 4.4.3.
 
 = 4.4.2 (2026-09-10) =
 

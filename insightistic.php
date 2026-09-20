@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic - GA4 Analytics & AI Insights
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed and WooCommerce to your WordPress dashboard — fully free. Create a free Insightistic account to unlock AI Insights and email automation delivery.
- * Version:     4.4.2
+ * Version:     4.4.3
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION', '4.4.2' );
+define( 'INSIGHTISTIC_VERSION', '4.4.3' );
 define( 'INSIGHTISTIC_FILE', __FILE__ );
 define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
@@ -42,6 +42,7 @@ function insightistic_load() {
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-auth.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-saas-client.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-sync.php',
+		INSIGHTISTIC_PATH . 'includes/class-insightistic-indexnow.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-license-manager.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-feature-gate.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-ga.php',
@@ -83,6 +84,7 @@ function insightistic_load() {
 	( new Insightistic_Admin() )->init();
 	( new Insightistic_Sync() )->init();
 	( new Insightistic_License_Manager() )->init();
+	( new Insightistic_IndexNow() )->init();
 	( new Insightistic_GA() )->init();
 	( new Insightistic_GSC() )->init();
 	( new Insightistic_PageSpeed() )->init();
@@ -153,6 +155,20 @@ function insightistic_activate() {
 		'',
 		'no'
 	);
+	// IndexNow URL submission pipeline (v4.4.3).
+	add_option(
+		'insightistic_indexnow',
+		array(
+			'key'                 => '',
+			'key_location'        => '',
+			'key_file_confirmed'  => false,
+			'auto_submit_enabled' => 'yes',
+			'last_submitted'      => '',
+		),
+		'',
+		'no'
+	);
+	add_option( 'insightistic_indexnow_queue', array(), '', 'no' );
 }
 register_activation_hook( INSIGHTISTIC_FILE, 'insightistic_activate' );
 
@@ -163,6 +179,7 @@ function insightistic_deactivate() {
 	delete_transient( 'insightistic_access_token_ga4' );
 	delete_transient( 'insightistic_access_token_gsc' );
 	wp_clear_scheduled_hook( 'insightistic_license_validate' );
+	wp_clear_scheduled_hook( 'insightistic_indexnow_flush' );
 	// Clear all analytics cache transients.
 	global $wpdb;
 	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery

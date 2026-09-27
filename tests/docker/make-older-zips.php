@@ -1,7 +1,7 @@
 <?php
 /**
  * Build installable ZIPs of previous releases from git tags for the upgrade
- * gate: 4.4.0 -> 4.4.2 and 4.4.1 -> 4.4.2.
+ * gate: 4.4.0/4.4.1/4.4.2 -> 4.4.3.
  *
  * Usage: php tests/docker/make-older-zips.php
  *
@@ -31,7 +31,7 @@ function rrmdir( $dir ) {
 	rmdir( $dir );
 }
 
-foreach ( array( 'insightistic-4.4.0', 'insightistic-4.4.1' ) as $tag ) {
+foreach ( array( 'insightistic-4.4.0', 'insightistic-4.4.1', 'insightistic-4.4.2' ) as $tag ) {
 	$ver = substr( $tag, strlen( 'insightistic-' ) );
 	$tmp = $stage . '/tmp-' . $ver . '-' . substr( (string) microtime( true ), -6 );
 	rrmdir( $stage . '/tmp-' . $ver ); // legacy leftovers from earlier runs.

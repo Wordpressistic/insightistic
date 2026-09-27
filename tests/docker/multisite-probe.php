@@ -27,8 +27,8 @@ is_plugin_active_for_network( 'insightistic/insightistic.php' )
 	? $ok( 'insightistic is network-activated' )
 	: $bad( 'insightistic is network-activated' );
 
-( defined( 'INSIGHTISTIC_VERSION' ) && INSIGHTISTIC_VERSION === '4.4.2' )
-	? $ok( 'plugin boot on main site (constant 4.4.2 present)' )
+( defined( 'INSIGHTISTIC_VERSION' ) && INSIGHTISTIC_VERSION === '4.4.3' )
+	? $ok( 'plugin boot on main site (constant 4.4.3 present)' )
 	: $bad( 'plugin boot on main site (constant missing)' );
 
 // Create + switch to a child site (subdirectory-style network).

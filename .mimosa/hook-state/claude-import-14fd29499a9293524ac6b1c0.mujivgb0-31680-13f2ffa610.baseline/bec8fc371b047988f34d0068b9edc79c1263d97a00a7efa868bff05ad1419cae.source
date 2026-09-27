@@ -1,0 +1,19 @@
+{
+    "name": "insightistic",
+    "version": "4.4.2",
+    "private": true,
+    "description": "Build tooling for the Insightistic WordPress plugin (assets are distributed inside the plugin, not as an npm package).",
+    "license": "GPL-2.0-or-later",
+    "scripts": {
+        "build:assets": "node scripts/build-assets.mjs",
+        "check:assets": "node scripts/build-assets.mjs --check",
+        "size": "node scripts/build-assets.mjs --size-only",
+        "js:check": "node scripts/check-js.mjs",
+        "test": "php tests/run.php",
+        "release:check": "php scripts/validate-release.php && php scripts/lint-php.php && php tests/run.php && php scripts/validate-assets.php && node scripts/check-js.mjs && php scripts/build-release.php && php scripts/validate-zip.php"
+    },
+    "devDependencies": {
+        "clean-css-cli": "^5.6.3",
+        "terser": "^5.31.0"
+    }
+}

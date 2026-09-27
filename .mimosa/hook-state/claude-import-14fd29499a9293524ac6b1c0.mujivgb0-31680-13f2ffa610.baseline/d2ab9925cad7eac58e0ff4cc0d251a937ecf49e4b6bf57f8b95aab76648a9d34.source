@@ -1,0 +1,37 @@
+{
+    "name": "wordpressistic/insightistic",
+    "description": "GA4, Search Console & PageSpeed analytics with on-demand AI insights for WordPress.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.9",
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "lint": "@php scripts/lint-php.php",
+        "phpcs": "phpcs",
+        "phpcbf": "phpcbf",
+        "test": "@php tests/run.php",
+        "make-pot": "@php scripts/make-pot.php",
+        "build:assets": "npm.cmd run build:assets",
+        "build:release": "@php scripts/build-release.php",
+        "release-check": [
+            "@php scripts/validate-release.php",
+            "@lint",
+            "@test",
+            "@php scripts/validate-assets.php",
+            "@php scripts/build-release.php",
+            "@php scripts/validate-zip.php"
+        ]
+    }
+}

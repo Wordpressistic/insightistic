@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://wordpress.org/"><img src="https://img.shields.io/badge/WordPress-5.6%2B-21759b?style=flat-square" alt="WordPress 5.6+"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.0%2B-777bb4?style=flat-square" alt="PHP 8.0+"></a>
-  <img src="https://img.shields.io/badge/version-4.5.1-brightgreen?style=flat-square" alt="version 4.5.1">
+  <img src="https://img.shields.io/badge/version-4.5.2-brightgreen?style=flat-square" alt="version 4.5.2">
   <img src="https://img.shields.io/badge/License-GPLv2%2B-blue?style=flat-square" alt="GPL v2+">
 </p>
 
@@ -39,7 +39,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 
 | Item | Value |
 | --- | --- |
-| Plugin version | 4.5.1 |
+| Plugin version | 4.5.2 |
 | WordPress requirement | 5.6 or newer |
 | Tested up to | WordPress 7.1 |
 | PHP requirement | 8.0 or newer |
@@ -75,7 +75,7 @@ The plugin source lives directly at the repository root (standard WordPress plug
 
 From a release (recommended):
 
-1. Download the release ZIP: `insightistic.4.5.1.zip`.
+1. Download the release ZIP: `insightistic.4.5.2.zip`.
 2. In WordPress, go to **Plugins > Add New > Upload Plugin**.
 3. Upload the ZIP file — it extracts to a single `insightistic/` directory.
 4. Activate **Insightistic - GA4 Analytics & AI Insights**.

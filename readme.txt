@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.5.1
+Stable tag: 4.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,11 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.5.2 (2026-09-28) =
+
+* Improved the License page error handling so activation, refresh, and sync actions show the actual WordPress/API response instead of a generic server error.
+* Added JSON error extraction for admin AJAX failures, including expired sessions, API validation errors, and unexpected server responses.
 
 = 4.5.1 (2026-09-28) =
 

@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.4.3
+Stable tag: 4.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ View GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, and AI growth insi
 
 Insightistic brings your most important website metrics directly into WordPress. It gives business owners, agencies, marketers, publishers, and WooCommerce stores a clean analytics dashboard without constant tab-switching.
 
-Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring, and optionally activate AI insights powered by OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude.
+Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring, and optionally activate AI insights through your connected Insightistic account or a bring-your-own-key provider.
 
 = GA4 Overview =
 
@@ -64,7 +64,7 @@ Connect your Google Analytics 4 property and Google Search Console via a single 
 = AI Insights (on demand) =
 
 * Click "Get AI Insights" on the dashboard to analyse your GA4 and GSC data
-* Choose your AI provider: OpenAI, Google Gemini, OpenRouter (free models supported), Groq, Anthropic Claude, or Insightistic Cloud AI (no key needed  runs on our self-hosted Ollama models and Hermes SEO agent, free with your account)
+* Choose your AI provider: Insightistic Cloud AI (recommended; no provider key needed), OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude. Free accounts use the server's free AI route; account plan determines paid model routing.
 * AI never runs automatically  you stay in full control of API usage and cost
 
 = Email Automations (free account required) =
@@ -137,7 +137,7 @@ No. AI analysis is always triggered manually by clicking "Get AI Insights". This
 
 = Which AI providers are supported? =
 
-OpenAI (GPT-4o Mini and above), Google Gemini (1.5 Flash and above), Anthropic Claude (Haiku and above), Groq (fast, low-cost Llama models), OpenRouter with free and paid models including Mistral, Llama, Gemma, Qwen, DeepSeek, and Phi, and Insightistic Cloud AI  our own self-hosted Ollama models plus a Hermes SEO skill agent, free with a connected account and no key to manage.
+OpenAI, Google Gemini, Anthropic Claude, Groq, OpenRouter, and Insightistic Cloud AI. Cloud AI selects the provider chain server-side from the connected account's entitlement: free accounts use the WPistic gateway and free OpenRouter fallbacks, while paid accounts follow their plan's model route. No provider key is stored in WordPress for Cloud AI.
 
 = What does the engagement tracking script collect? =
 
@@ -165,6 +165,13 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.5.1 (2026-09-28) =
+
+* Fixed fresh-install AI settings to use the connected Insightistic Cloud AI provider by default; AI remains opt-in and is never run automatically.
+* Free accounts use the plan-aware WordPressistic AI gateway and zero-cost OpenRouter fallback chain. Paid model selection stays server-side and follows the account entitlement.
+* Updated AI settings copy so the analysis focus is not presented as a specific Ollama/Hermes model route.
+* Preserved the existing Insightistic and WPistic license activation paths.
 
 = 4.4.3 (2026-09-20) =
 

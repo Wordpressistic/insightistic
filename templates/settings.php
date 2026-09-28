@@ -28,7 +28,7 @@ $monitor_404_on = (bool) get_option( 'insightistic_404_monitor_enabled', 1 );
 
 // AI.
 $ai_enabled        = (int) get_option( 'insightistic_ai_enabled', 0 );
-$ai_provider       = get_option( 'insightistic_ai_provider', 'none' );
+$ai_provider       = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 $openai_stored     = (bool) get_option( 'insightistic_openai_key' );
 $gemini_stored     = (bool) get_option( 'insightistic_gemini_key' );
 $openrouter_stored = (bool) get_option( 'insightistic_openrouter_key' );
@@ -579,7 +579,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 							'insightistic_cloud' => array(
 								'icon' => '☁',
 								'name' => __( 'Insightistic Cloud AI', 'insightistic' ),
-								'note' => __( 'Free account • Ollama + Hermes SEO', 'insightistic' ),
+								'note' => __( 'Free account • plan-aware AI routing', 'insightistic' ),
 							),
 						);
 						foreach ( $providers as $key => $p ) :
@@ -746,7 +746,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 			<div class="isp-settings-card isp-provider-settings" id="isp-settings-insightistic_cloud" style="<?php echo esc_attr( 'insightistic_cloud' === $ai_provider ? '' : 'display:none;' ); ?>">
 				<div class="isp-settings-card-header">
 					<h3><?php esc_html_e( 'Insightistic Cloud AI Settings', 'insightistic' ); ?></h3>
-					<p class="isp-header-desc"><?php esc_html_e( 'Runs on our self-hosted models  no API key to paste. Free with your Insightistic account, with a fair-use limit per period.', 'insightistic' ); ?></p>
+					<p class="isp-header-desc"><?php esc_html_e( 'Uses the AI provider route assigned to your Insightistic account. Free accounts use free model routing; no provider key is stored on this site.', 'insightistic' ); ?></p>
 				</div>
 
 				<?php if ( $cloud_connected ) : ?>
@@ -761,12 +761,12 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 				<?php endif; ?>
 
 				<div class="isp-field">
-					<label class="isp-label" for="insightistic_cloud_model"><?php esc_html_e( 'Engine', 'insightistic' ); ?></label>
+					<label class="isp-label" for="insightistic_cloud_model"><?php esc_html_e( 'Analysis focus', 'insightistic' ); ?></label>
 					<select id="insightistic_cloud_model" name="insightistic_cloud_model" class="isp-select">
-						<option value="ollama-balanced" <?php selected( $cloud_model, 'ollama-balanced' ); ?>><?php esc_html_e( 'Balanced (Ollama)  general analytics insights', 'insightistic' ); ?></option>
-						<option value="hermes-seo" <?php selected( $cloud_model, 'hermes-seo' ); ?>><?php esc_html_e( 'SEO Specialist (Hermes)  organic-growth-tuned insights', 'insightistic' ); ?></option>
+						<option value="ollama-balanced" <?php selected( $cloud_model, 'ollama-balanced' ); ?>><?php esc_html_e( 'Balanced analytics', 'insightistic' ); ?></option>
+						<option value="hermes-seo" <?php selected( $cloud_model, 'hermes-seo' ); ?>><?php esc_html_e( 'SEO-focused analysis', 'insightistic' ); ?></option>
 					</select>
-					<p class="isp-hint"><?php esc_html_e( 'Balanced covers general GA4/GSC/commerce analysis. SEO Specialist routes through our Hermes agent, tuned for content decay, keyword intent, and technical SEO recommendations.', 'insightistic' ); ?></p>
+					<p class="isp-hint"><?php esc_html_e( 'Choose the analysis focus. Insightistic selects the available AI provider and model from your account plan, with free routing for free accounts.', 'insightistic' ); ?></p>
 				</div>
 
 				<?php if ( $cloud_connected ) : ?>
@@ -919,6 +919,4 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 	</div>
 
 </div><!-- /.isp-wrap -->
-
-
 

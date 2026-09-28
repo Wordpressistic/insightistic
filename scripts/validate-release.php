@@ -85,6 +85,21 @@ function package_json_version( $root ) {
 }
 
 /**
+ * Read both root and package-lock package versions.
+ */
+function package_lock_versions( $root ) {
+	$raw  = file_get_contents( $root . '/package-lock.json' );
+	$json = json_decode( $raw, true );
+	if ( ! is_array( $json ) ) {
+		return array( null, null );
+	}
+	return array(
+		$json['version'] ?? null,
+		$json['packages']['']['version'] ?? null,
+	);
+}
+
+/**
  * Read the Chart.js dependency version registered in the admin class.
  */
 function chartjs_registered_version( $root ) {
@@ -118,6 +133,7 @@ $const   = runtime_constant_version( $root );
 $stable  = readme_stable_tag( $root );
 $pot     = pot_project_version( $root );
 $pkg     = package_json_version( $root );
+$lock_versions = package_lock_versions( $root );
 
 $expected = isset( $argv[1] ) ? $argv[1] : $header;
 
@@ -127,6 +143,8 @@ $sources = array(
 	'readme.txt Stable tag'          => $stable,
 	'POT Project-Id-Version'         => $pot,
 	'package.json version'           => $pkg,
+	'package-lock root version'       => $lock_versions[0],
+	'package-lock package version'    => $lock_versions[1],
 );
 
 echo "== Insightistic release version contract ==\n";
@@ -136,6 +154,32 @@ foreach ( $sources as $label => $value ) {
 		$failures[] = sprintf( '%s: expected %s, found %s', $label, $expected, var_export( $value, true ) );
 	}
 	printf( "%-32s %-10s %s\n", $label, $status, null === $value ? '(missing)' : $value );
+}
+
+$github_readme = file_get_contents( $root . '/README.md' );
+$readme_markers = array(
+	'badge' => 'version-' . $expected . '-brightgreen',
+	'version table' => '| Plugin version | ' . $expected . ' |',
+	'release zip' => 'insightistic.' . $expected . '.zip',
+);
+foreach ( $readme_markers as $label => $marker ) {
+	$ok = false !== strpos( $github_readme, $marker );
+	printf( "%-32s %-10s %s\n", 'README ' . $label, $ok ? 'PASS' : 'FAIL', $marker );
+	if ( ! $ok ) {
+		$failures[] = 'README.md is missing current release metadata: ' . $label . '.';
+	}
+}
+
+$ai_defaults = array(
+	"add_option( 'insightistic_ai_provider', 'insightistic_cloud'" => file_get_contents( $root . '/insightistic.php' ),
+	"get_option( 'insightistic_ai_provider', 'insightistic_cloud'" => file_get_contents( $root . '/templates/settings.php' ),
+);
+foreach ( $ai_defaults as $marker => $source ) {
+	$ok = false !== strpos( $source, $marker );
+	printf( "%-32s %-10s %s\n", 'AI free-route default', $ok ? 'PASS' : 'FAIL', $marker );
+	if ( ! $ok ) {
+		$failures[] = 'The fresh-install Cloud AI default is missing from ' . ( false !== strpos( $marker, 'add_option' ) ? 'insightistic.php' : 'templates/settings.php' ) . '.';
+	}
 }
 
 /*

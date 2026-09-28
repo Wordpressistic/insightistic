@@ -87,8 +87,8 @@ class Insightistic_Saas_Client {
 	}
 
 	/**
-	 * Run an AI analysis on the Insightistic Cloud AI backend (self-hosted
-	 * Ollama models + the Hermes SEO skill agent). HMAC-signed like every
+	 * Run an AI analysis through the Insightistic plan-aware AI provider chain.
+	 * HMAC-signed like every
 	 * other post-activation call — a connected free account IS the auth.
 	 *
 	 * Request body: { model: 'ollama-balanced'|'hermes-seo', skill_profile,

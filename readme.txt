@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.5.2
+Stable tag: 4.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,15 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.6.0 (2026-10-01) =
+
+One license key, one connect — Cloudflare joins the connector sync.
+
+* New: the daily connector sync now includes Cloudflare edge analytics pulled with this site's own Zone ID + API token (Settings → Cloudflare), so the Insightistic app dashboard's edge page fills without any app-side Cloudflare connect. Traffic totals, cache ratios, geo, security/firewall events, and bot intelligence land in the same tables the platform's own nightly sync uses — one converged row per day, never duplicates.
+* Plan-gated Cloudflare datasets degrade gracefully: when the zone's plan does not expose firewall or bot analytics, the push still delivers the daily traffic rows and the app renders its "not available on this plan" states instead of erroring.
+* Security: legacy (< 3.3.0) encrypted credentials are now re-encrypted into the authenticated v1 format automatically the first time the plugin reads them after upgrading, instead of waiting for a settings re-save.
+* GA4, Search Console, PageSpeed, and Cloudflare keys all stay in the plugin settings. The license key remains the only Insightistic credential the site ever exchanges — no second Google or Cloudflare connect in the app.
 
 = 4.5.2 (2026-09-28) =
 

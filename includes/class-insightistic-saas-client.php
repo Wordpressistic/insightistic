@@ -172,6 +172,10 @@ class Insightistic_Saas_Client {
 		return self::request( 'POST', '/api/connector/v1/sync/broken-links', $body, true );
 	}
 
+	public static function sync_cloudflare_daily( $body ) {
+		return self::request( 'POST', '/api/connector/v1/sync/cloudflare/daily', $body, true );
+	}
+
 	/*
 	------------------------------------------------------------------ */
 	/*

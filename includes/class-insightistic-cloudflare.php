@@ -379,6 +379,233 @@ class Insightistic_Cloudflare {
 	}
 
 	/**
+	 * Connector v2 push payload: the daily edge aggregates the SaaS's own
+	 * nightly CloudflareAnalytics sync stores, fetched here with this site's
+	 * Zone ID + API token (Settings → Cloudflare) and forwarded over the
+	 * license connector — so the app dashboard's edge page fills without any
+	 * app-side Cloudflare connect. Same conventions as the GA4/GSC/PageSpeed
+	 * payloads: null when BYO credentials are absent (quiet skip), false when
+	 * the primary dataset fetch failed, payload array otherwise.
+	 *
+	 * Bot rows are sent as raw per-(date, user agent) groups; classification
+	 * happens platform-side so the crawler taxonomy lives in one place.
+	 * httpRequestsAdaptiveGroups is plan-gated, so any bot-query failure
+	 * degrades to bots_available=false rather than failing the push.
+	 *
+	 * @param int $days Window size in days (max 90).
+	 * @return array|null|false
+	 */
+	public function get_sync_payload( $days = 30 ) {
+		if ( ! self::is_configured() ) {
+			return null;
+		}
+
+		$zone_id = get_option( 'insightistic_cloudflare_zone_id' );
+		$token   = $this->get_token();
+		if ( is_wp_error( $token ) ) {
+			return false;
+		}
+
+		$days  = min( max( (int) $days, 1 ), 90 );
+		$until = gmdate( 'Y-m-d' );
+		$since = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+
+		$times = array(
+			'zoneTag'      => $zone_id,
+			'dateFrom'     => $since,
+			'dateTo'       => $until,
+			'datetimeFrom' => $since . 'T00:00:00Z',
+			'datetimeTo'   => $until . 'T23:59:59Z',
+		);
+
+		// Primary dataset — a failure here skips the whole push (false), same
+		// policy as the other sync sources: nothing honest to send without it.
+		$traffic = $this->graphql_request( $this->sync_traffic_query(), $times, $token );
+		if ( is_wp_error( $traffic ) ) {
+			return false;
+		}
+
+		// Plan-gated secondary datasets, each degrading on its own.
+		$firewall = $this->graphql_request( $this->sync_firewall_query(), $times, $token );
+		$bots_raw = $this->graphql_request( $this->sync_bots_query(), $times, $token );
+
+		$firewall_by_date = is_wp_error( $firewall ) ? array() : $this->normalize_sync_firewall( $firewall );
+
+		$bots_available = ! is_wp_error( $bots_raw );
+		$bots           = array();
+		if ( $bots_available ) {
+			foreach ( (array) ( $bots_raw['viewer']['zones'][0]['httpRequestsAdaptiveGroups'] ?? array() ) as $group ) {
+				$ua   = trim( (string) ( $group['dimensions']['clientRequestUserAgent'] ?? '' ) );
+				$date = (string) ( $group['dimensions']['date'] ?? '' );
+				if ( '' === $ua || '' === $date ) {
+					continue;
+				}
+				$bots[] = array(
+					'date'       => $date,
+					'user_agent' => substr( $ua, 0, 512 ),
+					'requests'   => (int) ( $group['count'] ?? 0 ),
+				);
+			}
+			// Cap at the SaaS contract's 400 rows, keeping the loudest agents.
+			usort( $bots, static fn( $a, $b ) => $b['requests'] <=> $a['requests'] );
+			$bots = array_slice( $bots, 0, 400 );
+		}
+
+		$rows = $this->normalize_sync_rows( $traffic, $firewall_by_date );
+		if ( empty( $rows ) ) {
+			return null; // Zone has no daily rows in the window — nothing to push.
+		}
+
+		return array(
+			'days'           => $rows,
+			'bots_available' => $bots_available,
+			'bots'           => $bots,
+		);
+	}
+
+	/** Daily edge totals for the connector push (mirrors the SaaS nightly pull). */
+	private function sync_traffic_query() {
+		return 'query EdgeDaily($zoneTag: String!, $dateFrom: Date!, $dateTo: Date!) {
+			viewer {
+				zones(filter: { zoneTag: $zoneTag }) {
+					httpRequests1dGroups(limit: 100, filter: { date_geq: $dateFrom, date_leq: $dateTo }, orderBy: [date_ASC]) {
+						dimensions { date }
+						sum {
+							requests
+							bytes
+							cachedRequests
+							cachedBytes
+							encryptedRequests
+							pageViews
+							threats
+							countryMap { clientCountryName requests }
+							responseStatusMap { edgeResponseStatus requests }
+						}
+					}
+				}
+			}
+		}';
+	}
+
+	/** Firewall events by (date, action) for the connector push. */
+	private function sync_firewall_query() {
+		return 'query EdgeFirewall($zoneTag: String!, $datetimeFrom: Time!, $datetimeTo: Time!) {
+			viewer {
+				zones(filter: { zoneTag: $zoneTag }) {
+					firewallEventsAdaptiveGroups(limit: 500, filter: { datetime_geq: $datetimeFrom, datetime_leq: $datetimeTo }, orderBy: [date_ASC]) {
+						dimensions { date action }
+						count
+					}
+				}
+			}
+		}';
+	}
+
+	/** Raw per-(date, user agent) groups for the connector push; plan-gated. */
+	private function sync_bots_query() {
+		return 'query EdgeBots($zoneTag: String!, $datetimeFrom: Time!, $datetimeTo: Time!) {
+			viewer {
+				zones(filter: { zoneTag: $zoneTag }) {
+					httpRequestsAdaptiveGroups(limit: 1000, filter: { datetime_geq: $datetimeFrom, datetime_leq: $datetimeTo }, orderBy: [date_ASC]) {
+						dimensions { date clientRequestUserAgent }
+						count
+					}
+				}
+			}
+		}';
+	}
+
+	/**
+	 * Normalize the daily-totals document into the SaaS row shape (the same
+	 * fields its nightly CloudflareAnalytics sync writes, so both paths
+	 * converge on the same upsert key).
+	 *
+	 * @param array $data            Decoded traffic GraphQL data.
+	 * @param array $firewall_by_date {date: {action: count}} (empty when degraded).
+	 * @return array
+	 */
+	private function normalize_sync_rows( $data, $firewall_by_date ) {
+		$groups = (array) ( $data['viewer']['zones'][0]['httpRequests1dGroups'] ?? array() );
+		$rows   = array();
+
+		foreach ( $groups as $group ) {
+			$date = (string) ( $group['dimensions']['date'] ?? '' );
+			if ( '' === $date ) {
+				continue;
+			}
+			$sum = (array) ( $group['sum'] ?? array() );
+
+			$client_4xx = 0;
+			$client_5xx = 0;
+			$status_map = array();
+			foreach ( (array) ( $sum['responseStatusMap'] ?? array() ) as $status ) {
+				$code  = (string) ( $status['edgeResponseStatus'] ?? '' );
+				$count = (int) ( $status['requests'] ?? 0 );
+				if ( '' === $code ) {
+					continue;
+				}
+				$status_map[ $code ] = ( $status_map[ $code ] ?? 0 ) + $count;
+				if ( $code >= 400 && $code < 500 ) {
+					$client_4xx += $count;
+				} elseif ( $code >= 500 && $code < 600 ) {
+					$client_5xx += $count;
+				}
+			}
+
+			$countries = array();
+			foreach ( (array) ( $sum['countryMap'] ?? array() ) as $country ) {
+				$name = (string) ( $country['clientCountryName'] ?? '' );
+				if ( '' === $name ) {
+					continue;
+				}
+				$countries[ $name ] = ( $countries[ $name ] ?? 0 ) + (int) ( $country['requests'] ?? 0 );
+			}
+			arsort( $countries );
+			$countries = array_slice( $countries, 0, 10, true );
+
+			$rows[] = array(
+				'date'               => $date,
+				'requests'           => (int) ( $sum['requests'] ?? 0 ),
+				'bytes'              => (int) ( $sum['bytes'] ?? 0 ),
+				'cached_requests'    => (int) ( $sum['cachedRequests'] ?? 0 ),
+				'cached_bytes'       => (int) ( $sum['cachedBytes'] ?? 0 ),
+				'encrypted_requests' => (int) ( $sum['encryptedRequests'] ?? 0 ),
+				'pageviews'          => (int) ( $sum['pageViews'] ?? 0 ),
+				'threats'            => (int) ( $sum['threats'] ?? 0 ),
+				'client_4xx'         => $client_4xx,
+				'client_5xx'         => $client_5xx,
+				'countries'          => $countries,
+				'status_breakdown'   => $status_map,
+				'firewall'           => $firewall_by_date[ $date ] ?? array(),
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Normalize firewall events into {date: {action: count}}.
+	 *
+	 * @param array $data Decoded firewall GraphQL data.
+	 * @return array
+	 */
+	private function normalize_sync_firewall( $data ) {
+		$groups  = (array) ( $data['viewer']['zones'][0]['firewallEventsAdaptiveGroups'] ?? array() );
+		$by_date = array();
+
+		foreach ( $groups as $group ) {
+			$date   = (string) ( $group['dimensions']['date'] ?? '' );
+			$action = (string) ( $group['dimensions']['action'] ?? '' );
+			if ( '' === $date || '' === $action ) {
+				continue;
+			}
+			$by_date[ $date ][ $action ] = ( $by_date[ $date ][ $action ] ?? 0 ) + (int) ( $group['count'] ?? 0 );
+		}
+
+		return $by_date;
+	}
+
+	/**
 	 * Send a GraphQL request with exponential-backoff retry on transient
 	 * transport/server failures  same policy as Insightistic_GA::api_request().
 	 *

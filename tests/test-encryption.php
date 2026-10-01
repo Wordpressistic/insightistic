@@ -83,6 +83,21 @@ assert_true( Insightistic_Encryption::is_encrypted( $re_encrypted ), 'migrated v
 /* A v1 value that is NOT legacy must never hit the legacy fallback path. */
 assert_same( false, Insightistic_Encryption::decrypt( base64_encode( "\x01short-blob" ) ), 'truncated v1 blob returns false, not a legacy crash' );
 
+/* ------------------------------------------------------------------ */
+/* decrypt_stored(): lazy option-level migration legacy -> v1.         */
+/* ------------------------------------------------------------------ */
+
+assert_same( null, Insightistic_Encryption::decrypt_stored( 'insightistic_test_missing_enc' ), 'absent option returns null (not configured)' );
+
+update_option( 'insightistic_test_cf_token_enc', $legacy_stored );
+assert_same( $legacy_plain, Insightistic_Encryption::decrypt_stored( 'insightistic_test_cf_token_enc' ), 'decrypt_stored() reads legacy credential' );
+$migrated = get_option( 'insightistic_test_cf_token_enc' );
+assert_true( Insightistic_Encryption::is_encrypted( $migrated ) && ! Insightistic_Encryption::is_legacy( $migrated ), 'legacy option rewritten as v1 after first read' );
+assert_same( $legacy_plain, Insightistic_Encryption::decrypt( $migrated ), 'migrated option decrypts through the v1 path' );
+
+update_option( 'insightistic_test_cf_token_enc', base64_encode( 'garbage-without-separator' ) );
+assert_same( false, Insightistic_Encryption::decrypt_stored( 'insightistic_test_cf_token_enc' ), 'undecryptable stored value returns false, option left untouched' );
+
 /* Per-site secret is persisted, not regenerated per request. */
 $secret = get_option( 'insightistic_crypto_secret', '' );
 assert_true( is_string( $secret ) && strlen( $secret ) >= 32, 'per-site base secret generated and stored (>=32 bytes)' );

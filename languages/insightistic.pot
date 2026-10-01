@@ -2,14 +2,14 @@
 # This file is distributed under the same license as the Insightistic plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Insightistic 4.5.2\n"
+"Project-Id-Version: Insightistic 4.6.0\n"
 "Report-Msgid-Bugs-To: https://wordpressistic.com\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-28T00:28:03+00:00\n"
+"POT-Creation-Date: 2026-10-01T17:18:24+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: insightistic/make-pot 1.0\n"
 "X-Domain: insightistic\n"
@@ -264,7 +264,7 @@ msgstr ""
 msgid "Cache Hit Rate"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:500
+#: includes/class-insightistic-pagespeed.php:494
 msgid "Canonical URL declared"
 msgstr ""
 
@@ -318,7 +318,7 @@ msgstr ""
 msgid "Cloudflare"
 msgstr ""
 
-#: includes/class-insightistic-cloudflare.php:88
+#: includes/class-insightistic-cloudflare.php:89
 msgid "Cloudflare API token not configured. Please add it in Settings → Cloudflare."
 msgstr ""
 
@@ -334,7 +334,7 @@ msgstr ""
 msgid "Cloudflare Traffic Insights is not set up on this site."
 msgstr ""
 
-#: includes/class-insightistic-cloudflare.php:443
+#: includes/class-insightistic-cloudflare.php:670
 msgid "Cloudflare Traffic Insights is temporarily unavailable (HTTP %d). Please try again shortly."
 msgstr ""
 
@@ -354,7 +354,7 @@ msgstr ""
 msgid "Cloudflare requests over time"
 msgstr ""
 
-#: includes/class-insightistic-cloudflare.php:433
+#: includes/class-insightistic-cloudflare.php:660
 msgid "Cloudflare returned an error."
 msgstr ""
 
@@ -866,8 +866,8 @@ msgstr ""
 msgid "Failed to read the Cloudflare API token. Please re-save it in Settings."
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:51
-#: includes/class-insightistic-pagespeed.php:110
+#: includes/class-insightistic-pagespeed.php:50
+#: includes/class-insightistic-pagespeed.php:108
 msgid "Failed to read the PageSpeed API key. Please re-save it in Settings."
 msgstr ""
 
@@ -1066,7 +1066,7 @@ msgstr ""
 msgid "Ignore the 1-hour cache and fetch fresh results"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:504
+#: includes/class-insightistic-pagespeed.php:498
 msgid "Images have alt text"
 msgstr ""
 
@@ -1200,14 +1200,14 @@ msgstr ""
 #: includes/class-insightistic-gsc.php:42
 #: includes/class-insightistic-gsc.php:102
 #: includes/class-insightistic-pagespeed.php:42
-#: includes/class-insightistic-pagespeed.php:101
+#: includes/class-insightistic-pagespeed.php:100
 #: includes/class-insightistic-woocommerce.php:52
 #: includes/class-insightistic-woocommerce.php:76
 msgid "Insufficient permissions."
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:60
-#: includes/class-insightistic-pagespeed.php:118
+#: includes/class-insightistic-pagespeed.php:59
+#: includes/class-insightistic-pagespeed.php:116
 msgid "Invalid URL provided."
 msgstr ""
 
@@ -1315,7 +1315,7 @@ msgstr ""
 msgid "License ✦"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:499
+#: includes/class-insightistic-pagespeed.php:493
 msgid "Links are crawlable anchors"
 msgstr ""
 
@@ -1397,7 +1397,7 @@ msgstr ""
 msgid "Measurement Protocol docs ↗"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:496
+#: includes/class-insightistic-pagespeed.php:490
 msgid "Meta description present"
 msgstr ""
 
@@ -1406,7 +1406,7 @@ msgstr ""
 msgid "Mobile"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:503
+#: includes/class-insightistic-pagespeed.php:497
 msgid "Mobile viewport configured"
 msgstr ""
 
@@ -1512,7 +1512,7 @@ msgstr ""
 msgid "Not connected"
 msgstr ""
 
-#: includes/class-insightistic-saas-client.php:250
+#: includes/class-insightistic-saas-client.php:254
 msgid "Not connected to Insightistic. Activate your license first."
 msgstr ""
 
@@ -1662,15 +1662,15 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:495
+#: includes/class-insightistic-pagespeed.php:489
 msgid "Page has a descriptive title"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:498
+#: includes/class-insightistic-pagespeed.php:492
 msgid "Page is crawlable (not blocked)"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:497
+#: includes/class-insightistic-pagespeed.php:491
 msgid "Page returns a successful HTTP status"
 msgstr ""
 
@@ -1679,12 +1679,12 @@ msgstr ""
 msgid "PageSpeed"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:281
+#: includes/class-insightistic-pagespeed.php:275
 msgid "PageSpeed API error."
 msgstr ""
 
 #: includes/class-insightistic-pagespeed.php:47
-#: includes/class-insightistic-pagespeed.php:106
+#: includes/class-insightistic-pagespeed.php:105
 msgid "PageSpeed API key is not configured. Please visit Settings."
 msgstr ""
 
@@ -2235,7 +2235,7 @@ msgstr ""
 msgid "The AI returned an empty response. Please try again."
 msgstr ""
 
-#: includes/class-insightistic-cloudflare.php:454
+#: includes/class-insightistic-cloudflare.php:681
 msgid "The Cloudflare request failed after multiple attempts. Please try again shortly."
 msgstr ""
 
@@ -2675,7 +2675,7 @@ msgstr[1] ""
 msgid "hours ago"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:502
+#: includes/class-insightistic-pagespeed.php:496
 msgid "hreflang is valid"
 msgstr ""
 
@@ -2716,7 +2716,7 @@ msgstr ""
 msgid "reconnecting…"
 msgstr ""
 
-#: includes/class-insightistic-pagespeed.php:501
+#: includes/class-insightistic-pagespeed.php:495
 msgid "robots.txt is valid"
 msgstr ""
 

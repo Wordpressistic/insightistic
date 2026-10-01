@@ -42,12 +42,11 @@ class Insightistic_PageSpeed {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$enc_key = get_option( 'insightistic_pagespeed_api_key_enc' );
-		if ( ! $enc_key ) {
+		$api_key = Insightistic_Encryption::decrypt_stored( 'insightistic_pagespeed_api_key_enc' );
+		if ( null === $api_key ) {
 			wp_send_json_error( __( 'PageSpeed API key is not configured. Please visit Settings.', 'insightistic' ) );
 		}
-		$api_key = Insightistic_Encryption::decrypt( $enc_key );
-		if ( ! $api_key ) {
+		if ( false === $api_key || '' === $api_key ) {
 			wp_send_json_error( __( 'Failed to read the PageSpeed API key. Please re-save it in Settings.', 'insightistic' ) );
 		}
 
@@ -101,12 +100,11 @@ class Insightistic_PageSpeed {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$enc_key = get_option( 'insightistic_pagespeed_api_key_enc' );
-		if ( ! $enc_key ) {
+		$api_key = Insightistic_Encryption::decrypt_stored( 'insightistic_pagespeed_api_key_enc' );
+		if ( null === $api_key ) {
 			wp_send_json_error( __( 'PageSpeed API key is not configured. Please visit Settings.', 'insightistic' ) );
 		}
-		$api_key = Insightistic_Encryption::decrypt( $enc_key );
-		if ( ! $api_key ) {
+		if ( false === $api_key || '' === $api_key ) {
 			wp_send_json_error( __( 'Failed to read the PageSpeed API key. Please re-save it in Settings.', 'insightistic' ) );
 		}
 
@@ -159,11 +157,7 @@ class Insightistic_PageSpeed {
 	 * @return array|null|false
 	 */
 	public function get_sync_payload( $url = null ) {
-		$enc_key = get_option( 'insightistic_pagespeed_api_key_enc' );
-		if ( ! $enc_key ) {
-			return null;
-		}
-		$api_key = Insightistic_Encryption::decrypt( $enc_key );
+		$api_key = Insightistic_Encryption::decrypt_stored( 'insightistic_pagespeed_api_key_enc' );
 		if ( ! $api_key ) {
 			return null;
 		}

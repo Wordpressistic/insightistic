@@ -78,17 +78,17 @@ class Insightistic_Cloudflare {
 	}
 
 	/**
-	 * Decrypt and return the stored API token.
+	 * Decrypt and return the stored API token. decrypt_stored() also lazily
+	 * rewrites legacy (< 3.3.0) ciphertext as v1 on first successful read.
 	 *
 	 * @return string|WP_Error
 	 */
 	private function get_token() {
-		$enc = get_option( 'insightistic_cloudflare_api_token_enc' );
-		if ( ! $enc ) {
+		$token = Insightistic_Encryption::decrypt_stored( 'insightistic_cloudflare_api_token_enc' );
+		if ( null === $token ) {
 			return new WP_Error( 'no_token', __( 'Cloudflare API token not configured. Please add it in Settings → Cloudflare.', 'insightistic' ) );
 		}
-		$token = Insightistic_Encryption::decrypt( $enc );
-		if ( ! $token ) {
+		if ( false === $token || '' === $token ) {
 			return new WP_Error( 'bad_token', __( 'Failed to read the Cloudflare API token. Please re-save it in Settings.', 'insightistic' ) );
 		}
 		return $token;

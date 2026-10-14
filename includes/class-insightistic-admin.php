@@ -184,7 +184,7 @@ class Insightistic_Admin {
 			true
 		);
 
-		$ai_provider = get_option( 'insightistic_ai_provider', 'none' );
+		$ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 		$ai_meta     = $this->ai_provider_meta();
 		$ai_label    = $ai_meta[ $ai_provider ]['label'] ?? '';
 		$ai_cost     = $ai_meta[ $ai_provider ]['cost'] ?? '';
@@ -482,7 +482,7 @@ class Insightistic_Admin {
 			$history,
 			array(
 				'saved_at' => time(),
-				'provider' => get_option( 'insightistic_ai_provider', 'none' ),
+				'provider' => get_option( 'insightistic_ai_provider', 'insightistic_cloud' ),
 				'html'     => $html,
 			)
 		);

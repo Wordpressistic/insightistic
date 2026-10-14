@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, standards & tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2', '8.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: zip, openssl, mbstring
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Composer install
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: Version contract
+        run: php scripts/validate-release.php
+
+      - name: PHP syntax lint
+        run: php scripts/lint-php.php
+
+      - name: PHPCS (WordPress standards)
+        run: vendor/bin/phpcs --report=summary --report-file=phpcs-report.txt || { cat phpcs-report.txt; exit 1; }
+
+      - name: PHP compatibility (8.0+)
+        run: vendor/bin/phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,*/scripts/*,*/assets/css/*.min.css,*/assets/js/*.min.js,*/assets/js/*.min.js.map .
+
+      - name: JavaScript syntax checks
+        run: node scripts/check-js.mjs
+
+      - name: Unit & GA4 regression tests
+        run: php tests/run.php
+
+      - name: Rebuild assets & detect staleness
+        run: |
+          npm run build:assets
+          git diff --exit-code -- assets/ || (echo "::error::Minified assets are stale — run 'npm run build:assets' and commit the result."; exit 1)
+
+      - name: Translation template freshness
+        run: |
+          cp languages/insightistic.pot /tmp/insightistic-before.pot
+          php scripts/make-pot.php
+          # Ignore the POT-Creation-Date line when comparing.
+          sed -i '/^"POT-Creation-Date:/d' /tmp/insightistic-before.pot
+          sed -i '/^"POT-Creation-Date:/d' languages/insightistic.pot
+          diff -u /tmp/insightistic-before.pot languages/insightistic.pot || { echo "::error::languages/insightistic.pot is stale — run 'php scripts/make-pot.php'."; exit 1; }
+
+  release-artifact:
+    name: Build & validate release ZIP
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: zip, openssl
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: Build minified assets
+        run: npm run build:assets
+
+      - name: Regenerate POT
+        run: php scripts/make-pot.php
+
+      - name: Build release ZIP
+        run: php scripts/build-release.php
+
+      - name: Validate release ZIP
+        run: php scripts/validate-zip.php
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: insightistic-release-zip
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          retention-days: 14

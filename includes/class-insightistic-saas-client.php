@@ -87,8 +87,8 @@ class Insightistic_Saas_Client {
 	}
 
 	/**
-	 * Run an AI analysis on the Insightistic Cloud AI backend (self-hosted
-	 * Ollama models + the Hermes SEO skill agent). HMAC-signed like every
+	 * Run an AI analysis through the Insightistic plan-aware AI provider chain.
+	 * HMAC-signed like every
 	 * other post-activation call — a connected free account IS the auth.
 	 *
 	 * Request body: { model: 'ollama-balanced'|'hermes-seo', skill_profile,
@@ -170,6 +170,56 @@ class Insightistic_Saas_Client {
 
 	public static function sync_broken_links( $body ) {
 		return self::request( 'POST', '/api/connector/v1/sync/broken-links', $body, true );
+	}
+
+	public static function sync_cloudflare_daily( $body ) {
+		return self::request( 'POST', '/api/connector/v1/sync/cloudflare/daily', $body, true );
+	}
+
+	/*
+	------------------------------------------------------------------ */
+	/*
+	IndexNow — URL submission pipeline (see Insightistic_IndexNow).       */
+	/*
+	HMAC-signed like every other connector call.                          */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Fetch this site's IndexNow key from the SaaS. Expected 200 body:
+	 * `{ key, key_location, key_file_confirmed }`.
+	 *
+	 * @return array{ok:bool,status:int,data:mixed,error:string|null,network:bool}
+	 */
+	public static function indexnow_get_key() {
+		return self::request( 'GET', '/api/connector/v1/indexnow/key', null, true );
+	}
+
+	/**
+	 * Confirm the key file is being served from the site root. Expected
+	 * 200 body: `{ key_file_confirmed: true }`.
+	 *
+	 * NOTE: the `confirmed=1` flag travels as a query parameter, which is
+	 * outside the HMAC canonical string (signing covers METHOD \n PATH \n
+	 * TIMESTAMP \n NONCE \n body-hash — no query). The SaaS must therefore
+	 * not include the query string when rebuilding its canonical string.
+	 *
+	 * @return array{ok:bool,status:int,data:mixed,error:string|null,network:bool}
+	 */
+	public static function indexnow_confirm_key() {
+		return self::request( 'POST', '/api/connector/v1/indexnow/key?confirmed=1', array(), true );
+	}
+
+	/**
+	 * Submit a batch of URLs (contract: max 1000; the plugin sends 25).
+	 * Expected 200 body: `{ submitted, accepted, failed, skipped_duplicate,
+	 * skipped_invalid_host }`; 422 `{ code: 'indexnow_not_initialized' }`
+	 * when the SaaS has no key yet.
+	 *
+	 * @param string[] $urls Absolute URLs.
+	 * @return array{ok:bool,status:int,data:mixed,error:string|null,network:bool}
+	 */
+	public static function indexnow_submit( array $urls ) {
+		return self::request( 'POST', '/api/connector/v1/indexnow/submit', array( 'urls' => array_values( $urls ) ), true );
 	}
 
 	/**

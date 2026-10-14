@@ -137,6 +137,44 @@ class Insightistic_Encryption {
 	}
 
 	/**
+	 * Read an encrypted option and lazily migrate legacy (< 3.3.0)
+	 * ciphertext to the v1 format on the first successful read.
+	 *
+	 * Using decrypt() directly keeps the weak legacy path reachable until an
+	 * admin happens to re-save the settings screen; this makes the upgrade
+	 * self-completing — one read after upgrading rewrites the stored value
+	 * as authenticated v1 ciphertext, after which decrypt_legacy() is never
+	 * reached for that option again.
+	 *
+	 * @param string $option_name Option name holding the base64 ciphertext.
+	 * @return string|null|false Plain text; null when the option is absent
+	 *                           (not configured); false when undecryptable.
+	 */
+	public static function decrypt_stored( $option_name ) {
+		$stored = get_option( $option_name );
+		if ( ! $stored || ! is_string( $stored ) ) {
+			return null;
+		}
+
+		$plain = self::decrypt( $stored );
+		if ( false === $plain ) {
+			return false;
+		}
+
+		if ( self::is_legacy( $stored ) ) {
+			$upgraded = self::encrypt( $plain );
+			if ( false !== $upgraded ) {
+				update_option( $option_name, $upgraded );
+			}
+			// A failed re-encrypt still returns the plaintext: locking the
+			// credential out because the write failed would trade a hard
+			// regression for a hardening step.
+		}
+
+		return $plain;
+	}
+
+	/**
 	 * Check whether a stored value looks encrypted (either format).
 	 *
 	 * @param string $value Stored value.

@@ -164,11 +164,13 @@ class Insightistic_Sync {
 
 	/**
 	 * Connector v2 (Milestone 3): traffic (GA4), SEO (Search Console),
-	 * performance (PageSpeed) and broken-links, forwarded in one pass. Each
+	 * performance (PageSpeed), broken-links, and Cloudflare edge analytics
+	 * (Settings → Cloudflare BYO credentials), forwarded in one pass. Each
 	 * source is independently optional — a site with only GA4 configured
-	 * still gets that pushed even though GSC/PageSpeed have nothing to send.
-	 * A failure in one source is logged and skipped, never aborts the rest
-	 * (same policy as api_request()'s own graceful-degradation rule).
+	 * still gets that pushed even though GSC/PageSpeed/Cloudflare have
+	 * nothing to send. A failure in one source is logged and skipped, never
+	 * aborts the rest (same policy as api_request()'s own
+	 * graceful-degradation rule).
 	 */
 	public function sync_expanded() {
 		if ( ! Insightistic_License_Manager::is_connected() ) {
@@ -182,6 +184,7 @@ class Insightistic_Sync {
 		$this->sync_seo( $batch_id );
 		$this->sync_performance( $batch_id );
 		$this->sync_broken_links( $batch_id );
+		$this->sync_cloudflare( $batch_id );
 	}
 
 	private function sync_traffic( $batch_id ) {
@@ -298,6 +301,29 @@ class Insightistic_Sync {
 			)
 		);
 		$this->log( 'Broken links: ' . ( $res['ok'] ? 'ok' : 'failed: ' . $res['error'] ), $res['ok'] ? 'info' : 'error' );
+	}
+
+	/**
+	 * Cloudflare edge analytics from this site's own Zone ID + API token
+	 * (Settings → Cloudflare). Pushed so the app dashboard's edge page fills
+	 * without any app-side Cloudflare connect — the license connector is the
+	 * only SaaS credential involved. null (not configured) / false (fetch
+	 * failed) both skip quietly, like every other source above.
+	 *
+	 * @param string|null $batch_id Sync batch UUID.
+	 */
+	private function sync_cloudflare( $batch_id ) {
+		if ( ! class_exists( 'Insightistic_Cloudflare' ) ) {
+			return;
+		}
+		$payload = ( new Insightistic_Cloudflare() )->get_sync_payload( 30 );
+		if ( ! $payload ) {
+			return;
+		}
+
+		$payload['sync_batch_id'] = $batch_id;
+		$res                      = Insightistic_Saas_Client::sync_cloudflare_daily( $payload );
+		$this->log( 'Cloudflare daily: ' . ( $res['ok'] ? 'ok' : 'failed: ' . $res['error'] ), $res['ok'] ? 'info' : 'error' );
 	}
 
 	/**

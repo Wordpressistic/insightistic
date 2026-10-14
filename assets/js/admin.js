@@ -120,6 +120,28 @@
 	}
 
 	/**
+	 * Pull a useful message out of a WordPress/Laravel JSON error payload.
+	 */
+	function ajaxPayloadMessage( payload ) {
+		if ( ! payload ) {
+			return '';
+		}
+		if ( 'string' === typeof payload ) {
+			return payload;
+		}
+		if ( payload.message ) {
+			return payload.message;
+		}
+		if ( payload.data ) {
+			return ajaxPayloadMessage( payload.data );
+		}
+		if ( payload.error ) {
+			return payload.error;
+		}
+		return '';
+	}
+
+	/**
 	 * Extract a concrete diagnostic message from a failed jqXHR so the user
 	 * sees what actually went wrong instead of the generic "Something went
 	 * wrong" fallback. Handles three common cases:
@@ -134,6 +156,18 @@
 		var status = jqXHR ? jqXHR.status : 0;
 		var body   = jqXHR ? ( jqXHR.responseText || '' ) : '';
 		var trim   = body.replace( /^\s+|\s+$/g, '' );
+		var parsed = jqXHR ? ajaxPayloadMessage( jqXHR.responseJSON ) : '';
+
+		if ( ! parsed && trim && ( '{' === trim.charAt( 0 ) || '[' === trim.charAt( 0 ) ) ) {
+			try {
+				parsed = ajaxPayloadMessage( JSON.parse( trim ) );
+			} catch ( e ) {
+				parsed = '';
+			}
+		}
+		if ( parsed ) {
+			return parsed;
+		}
 
 		// WordPress check_ajax_referer() failure returns "-1" with status 200,
 		// or 403 when DOING_AJAX nonce check fails harder.
@@ -2043,6 +2077,10 @@
 			.show();
 	}
 
+	function licenseResponseMessage( res ) {
+		return ajaxPayloadMessage( res && res.data ) || ajaxPayloadMessage( res ) || insightisticPro.i18n.error;
+	}
+
 	function initLicensePage() {
 		$( '#isp-license-activate' ).on( 'click', function () {
 			var $btn = $( this );
@@ -2065,7 +2103,7 @@
 						licenseMsg( 'success', res.data.message );
 						setTimeout( function () { window.location.reload(); }, 900 );
 					} else {
-						var msg = ( res.data && res.data.message ) ? res.data.message : ( res.data || insightisticPro.i18n.error );
+						var msg = licenseResponseMessage( res );
 						licenseMsg( 'error', msg );
 						if ( res.data && res.data.upgrade_url ) {
 							$( '<a>', { href: res.data.upgrade_url, target: '_blank', rel: 'noopener', text: ' Upgrade →' } )
@@ -2074,8 +2112,8 @@
 						$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 					}
 				},
-				error: function () {
-					licenseMsg( 'error', insightisticPro.i18n.error );
+				error: function ( jqXHR, textStatus ) {
+					licenseMsg( 'error', diagnoseAjaxError( jqXHR, textStatus ) );
 					$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 				}
 			} );
@@ -2103,13 +2141,13 @@
 						licenseMsg( 'success', res.data.message );
 						setTimeout( function () { window.location.reload(); }, 900 );
 					} else {
-						var msg = ( res.data && res.data.message ) ? res.data.message : ( res.data || insightisticPro.i18n.error );
+						var msg = licenseResponseMessage( res );
 						licenseMsg( 'error', msg );
 						$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 					}
 				},
-				error: function () {
-					licenseMsg( 'error', insightisticPro.i18n.error );
+				error: function ( jqXHR, textStatus ) {
+					licenseMsg( 'error', diagnoseAjaxError( jqXHR, textStatus ) );
 					$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 				}
 			} );
@@ -2128,11 +2166,11 @@
 					if ( res.success ) {
 						licenseMsg( 'success', res.data.message );
 					} else {
-						var msg = ( res.data && res.data.message ) ? res.data.message : ( res.data || insightisticPro.i18n.error );
+						var msg = licenseResponseMessage( res );
 						licenseMsg( 'error', msg );
 					}
 				},
-				error: function () { licenseMsg( 'error', insightisticPro.i18n.error ); },
+				error: function ( jqXHR, textStatus ) { licenseMsg( 'error', diagnoseAjaxError( jqXHR, textStatus ) ); },
 				complete: function () { $btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' ); }
 			} );
 		} );

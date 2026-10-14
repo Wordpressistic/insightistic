@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.4.2
+Stable tag: 4.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ View GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, and AI growth insi
 
 Insightistic brings your most important website metrics directly into WordPress. It gives business owners, agencies, marketers, publishers, and WooCommerce stores a clean analytics dashboard without constant tab-switching.
 
-Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring, and optionally activate AI insights powered by OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude.
+Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring, and optionally activate AI insights through your connected Insightistic account or a bring-your-own-key provider.
 
 = GA4 Overview =
 
@@ -64,7 +64,7 @@ Connect your Google Analytics 4 property and Google Search Console via a single 
 = AI Insights (on demand) =
 
 * Click "Get AI Insights" on the dashboard to analyse your GA4 and GSC data
-* Choose your AI provider: OpenAI, Google Gemini, OpenRouter (free models supported), Groq, Anthropic Claude, or Insightistic Cloud AI (no key needed  runs on our self-hosted Ollama models and Hermes SEO agent, free with your account)
+* Choose your AI provider: Insightistic Cloud AI (recommended; no provider key needed), OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude. Free accounts use the server's free AI route; account plan determines paid model routing.
 * AI never runs automatically  you stay in full control of API usage and cost
 
 Connected accounts receive the current plan entitlements from Insightistic,
@@ -144,7 +144,7 @@ No. AI analysis is always triggered manually by clicking "Get AI Insights". This
 
 = Which AI providers are supported? =
 
-OpenAI (GPT-4o Mini and above), Google Gemini (1.5 Flash and above), Anthropic Claude (Haiku and above), Groq (fast, low-cost Llama models), OpenRouter with free and paid models including Mistral, Llama, Gemma, Qwen, DeepSeek, and Phi, and Insightistic Cloud AI  our own self-hosted Ollama models plus a Hermes SEO skill agent, free with a connected account and no key to manage.
+OpenAI, Google Gemini, Anthropic Claude, Groq, OpenRouter, and Insightistic Cloud AI. Cloud AI selects the provider chain server-side from the connected account's entitlement: free accounts use the WPistic gateway and free OpenRouter fallbacks, while paid accounts follow their plan's model route. No provider key is stored in WordPress for Cloud AI.
 
 = What does the engagement tracking script collect? =
 
@@ -172,6 +172,39 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.6.0 (2026-10-01) =
+
+One license key, one connect — Cloudflare joins the connector sync.
+
+* New: the daily connector sync now includes Cloudflare edge analytics pulled with this site's own Zone ID + API token (Settings → Cloudflare), so the Insightistic app dashboard's edge page fills without any app-side Cloudflare connect. Traffic totals, cache ratios, geo, security/firewall events, and bot intelligence land in the same tables the platform's own nightly sync uses — one converged row per day, never duplicates.
+* Plan-gated Cloudflare datasets degrade gracefully: when the zone's plan does not expose firewall or bot analytics, the push still delivers the daily traffic rows and the app renders its "not available on this plan" states instead of erroring.
+* Security: legacy (< 3.3.0) encrypted credentials are now re-encrypted into the authenticated v1 format automatically the first time the plugin reads them after upgrading, instead of waiting for a settings re-save.
+* GA4, Search Console, PageSpeed, and Cloudflare keys all stay in the plugin settings. The license key remains the only Insightistic credential the site ever exchanges — no second Google or Cloudflare connect in the app.
+
+= 4.5.2 (2026-09-28) =
+
+* Improved the License page error handling so activation, refresh, and sync actions show the actual WordPress/API response instead of a generic server error.
+* Added JSON error extraction for admin AJAX failures, including expired sessions, API validation errors, and unexpected server responses.
+
+= 4.5.1 (2026-09-28) =
+
+* Fixed fresh-install AI settings to use the connected Insightistic Cloud AI provider by default; AI remains opt-in and is never run automatically.
+* Free accounts use the plan-aware WordPressistic AI gateway and zero-cost OpenRouter fallback chain. Paid model selection stays server-side and follows the account entitlement.
+* Updated AI settings copy so the analysis focus is not presented as a specific Ollama/Hermes model route.
+* Preserved the existing Insightistic and WPistic license activation paths.
+
+= 4.4.3 (2026-09-20) =
+
+**New — IndexNow URL submission**
+
+* Published and updated posts are now submitted to the IndexNow pipeline through your connected Insightistic account (connector API, HMAC-signed like every other call), so new content reaches IndexNow-participating search engines faster — no extra configuration.
+* Strict eligibility gate before anything is sent: only public, indexable URLs are submitted. Drafts, pending/private/future posts, password-protected posts, posts marked noindex by Yoast SEO, Rank Math or All in One SEO, and attachments of non-public posts are always skipped.
+* Zero impact on the save request: submissions are batched in a background queue (deduped, capped) and flushed in chunks via Action Scheduler or a lightweight 15-minute cron — never synchronously while editing.
+* The IndexNow key is provisioned automatically on first use: fetched from the SaaS, served from yoursite.com/{key}.txt, and confirmed back. Transient failures are retried quietly and appear in the sync log on the License page.
+* Developers: disable per-site with the `insightistic_indexnow_enabled` filter.
+
+* Version bump 4.4.2 → 4.4.3.
 
 = 4.4.2 (2026-09-10) =
 

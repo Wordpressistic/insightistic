@@ -13,7 +13,7 @@ $property_id = get_option( 'insightistic_property_id' );
 $gsc_url     = get_option( 'insightistic_gsc_property_url' );
 $psi_key     = get_option( 'insightistic_pagespeed_api_key_enc' );
 $ai_enabled  = (int) get_option( 'insightistic_ai_enabled', 0 );
-$ai_provider = get_option( 'insightistic_ai_provider', 'none' );
+$ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 $default_url = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
 $woo_active  = class_exists( 'Insightistic_Woocommerce' ) ? ( new Insightistic_Woocommerce() )->is_active() : false;
 // Traffic Insights only ever renders when it can show *something* right
@@ -836,7 +836,6 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 	</div>
 
 </div><!-- /.isp-wrap -->
-
 
 
 

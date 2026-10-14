@@ -53,7 +53,7 @@ class Insightistic_AI {
 			wp_send_json_error( __( 'AI analysis is disabled. Enable it in Settings.', 'insightistic' ) );
 		}
 
-		$provider = get_option( 'insightistic_ai_provider', 'none' );
+		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 		if ( 'none' === $provider ) {
 			wp_send_json_error( __( 'No AI provider selected. Please configure one in Settings.', 'insightistic' ) );
 		}
@@ -205,7 +205,7 @@ class Insightistic_AI {
 	 * @return array|WP_Error  Rendered HTML on success.
 	 */
 	public function analyze_commerce( $data, $days = 28 ) {
-		$provider = get_option( 'insightistic_ai_provider', 'none' );
+		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 		if ( 'none' === $provider ) {
 			return new WP_Error( 'no_provider', __( 'No AI provider selected.', 'insightistic' ) );
 		}
@@ -314,7 +314,7 @@ class Insightistic_AI {
 	 * @return array|WP_Error Rendered HTML on success.
 	 */
 	public function analyze_cloudflare( $data, $days = 28 ) {
-		$provider = get_option( 'insightistic_ai_provider', 'none' );
+		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
 		if ( 'none' === $provider ) {
 			return new WP_Error( 'no_provider', __( 'No AI provider selected.', 'insightistic' ) );
 		}
@@ -712,14 +712,12 @@ class Insightistic_AI {
 	}
 
 	/**
-	 * Call Insightistic Cloud AI  the self-hosted analysis backend proxied
-	 * through the Insightistic SaaS (no key stored on this site; a connected
-	 * free account is the only credential). Two engines, selected by the
-	 * `insightistic_insightistic_cloud_model` setting:
-	 *   ollama-balanced  general-purpose analysis on our self-hosted Ollama models.
-	 *   hermes-seo       the Hermes SEO skill agent, tuned for organic-growth analysis.
-	 * Both are free with usage limits; the limit is enforced server-side and
-	 * surfaced here as a friendly "quota_exceeded" message rather than a raw error.
+	 * Call Insightistic Cloud AI through the account's plan-aware provider chain.
+	 * No provider key is stored on this site. The free tier uses the configured
+	 * WordPressistic gateway and zero-cost OpenRouter fallbacks; paid tiers are
+	 * routed server-side according to the account entitlement. The selected
+	 * analysis focus is context, not a provider/model override. Usage limits are
+	 * enforced server-side and surfaced as a friendly quota_exceeded message.
 	 *
 	 * @param string $prompt User prompt.
 	 * @return string|WP_Error JSON content string.
@@ -935,7 +933,7 @@ class Insightistic_AI {
 		$engine_label = '';
 		if ( 'insightistic_cloud' === $provider ) {
 			$engine_label = 'hermes-seo' === get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' )
-				? __( 'SEO Specialist (Hermes)', 'insightistic' )
+				? __( 'SEO-focused analysis', 'insightistic' )
 				: __( 'Balanced (Ollama)', 'insightistic' );
 		}
 
@@ -1148,6 +1146,4 @@ class Insightistic_AI {
 		return wp_parse_args( $data, $defaults );
 	}
 }
-
-
 

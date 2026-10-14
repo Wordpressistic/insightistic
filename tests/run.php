@@ -17,10 +17,13 @@ $suites = array(
 	'test-ga4-named-ranges.php',
 	'test-ga4-legacy.php',
 	'test-ga4-edge-cases.php',
+	'test-platform-bridge.php',
+	'test-indexnow.php',
+	'test-cloudflare-sync.php',
 );
 
-$php  = PHP_BINARY;
-$dir  = __DIR__;
+$php    = PHP_BINARY;
+$dir    = __DIR__;
 $failed = array();
 
 echo "Insightistic test suite\n=======================\n\n";

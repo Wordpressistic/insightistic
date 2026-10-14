@@ -67,6 +67,13 @@ Connect your Google Analytics 4 property and Google Search Console via a single 
 * Choose your AI provider: OpenAI, Google Gemini, OpenRouter (free models supported), Groq, Anthropic Claude, or Insightistic Cloud AI (no key needed  runs on our self-hosted Ollama models and Hermes SEO agent, free with your account)
 * AI never runs automatically  you stay in full control of API usage and cost
 
+Connected accounts receive the current plan entitlements from Insightistic,
+including the monthly AI-credit allowance and any purchased credits. Monthly
+included credits refresh with the account period; purchased Insight Credits do
+not expire during normal service operation. Plan changes and credit purchases
+are completed in the Insightistic dashboard through the secure Paddle checkout
+popup — this plugin never receives payment credentials.
+
 = Email Automations (free account required) =
 
 * Send branded analytics digests to your team on a daily, weekly, or monthly schedule

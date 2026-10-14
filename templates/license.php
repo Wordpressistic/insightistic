@@ -178,6 +178,14 @@ $isp_features_meta = array(
 							?>
 						</dd>
 					</div>
+					<div>
+						<dt><?php esc_html_e( 'Monthly AI credits', 'insightistic' ); ?></dt>
+						<dd><?php echo esc_html( number_format_i18n( (int) ( $isp_state['credits']['monthly_included']['remaining'] ?? $isp_state['monthly_ai_credits'] ?? 0 ) ) . ' / ' . number_format_i18n( (int) ( $isp_state['credits']['monthly_included']['granted'] ?? $isp_state['monthly_ai_credits'] ?? 0 ) ) ); ?></dd>
+					</div>
+					<div>
+						<dt><?php esc_html_e( 'Purchased credits', 'insightistic' ); ?></dt>
+						<dd><?php echo esc_html( number_format_i18n( (int) ( $isp_state['credits']['purchased']['remaining'] ?? 0 ) ) ); ?></dd>
+					</div>
 				</dl>
 
 				<?php if ( $isp_blocked ) : ?>
@@ -202,6 +210,9 @@ $isp_features_meta = array(
 					</button>
 					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( $isp_app_url . '/dashboard/licenses?ref=plugin' ); ?>" target="_blank" rel="noopener">
 						<?php esc_html_e( 'Manage in dashboard', 'insightistic' ); ?>
+					</a>
+					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( ! empty( $isp_state['upgrade_url'] ) ? $isp_state['upgrade_url'] : $isp_app_url . '/dashboard/billing?ref=plugin' ); ?>" target="_blank" rel="noopener">
+						<?php esc_html_e( 'Plans & credits', 'insightistic' ); ?>
 					</a>
 					<button type="button" class="isp-btn isp-btn-danger-ghost" id="isp-license-disconnect">
 						<?php esc_html_e( 'Disconnect site', 'insightistic' ); ?>

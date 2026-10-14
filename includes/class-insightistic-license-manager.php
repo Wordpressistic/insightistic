@@ -272,18 +272,38 @@ class Insightistic_License_Manager {
 	 * @return array Stored state.
 	 */
 	private function store_state( $license ) {
-		$state = array(
-			'status'            => sanitize_key( $license['status'] ?? 'none' ),
-			'plan'              => sanitize_key( $license['plan'] ?? '' ),
-			'plan_name'         => sanitize_text_field( $license['plan_name'] ?? '' ),
-			'features'          => array_map( 'sanitize_key', (array) ( $license['features'] ?? array() ) ),
-			'activation_limit'  => absint( $license['activation_limit'] ?? 1 ),
-			'activations_used'  => absint( $license['activations_used'] ?? 0 ),
-			'trial_ends_at'     => sanitize_text_field( (string) ( $license['trial_ends_at'] ?? '' ) ),
-			'expires_at'        => sanitize_text_field( (string) ( $license['expires_at'] ?? '' ) ),
-			'validate_interval' => absint( $license['validate_interval'] ?? DAY_IN_SECONDS ),
-			'grace_hours'       => absint( $license['grace_hours'] ?? 72 ),
-			'validated_at'      => time(),
+		$limits    = is_array( $license['limits'] ?? null ) ? $license['limits'] : array();
+		$credits   = is_array( $license['credits'] ?? null ) ? $license['credits'] : array();
+		$monthly   = is_array( $credits['monthly_included'] ?? null ) ? $credits['monthly_included'] : array();
+		$purchased = is_array( $credits['purchased'] ?? null ) ? $credits['purchased'] : array();
+		$state     = array(
+			'status'                       => sanitize_key( $license['status'] ?? 'none' ),
+			'plan'                         => sanitize_key( $license['plan'] ?? '' ),
+			'plan_name'                    => sanitize_text_field( $license['plan_name'] ?? '' ),
+			'features'                     => array_map( 'sanitize_key', (array) ( $license['features'] ?? array() ) ),
+			'activation_limit'             => absint( $license['activation_limit'] ?? 1 ),
+			'activations_used'             => absint( $license['activations_used'] ?? 0 ),
+			'trial_ends_at'                => sanitize_text_field( (string) ( $license['trial_ends_at'] ?? '' ) ),
+			'expires_at'                   => sanitize_text_field( (string) ( $license['expires_at'] ?? '' ) ),
+			'validate_interval'            => absint( $license['validate_interval'] ?? DAY_IN_SECONDS ),
+			'grace_hours'                  => absint( $license['grace_hours'] ?? 72 ),
+			'effective_source'             => sanitize_key( $license['effective_source'] ?? '' ),
+			'limits'                       => array_map( 'absint', $limits ),
+			'monthly_ai_credits'           => absint( $license['monthly_ai_credits'] ?? ( $limits['monthly_ai_credits'] ?? 0 ) ),
+			'standard_ai_requests_monthly' => absint( $license['standard_ai_requests_monthly'] ?? ( $limits['standard_ai_requests_monthly'] ?? 0 ) ),
+			'credits'                      => array(
+				'period'           => sanitize_text_field( (string) ( $credits['period'] ?? '' ) ),
+				'monthly_included' => array(
+					'granted'   => absint( $monthly['granted'] ?? 0 ),
+					'remaining' => absint( $monthly['remaining'] ?? 0 ),
+				),
+				'purchased'        => array(
+					'remaining' => absint( $purchased['remaining'] ?? 0 ),
+				),
+				'total_usable'     => absint( $credits['total_usable'] ?? 0 ),
+			),
+			'upgrade_url'                  => esc_url_raw( $license['upgrade_url'] ?? 'https://app.insightistic.com/dashboard/billing' ),
+			'validated_at'                 => time(),
 		);
 
 		update_option( 'insightistic_license_state', $state, false );

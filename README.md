@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://wordpress.org/"><img src="https://img.shields.io/badge/WordPress-5.6%2B-21759b?style=flat-square" alt="WordPress 5.6+"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.0%2B-777bb4?style=flat-square" alt="PHP 8.0+"></a>
-  <img src="https://img.shields.io/badge/version-4.6.0-brightgreen?style=flat-square" alt="version 4.5.2">
+  <img src="https://img.shields.io/badge/version-4.6.0-brightgreen?style=flat-square" alt="version 4.6.0">
   <img src="https://img.shields.io/badge/License-GPLv2%2B-blue?style=flat-square" alt="GPL v2+">
 </p>
 

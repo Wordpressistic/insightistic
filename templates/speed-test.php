@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$isp_psi_configured = (bool) get_option( 'insightistic_pagespeed_api_key_enc' );
-$isp_default_url    = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
+$insightistic_isp_psi_configured = (bool) get_option( 'insightistic_pagespeed_api_key_enc' );
+$insightistic_isp_default_url    = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
 ?>
 <div class="wrap isp-wrap isp-speedtest-wrap">
 
@@ -27,7 +27,7 @@ $isp_default_url    = get_option( 'insightistic_pagespeed_default_url', home_url
 		</div>
 	</div>
 
-	<?php if ( ! $isp_psi_configured ) : ?>
+	<?php if ( ! $insightistic_isp_psi_configured ) : ?>
 
 		<div class="isp-license-card isp-animate-in isp-speedtest-setup">
 			<h2 class="isp-license-card-title"><?php esc_html_e( 'One quick step first', 'insightistic' ); ?></h2>
@@ -45,7 +45,7 @@ $isp_default_url    = get_option( 'insightistic_pagespeed_default_url', home_url
 				type="url"
 				id="isp-speedtest-url"
 				class="isp-input isp-url-input"
-				value="<?php echo esc_url( $isp_default_url ); ?>"
+				value="<?php echo esc_url( $insightistic_isp_default_url ); ?>"
 				placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>"
 				spellcheck="false"
 			/>

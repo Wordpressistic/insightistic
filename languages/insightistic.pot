@@ -2,14 +2,14 @@
 # This file is distributed under the same license as the Insightistic plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Insightistic 4.6.0\n"
+"Project-Id-Version: Insightistic 4.6.1\n"
 "Report-Msgid-Bugs-To: https://wordpressistic.com\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-01T17:18:24+00:00\n"
+"POT-Creation-Date: 2026-10-25T15:13:28+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: insightistic/make-pot 1.0\n"
 "X-Domain: insightistic\n"
@@ -113,7 +113,7 @@ msgstr ""
 msgid "API Key"
 msgstr ""
 
-#: templates/settings.php:848
+#: templates/settings.php:847
 msgid "API Token"
 msgstr ""
 
@@ -125,7 +125,7 @@ msgstr ""
 msgid "API key stored"
 msgstr ""
 
-#: templates/settings.php:838
+#: templates/settings.php:837
 msgid "Account ID (optional)"
 msgstr ""
 
@@ -282,7 +282,7 @@ msgstr ""
 msgid "Change key"
 msgstr ""
 
-#: templates/settings.php:853
+#: templates/settings.php:852
 msgid "Change token"
 msgstr ""
 
@@ -342,7 +342,7 @@ msgstr ""
 msgid "Cloudflare Zone ID is not configured. Please visit Settings → Cloudflare."
 msgstr ""
 
-#: templates/settings.php:833
+#: templates/settings.php:832
 msgid "Cloudflare dashboard → your site → Overview → Zone ID (right-hand sidebar)."
 msgstr ""
 
@@ -519,10 +519,6 @@ msgstr ""
 msgid "Coupons"
 msgstr ""
 
-#: templates/settings.php:821
-msgid "Create API Token ↗"
-msgstr ""
-
 #: templates/settings.php:353
 msgid "Create API key ↗"
 msgstr ""
@@ -635,6 +631,10 @@ msgstr ""
 
 #: templates/dashboard.php:384
 msgid "Device Breakdown"
+msgstr ""
+
+#: templates/settings.php:821
+msgid "Direct navigation: Cloudflare dashboard → My Profile → API Tokens → Create Token. Full API documentation lives under Developers → API in the Cloudflare dashboard."
 msgstr ""
 
 #: includes/class-insightistic-admin.php:255
@@ -770,7 +770,7 @@ msgstr ""
 msgid "Encrypted Traffic"
 msgstr ""
 
-#: templates/settings.php:861
+#: templates/settings.php:860
 msgid "Encrypted with AES-256 before storage, exactly like every other credential in this plugin."
 msgstr ""
 
@@ -794,7 +794,7 @@ msgstr ""
 msgid "Enter new key to replace"
 msgstr ""
 
-#: templates/settings.php:856
+#: templates/settings.php:855
 msgid "Enter new token to replace"
 msgstr ""
 
@@ -1105,7 +1105,7 @@ msgstr ""
 #: includes/class-insightistic-admin.php:83
 #: templates/addons.php:206
 #: templates/dashboard.php:833
-#: templates/settings.php:916
+#: templates/settings.php:915
 msgid "Insightistic"
 msgstr ""
 
@@ -1525,7 +1525,6 @@ msgid "Numeric only. Find it in GA4  Admin  Property Settings."
 msgstr ""
 
 #: templates/settings.php:354
-#: templates/settings.php:822
 msgid "Official docs ↗"
 msgstr ""
 
@@ -1553,7 +1552,7 @@ msgstr ""
 msgid "One quick step first"
 msgstr ""
 
-#: templates/settings.php:843
+#: templates/settings.php:842
 msgid "Only needed for account-level reporting added in a later release. Safe to leave blank."
 msgstr ""
 
@@ -1726,7 +1725,7 @@ msgstr ""
 msgid "Paste the secret below — it stays on your server, encrypted, and is never exposed to visitors. Events are proxied server-side."
 msgstr ""
 
-#: templates/settings.php:859
+#: templates/settings.php:858
 msgid "Paste your Cloudflare API token"
 msgstr ""
 
@@ -1957,7 +1956,7 @@ msgstr ""
 msgid "Save Email Automation"
 msgstr ""
 
-#: templates/settings.php:908
+#: templates/settings.php:907
 msgid "Save Settings"
 msgstr ""
 
@@ -1974,7 +1973,7 @@ msgid "Save snapshot"
 msgstr ""
 
 #: templates/settings.php:245
-#: templates/settings.php:869
+#: templates/settings.php:868
 msgid "Save your settings first, then test the connection."
 msgstr ""
 
@@ -2189,12 +2188,12 @@ msgstr ""
 msgid "Takes about a minute — no credit card, free forever."
 msgstr ""
 
-#: templates/settings.php:868
+#: templates/settings.php:867
 msgid "Test Cloudflare Connection"
 msgstr ""
 
 #: templates/settings.php:247
-#: templates/settings.php:871
+#: templates/settings.php:870
 msgid "Test Connection"
 msgstr ""
 
@@ -2295,7 +2294,7 @@ msgstr ""
 msgid "Threats Blocked"
 msgstr ""
 
-#: templates/settings.php:852
+#: templates/settings.php:851
 msgid "Token stored & encrypted"
 msgstr ""
 
@@ -2589,7 +2588,7 @@ msgstr ""
 msgid "Your strongest page is \"%s\". Add a clearer conversion action there before adding more traffic."
 msgstr ""
 
-#: templates/settings.php:828
+#: templates/settings.php:827
 msgid "Zone ID"
 msgstr ""
 

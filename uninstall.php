@@ -12,7 +12,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 // List of all options to remove.
-$options = array(
+$insightistic_options = array(
 	// GA4.
 	'insightistic_property_id',
 	'insightistic_api_email',
@@ -89,8 +89,8 @@ $options = array(
 	'insightistic_indexnow_queue',
 );
 
-foreach ( $options as $option ) {
-	delete_option( $option );
+foreach ( $insightistic_options as $insightistic_option ) {
+	delete_option( $insightistic_option );
 }
 
 // Clear the daily license validation + sync crons and the IndexNow flush.

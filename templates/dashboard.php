@@ -9,17 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$property_id = get_option( 'insightistic_property_id' );
-$gsc_url     = get_option( 'insightistic_gsc_property_url' );
-$psi_key     = get_option( 'insightistic_pagespeed_api_key_enc' );
-$ai_enabled  = (int) get_option( 'insightistic_ai_enabled', 0 );
-$ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
-$default_url = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
-$woo_active  = class_exists( 'Insightistic_Woocommerce' ) ? ( new Insightistic_Woocommerce() )->is_active() : false;
+$insightistic_property_id = get_option( 'insightistic_property_id' );
+$insightistic_gsc_url     = get_option( 'insightistic_gsc_property_url' );
+$insightistic_psi_key     = get_option( 'insightistic_pagespeed_api_key_enc' );
+$insightistic_ai_enabled  = (int) get_option( 'insightistic_ai_enabled', 0 );
+$insightistic_ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
+$insightistic_default_url = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
+$insightistic_woo_active  = class_exists( 'Insightistic_Woocommerce' ) ? ( new Insightistic_Woocommerce() )->is_active() : false;
 // Traffic Insights only ever renders when it can show *something* right
 // now (BYO token configured, or a free account is connected)  never a
 // setup nag. See Insightistic_Cloudflare::is_available().
-$cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudflare::is_available();
+$insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudflare::is_available();
 ?>
 <div class="wrap isp-wrap">
 
@@ -35,7 +35,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 			</div>
 		</div>
 		<div class="isp-header-actions">
-			<?php if ( ! $property_id ) : ?>
+			<?php if ( ! $insightistic_property_id ) : ?>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=insightistic-settings' ) ); ?>" class="isp-btn isp-btn-primary">
 				<?php esc_html_e( 'Connect GA4', 'insightistic' ); ?>
 			</a>
@@ -49,7 +49,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 		</div>
 	</div>
 
-	<?php if ( ! $property_id ) : ?>
+	<?php if ( ! $insightistic_property_id ) : ?>
 	<!-- ====================================================== SETUP NOTICE -->
 	<div class="isp-setup-notice">
 		<div class="isp-setup-icon"></div>
@@ -68,26 +68,26 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 		<button class="isp-dash-tab isp-dash-tab-active" data-tab="overview">
 			<?php esc_html_e( 'Overview', 'insightistic' ); ?>
 		</button>
-		<button class="isp-dash-tab" data-tab="search-console" <?php echo $gsc_url ? '' : 'title="' . esc_attr__( 'Configure Search Console in Settings', 'insightistic' ) . '"'; ?>>
+		<button class="isp-dash-tab" data-tab="search-console" <?php echo $insightistic_gsc_url ? '' : 'title="' . esc_attr__( 'Configure Search Console in Settings', 'insightistic' ) . '"'; ?>>
 			<?php esc_html_e( 'Search Console', 'insightistic' ); ?>
 			<?php
-			if ( ! $gsc_url ) :
+			if ( ! $insightistic_gsc_url ) :
 				?>
 				<span class="isp-tab-badge"><?php esc_html_e( 'Setup', 'insightistic' ); ?></span><?php endif; ?>
 		</button>
-		<button class="isp-dash-tab" data-tab="pagespeed" <?php echo $psi_key ? '' : 'title="' . esc_attr__( 'Configure PageSpeed in Settings', 'insightistic' ) . '"'; ?>>
+		<button class="isp-dash-tab" data-tab="pagespeed" <?php echo $insightistic_psi_key ? '' : 'title="' . esc_attr__( 'Configure PageSpeed in Settings', 'insightistic' ) . '"'; ?>>
 			<?php esc_html_e( 'PageSpeed', 'insightistic' ); ?>
 			<?php
-			if ( ! $psi_key ) :
+			if ( ! $insightistic_psi_key ) :
 				?>
 				<span class="isp-tab-badge"><?php esc_html_e( 'Setup', 'insightistic' ); ?></span><?php endif; ?>
 		</button>
-		<?php if ( $cf_available ) : ?>
+		<?php if ( $insightistic_cf_available ) : ?>
 		<button class="isp-dash-tab" data-tab="cloudflare">
 			<?php esc_html_e( 'Traffic Insights', 'insightistic' ); ?>
 		</button>
 		<?php endif; ?>
-		<?php if ( $woo_active ) : ?>
+		<?php if ( $insightistic_woo_active ) : ?>
 		<button class="isp-dash-tab" data-tab="commerce">
 			<?php esc_html_e( 'Commerce', 'insightistic' ); ?>
 		</button>
@@ -114,7 +114,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 				</button>
 				<div id="isp-overview-cache" class="isp-cache-badge" aria-live="polite" style="display:none;"></div>
 			</div>
-			<?php if ( $ai_enabled && 'none' !== $ai_provider ) : ?>
+			<?php if ( $insightistic_ai_enabled && 'none' !== $insightistic_ai_provider ) : ?>
 			<button id="isp-ai-analyze" class="isp-btn isp-btn-ai" style="display:none;" title="<?php esc_attr_e( 'AI runs on demand only  never auto-triggered', 'insightistic' ); ?>">
 				<?php esc_html_e( 'Get AI Insights', 'insightistic' ); ?>
 			</button>
@@ -291,7 +291,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 	<!-- ========================================= TAB: SEARCH CONSOLE -->
 	<div class="isp-tab-content" id="isp-dash-search-console" style="display:none;">
 
-		<?php if ( ! $gsc_url ) : ?>
+		<?php if ( ! $insightistic_gsc_url ) : ?>
 		<div class="isp-setup-notice">
 			<div class="isp-setup-icon"></div>
 			<div>
@@ -403,7 +403,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 	<!-- ========================================= TAB: PAGESPEED -->
 	<div class="isp-tab-content" id="isp-dash-pagespeed" style="display:none;">
 
-		<?php if ( ! $psi_key ) : ?>
+		<?php if ( ! $insightistic_psi_key ) : ?>
 		<div class="isp-setup-notice">
 			<div class="isp-setup-icon"></div>
 			<div>
@@ -421,7 +421,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 				<label for="isp-psi-url" class="screen-reader-text"><?php esc_html_e( 'URL to test', 'insightistic' ); ?></label>
 				<input type="url" id="isp-psi-url" class="isp-input isp-url-input"
 					placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>"
-					value="<?php echo esc_attr( $default_url ); ?>">
+					value="<?php echo esc_attr( $insightistic_default_url ); ?>">
 				<button id="isp-run-pagespeed" class="isp-btn isp-btn-primary" aria-live="polite">
 					<span class="isp-btn-icon"></span>
 					<span class="isp-btn-text"><?php esc_html_e( 'Run Test', 'insightistic' ); ?></span>
@@ -491,7 +491,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 	</div><!-- /#isp-dash-pagespeed -->
 
 	<!-- ========================================= TAB: CLOUDFLARE TRAFFIC INSIGHTS -->
-		<?php if ( $cf_available ) : ?>
+		<?php if ( $insightistic_cf_available ) : ?>
 	<div class="isp-tab-content" id="isp-dash-cloudflare" style="display:none;">
 
 		<!-- Shown instead of the dashboard when the connected account has no
@@ -530,7 +530,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 				</button>
 				<div id="isp-cf-cache" class="isp-cache-badge" aria-live="polite" style="display:none;"></div>
 			</div>
-			<?php if ( $ai_enabled && 'none' !== $ai_provider ) : ?>
+			<?php if ( $insightistic_ai_enabled && 'none' !== $insightistic_ai_provider ) : ?>
 			<button id="isp-cf-ai-analyze" class="isp-btn isp-btn-ai" style="display:none;">
 				<?php esc_html_e( 'Get Traffic AI Insights', 'insightistic' ); ?>
 			</button>
@@ -622,7 +622,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 	<?php endif; ?>
 
 
-		<?php if ( $woo_active ) : ?>
+		<?php if ( $insightistic_woo_active ) : ?>
 	<!-- ========================================= TAB: COMMERCE (Woo) -->
 	<div class="isp-tab-content" id="isp-dash-commerce" style="display:none;">
 
@@ -643,7 +643,7 @@ $cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insightistic_Cloudf
 				</button>
 				<div id="isp-woo-cache" class="isp-cache-badge" aria-live="polite" style="display:none;"></div>
 			</div>
-			<?php if ( $ai_enabled && 'none' !== $ai_provider ) : ?>
+			<?php if ( $insightistic_ai_enabled && 'none' !== $insightistic_ai_provider ) : ?>
 			<button id="isp-woo-ai-analyze" class="isp-btn isp-btn-ai" style="display:none;">
 				<?php esc_html_e( 'Get Commerce AI Insights', 'insightistic' ); ?>
 			</button>

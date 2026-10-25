@@ -126,7 +126,9 @@ class Insightistic_Sync {
 		if ( function_exists( 'as_enqueue_async_action' ) ) {
 			as_enqueue_async_action( $hook, $args, 'insightistic' );
 		} else {
-			do_action( $hook, ...array_values( $args ) );
+			// Every caller passes a fixed insightistic_sync_* hook name from
+			// the allowlist above; the sniffer just cannot see it statically.
+			do_action( $hook, ...array_values( $args ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 		}
 	}
 

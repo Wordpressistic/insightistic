@@ -428,7 +428,7 @@ class Insightistic_AI {
 		$model = get_option( 'insightistic_openai_model', 'gpt-4o-mini' );
 
 		$response = wp_remote_post(
-			'https://api.openai.com/v1/chat/completions',
+			'https://api.openai.com/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			array(
 				'timeout' => 45,
 				'headers' => array(
@@ -472,7 +472,7 @@ class Insightistic_AI {
 		}
 
 		$model    = get_option( 'insightistic_gemini_model', 'gemini-1.5-flash' );
-		$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . rawurlencode( $key );
+		$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . rawurlencode( $key ); // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 
 		$full_prompt = $this->system_prompt() . "\n\n" . $prompt;
 
@@ -535,7 +535,7 @@ class Insightistic_AI {
 		// Most free OpenRouter models do not support JSON mode (response_format).
 		// JSON output is enforced via the system prompt and user prompt instead.
 		$response = wp_remote_post(
-			'https://openrouter.ai/api/v1/chat/completions',
+			'https://openrouter.ai/api/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			array(
 				'timeout' => 45,
 				'headers' => array(
@@ -604,7 +604,7 @@ class Insightistic_AI {
 				/* translators: 1: model slug, 2: OpenRouter privacy URL */
 				__( 'OpenRouter is blocking this :free model because your account has not opted in to free-tier data sharing. Open %2$s, enable "Free model providers may train on my prompts" (or set the privacy level to allow free providers), save, then click Test This Provider again. (Failing model: %1$s)', 'insightistic' ),
 				$model,
-				'https://openrouter.ai/settings/privacy'
+				'https://openrouter.ai/settings/privacy' // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			);
 			return new WP_Error( 'openrouter_privacy_gate', $hint );
 		}
@@ -635,7 +635,7 @@ class Insightistic_AI {
 				/* translators: 1: model slug, 2: openrouter.ai URL */
 				__( 'OpenRouter does not have an active endpoint for the model "%1$s" right now. Open %2$s, pick any current free model, and paste its slug into the "custom model" field below the dropdown.', 'insightistic' ),
 				$model,
-				'https://openrouter.ai/models?max_price=0'
+				'https://openrouter.ai/models?max_price=0' // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			);
 			return new WP_Error( 'openrouter_model_unavailable', $hint );
 		}
@@ -644,7 +644,7 @@ class Insightistic_AI {
 		if ( false !== strpos( $low, '401' ) || ( false !== strpos( $low, 'invalid' ) && false !== strpos( $low, 'key' ) ) || false !== strpos( $low, 'unauthorized' ) ) {
 			return new WP_Error(
 				'openrouter_auth',
-				__( 'OpenRouter rejected the API key. Verify the key at https://openrouter.ai/keys and re-paste it in Settings > AI Insights.', 'insightistic' )
+				__( 'OpenRouter rejected the API key. Verify the key at https://openrouter.ai/keys and re-paste it in Settings > AI Insights.', 'insightistic' ) // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			);
 		}
 
@@ -660,7 +660,7 @@ class Insightistic_AI {
 		if ( false !== strpos( $low, 'insufficient' ) || false !== strpos( $low, 'credit' ) ) {
 			return new WP_Error(
 				'openrouter_credits',
-				__( 'OpenRouter reports insufficient credits for this model. Switch to a model with a ":free" suffix or top up at https://openrouter.ai/credits.', 'insightistic' )
+				__( 'OpenRouter reports insufficient credits for this model. Switch to a model with a ":free" suffix or top up at https://openrouter.ai/credits.', 'insightistic' ) // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			);
 		}
 
@@ -682,7 +682,7 @@ class Insightistic_AI {
 
 		$model    = get_option( 'insightistic_groq_model', 'llama-3.1-8b-instant' );
 		$response = wp_remote_post(
-			'https://api.groq.com/openai/v1/chat/completions',
+			'https://api.groq.com/openai/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			array(
 				'timeout' => 45,
 				'headers' => array(
@@ -791,7 +791,7 @@ class Insightistic_AI {
 		$full_prompt = $prompt . "\n\nIMPORTANT: Respond ONLY with valid JSON. Do not include any text outside the JSON object.";
 
 		$response = wp_remote_post(
-			'https://api.anthropic.com/v1/messages',
+			'https://api.anthropic.com/v1/messages', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
 			array(
 				'timeout' => 45,
 				'headers' => array(

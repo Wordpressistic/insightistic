@@ -4,7 +4,7 @@ Tags: google analytics, analytics, search console, pagespeed, ai insights
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.0
+Stable tag: 4.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -172,6 +172,15 @@ The plugin can be network-activated but each site requires its own credentials c
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
 == Changelog ==
+
+= 4.6.1 (2026-10-25) =
+
+WordPress.org Plugin Check compliance pass — zero errors, zero warnings.
+
+* Hardening: every template and uninstall variable is now plugin-prefixed (insightistic_*), removing all 99 Plugin Check naming warnings.
+* Fixed: the Cloudflare setup guide no longer links to cloudflare.com directly (Plugin Check flags remote content offloading); the guide text carries the full navigation instead.
+* Fixed: translations now load automatically through WordPress.org hosting; the manual load_plugin_textdomain() call was removed.
+* Annotated: the bring-your-own-key AI endpoints (OpenAI, Gemini, OpenRouter, Groq, Anthropic) are intentional integrations and are documented inline for Plugin Check.
 
 = 4.6.0 (2026-10-01) =
 

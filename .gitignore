@@ -18,3 +18,6 @@ Thumbs.db
 
 # Test/coverage artifacts
 phpcs-report.txt
+
+# Nested self-clone of this repository (local build artifact, must never be tracked)
+/insightistic/

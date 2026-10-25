@@ -9,14 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$addons_state     = get_option( 'insightistic_addons', array() );
-$email_config     = get_option( 'insightistic_email_automations', array() );
-$email_enabled    = ! empty( $addons_state['email_automations'] );
-$email_recipients = ! empty( $email_config['recipients'] ) ? $email_config['recipients'] : get_option( 'admin_email' );
-$email_frequency  = ! empty( $email_config['frequency'] ) ? $email_config['frequency'] : 'weekly';
-$email_day        = ! empty( $email_config['day'] ) ? $email_config['day'] : 'monday';
-$email_time       = ! empty( $email_config['time'] ) ? $email_config['time'] : '09:00';
-$email_next_run   = wp_next_scheduled( Insightistic_Email_Automations::CRON_HOOK );
+$insightistic_addons_state     = get_option( 'insightistic_addons', array() );
+$insightistic_email_config     = get_option( 'insightistic_email_automations', array() );
+$insightistic_email_enabled    = ! empty( $insightistic_addons_state['email_automations'] );
+$insightistic_email_recipients = ! empty( $insightistic_email_config['recipients'] ) ? $insightistic_email_config['recipients'] : get_option( 'admin_email' );
+$insightistic_email_frequency  = ! empty( $insightistic_email_config['frequency'] ) ? $insightistic_email_config['frequency'] : 'weekly';
+$insightistic_email_day        = ! empty( $insightistic_email_config['day'] ) ? $insightistic_email_config['day'] : 'monday';
+$insightistic_email_time       = ! empty( $insightistic_email_config['time'] ) ? $insightistic_email_config['time'] : '09:00';
+$insightistic_email_next_run   = wp_next_scheduled( Insightistic_Email_Automations::CRON_HOOK );
 
 if ( ! function_exists( 'insightistic_addon_icon_svg' ) ) {
 	/**
@@ -39,7 +39,7 @@ if ( ! function_exists( 'insightistic_addon_icon_svg' ) ) {
 	}
 }
 
-$addons = array(
+$insightistic_addons = array(
 	array(
 		'slug'  => 'email_automations',
 		'icon'  => 'mail',
@@ -79,13 +79,13 @@ $addons = array(
 
 // Only Email Automations resolves to a gated feature today (email delivery
 // needs a free connected account); everything else is unconditionally free.
-foreach ( $addons as &$addon ) {
-	$feature         = Insightistic_Feature_Gate::addon_feature( $addon['slug'] );
-	$addon['locked'] = $feature && ! Insightistic_Feature_Gate::can( $feature );
-	$addon['status'] = $addon['locked'] ? 'locked' : 'available';
-	$addon['type']   = $addon['locked'] ? __( 'Account required', 'insightistic' ) : __( 'Free', 'insightistic' );
+foreach ( $insightistic_addons as &$insightistic_addon ) {
+	$insightistic_feature         = Insightistic_Feature_Gate::addon_feature( $insightistic_addon['slug'] );
+	$insightistic_addon['locked'] = $insightistic_feature && ! Insightistic_Feature_Gate::can( $insightistic_feature );
+	$insightistic_addon['status'] = $insightistic_addon['locked'] ? 'locked' : 'available';
+	$insightistic_addon['type']   = $insightistic_addon['locked'] ? __( 'Account required', 'insightistic' ) : __( 'Free', 'insightistic' );
 }
-unset( $addon );
+unset( $insightistic_addon );
 ?>
 <div class="wrap isp-wrap isp-addons-wrap">
 
@@ -129,55 +129,55 @@ unset( $addon );
 
 	<div class="isp-addons-grid" id="isp-addons-grid">
 		<?php
-		foreach ( $addons as $addon ) :
-			$type_class    = $addon['locked'] ? 'isp-addon-type-locked' : 'isp-addon-type-free';
-			$addon_enabled = ! empty( $addons_state[ $addon['slug'] ] );
+		foreach ( $insightistic_addons as $insightistic_addon ) :
+			$insightistic_type_class    = $insightistic_addon['locked'] ? 'isp-addon-type-locked' : 'isp-addon-type-free';
+			$insightistic_addon_enabled = ! empty( $insightistic_addons_state[ $insightistic_addon['slug'] ] );
 			?>
-			<div class="isp-addon-card" data-type="<?php echo esc_attr( $addon['type'] ); ?>" data-status="<?php echo esc_attr( $addon['status'] ); ?>" data-addon-slug="<?php echo esc_attr( $addon['slug'] ); ?>">
+			<div class="isp-addon-card" data-type="<?php echo esc_attr( $insightistic_addon['type'] ); ?>" data-status="<?php echo esc_attr( $insightistic_addon['status'] ); ?>" data-addon-slug="<?php echo esc_attr( $insightistic_addon['slug'] ); ?>">
 				<div class="isp-addon-card-top">
-					<div class="isp-addon-icon isp-addon-icon-<?php echo esc_attr( $addon['color'] ); ?>"><?php echo insightistic_addon_icon_svg( $addon['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static trusted SVG, no user input. ?></div>
-					<span class="isp-addon-type-badge <?php echo esc_attr( $type_class ); ?>"><?php echo esc_html( $addon['type'] ); ?></span>
+					<div class="isp-addon-icon isp-addon-icon-<?php echo esc_attr( $insightistic_addon['color'] ); ?>"><?php echo insightistic_addon_icon_svg( $insightistic_addon['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static trusted SVG, no user input. ?></div>
+					<span class="isp-addon-type-badge <?php echo esc_attr( $insightistic_type_class ); ?>"><?php echo esc_html( $insightistic_addon['type'] ); ?></span>
 				</div>
-				<h3 class="isp-addon-name"><?php echo esc_html( $addon['name'] ); ?></h3>
-				<p class="isp-addon-desc"><?php echo esc_html( $addon['desc'] ); ?></p>
+				<h3 class="isp-addon-name"><?php echo esc_html( $insightistic_addon['name'] ); ?></h3>
+				<p class="isp-addon-desc"><?php echo esc_html( $insightistic_addon['desc'] ); ?></p>
 
-				<?php if ( $addon['locked'] ) : ?>
+				<?php if ( $insightistic_addon['locked'] ) : ?>
 					<?php echo Insightistic_Feature_Gate::locked_card( 'email_audit_automation', __( 'Create a free account to enable this addon', 'insightistic' ), __( 'Email Automations sends through your Insightistic account.', 'insightistic' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- locked_card() escapes internally. ?>
 				<?php endif; ?>
 
 				<div class="isp-addon-footer">
 					<label class="isp-addon-toggle">
-						<input type="checkbox" class="isp-addon-toggle-input" data-addon-toggle="<?php echo esc_attr( $addon['slug'] ); ?>" <?php checked( $addon_enabled ); ?> />
+						<input type="checkbox" class="isp-addon-toggle-input" data-addon-toggle="<?php echo esc_attr( $insightistic_addon['slug'] ); ?>" <?php checked( $insightistic_addon_enabled ); ?> />
 						<span class="isp-addon-toggle-track"></span>
-						<span class="isp-addon-toggle-label"><?php echo $addon_enabled ? esc_html__( 'Enabled', 'insightistic' ) : esc_html__( 'Disabled', 'insightistic' ); ?></span>
+						<span class="isp-addon-toggle-label"><?php echo $insightistic_addon_enabled ? esc_html__( 'Enabled', 'insightistic' ) : esc_html__( 'Disabled', 'insightistic' ); ?></span>
 					</label>
 				</div>
 
-				<?php if ( 'email_automations' === $addon['slug'] ) : ?>
-					<div class="isp-addon-config <?php echo $email_enabled ? '' : 'is-hidden'; ?>" id="isp-email-automation-config">
+				<?php if ( 'email_automations' === $insightistic_addon['slug'] ) : ?>
+					<div class="isp-addon-config <?php echo $insightistic_email_enabled ? '' : 'is-hidden'; ?>" id="isp-email-automation-config">
 						<label class="isp-addon-field-label" for="isp-email-recipients"><?php esc_html_e( 'Recipients (comma-separated emails)', 'insightistic' ); ?></label>
-						<input id="isp-email-recipients" class="isp-input" type="text" value="<?php echo esc_attr( $email_recipients ); ?>" />
+						<input id="isp-email-recipients" class="isp-input" type="text" value="<?php echo esc_attr( $insightistic_email_recipients ); ?>" />
 						<label class="isp-addon-field-label" for="isp-email-frequency"><?php esc_html_e( 'Send Frequency', 'insightistic' ); ?></label>
 						<select id="isp-email-frequency" class="isp-select">
-							<option value="daily" <?php selected( $email_frequency, 'daily' ); ?>><?php esc_html_e( 'Daily', 'insightistic' ); ?></option>
-							<option value="weekly" <?php selected( $email_frequency, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'insightistic' ); ?></option>
-							<option value="monthly" <?php selected( $email_frequency, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'insightistic' ); ?></option>
+							<option value="daily" <?php selected( $insightistic_email_frequency, 'daily' ); ?>><?php esc_html_e( 'Daily', 'insightistic' ); ?></option>
+							<option value="weekly" <?php selected( $insightistic_email_frequency, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'insightistic' ); ?></option>
+							<option value="monthly" <?php selected( $insightistic_email_frequency, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'insightistic' ); ?></option>
 						</select>
 						<label class="isp-addon-field-label" for="isp-email-day"><?php esc_html_e( 'Weekly Send Day', 'insightistic' ); ?></label>
 						<select id="isp-email-day" class="isp-select">
-							<?php foreach ( array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ) as $day ) : ?>
-								<option value="<?php echo esc_attr( $day ); ?>" <?php selected( $email_day, $day ); ?>><?php echo esc_html( ucfirst( $day ) ); ?></option>
+							<?php foreach ( array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ) as $insightistic_day ) : ?>
+								<option value="<?php echo esc_attr( $insightistic_day ); ?>" <?php selected( $insightistic_email_day, $insightistic_day ); ?>><?php echo esc_html( ucfirst( $insightistic_day ) ); ?></option>
 							<?php endforeach; ?>
 						</select>
 						<label class="isp-addon-field-label" for="isp-email-time"><?php esc_html_e( 'Send Time', 'insightistic' ); ?></label>
-						<input id="isp-email-time" class="isp-input" type="time" value="<?php echo esc_attr( $email_time ); ?>" />
-						<?php if ( $email_next_run ) : ?>
+						<input id="isp-email-time" class="isp-input" type="time" value="<?php echo esc_attr( $insightistic_email_time ); ?>" />
+						<?php if ( $insightistic_email_next_run ) : ?>
 							<p class="isp-addon-field-help">
 								<?php
 								printf(
 									/* translators: %s: next scheduled send time */
 									esc_html__( 'Next scheduled digest: %s', 'insightistic' ),
-									esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $email_next_run ) )
+									esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $insightistic_email_next_run ) )
 								);
 								?>
 							</p>
@@ -190,11 +190,11 @@ unset( $addon );
 						<div id="isp-email-automation-notice"></div>
 					</div>
 				<?php else : ?>
-					<div class="isp-addon-config <?php echo $addon_enabled ? '' : 'is-hidden'; ?>" id="isp-addon-config-<?php echo esc_attr( $addon['slug'] ); ?>">
-						<button type="button" class="isp-btn isp-btn-primary isp-load-addon-report" data-addon-report="<?php echo esc_attr( $addon['slug'] ); ?>">
+					<div class="isp-addon-config <?php echo $insightistic_addon_enabled ? '' : 'is-hidden'; ?>" id="isp-addon-config-<?php echo esc_attr( $insightistic_addon['slug'] ); ?>">
+						<button type="button" class="isp-btn isp-btn-primary isp-load-addon-report" data-addon-report="<?php echo esc_attr( $insightistic_addon['slug'] ); ?>">
 							<?php esc_html_e( 'Load Addon Report', 'insightistic' ); ?>
 						</button>
-						<div class="isp-addon-report-result" id="isp-addon-report-<?php echo esc_attr( $addon['slug'] ); ?>"></div>
+						<div class="isp-addon-report-result" id="isp-addon-report-<?php echo esc_attr( $insightistic_addon['slug'] ); ?>"></div>
 					</div>
 				<?php endif; ?>
 			</div>

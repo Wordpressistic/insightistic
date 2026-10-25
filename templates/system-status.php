@@ -9,16 +9,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$checks = Insightistic_System_Status::collect();
-$passed = count(
+$insightistic_checks = Insightistic_System_Status::collect();
+$insightistic_passed = count(
 	array_filter(
-		$checks,
-		static function ( $check ) {
-			return 'pass' === $check['status'] || 'optional' === $check['status'];
+		$insightistic_checks,
+		static function ( $insightistic_check ) {
+			return 'pass' === $insightistic_check['status'] || 'optional' === $insightistic_check['status'];
 		}
 	)
 );
-$total  = count( $checks );
+$insightistic_total  = count( $insightistic_checks );
 ?>
 <div class="wrap isp-wrap isp-system-wrap">
 	<div class="isp-header">
@@ -39,7 +39,7 @@ $total  = count( $checks );
 	<?php settings_errors( 'insightistic_system_messages' ); ?>
 
 	<div class="isp-system-score">
-		<strong><?php echo esc_html( $passed . '/' . $total ); ?></strong>
+		<strong><?php echo esc_html( $insightistic_passed . '/' . $insightistic_total ); ?></strong>
 		<span><?php esc_html_e( 'checks ready or optional', 'insightistic' ); ?></span>
 	</div>
 
@@ -50,14 +50,14 @@ $total  = count( $checks );
 	</div>
 
 	<div class="isp-system-grid">
-		<?php foreach ( $checks as $check ) : ?>
-			<div class="isp-system-check isp-system-<?php echo esc_attr( $check['status'] ); ?>">
-				<span class="isp-system-status"><?php echo esc_html( strtoupper( $check['status'] ) ); ?></span>
-				<strong><?php echo esc_html( $check['label'] ); ?></strong>
-				<p><?php echo esc_html( $check['detail'] ); ?></p>
-				<?php if ( 'pass' !== $check['status'] && ! empty( $check['fix_url'] ) ) : ?>
-					<a class="isp-system-fix" href="<?php echo esc_url( $check['fix_url'] ); ?>">
-						<?php echo esc_html( $check['fix_label'] ?? __( 'Fix this', 'insightistic' ) ); ?> &rarr;
+		<?php foreach ( $insightistic_checks as $insightistic_check ) : ?>
+			<div class="isp-system-check isp-system-<?php echo esc_attr( $insightistic_check['status'] ); ?>">
+				<span class="isp-system-status"><?php echo esc_html( strtoupper( $insightistic_check['status'] ) ); ?></span>
+				<strong><?php echo esc_html( $insightistic_check['label'] ); ?></strong>
+				<p><?php echo esc_html( $insightistic_check['detail'] ); ?></p>
+				<?php if ( 'pass' !== $insightistic_check['status'] && ! empty( $insightistic_check['fix_url'] ) ) : ?>
+					<a class="isp-system-fix" href="<?php echo esc_url( $insightistic_check['fix_url'] ); ?>">
+						<?php echo esc_html( $insightistic_check['fix_label'] ?? __( 'Fix this', 'insightistic' ) ); ?> &rarr;
 					</a>
 				<?php endif; ?>
 			</div>

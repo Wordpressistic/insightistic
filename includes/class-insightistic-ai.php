@@ -62,7 +62,7 @@ class Insightistic_AI {
 			wp_send_json_error(
 				array(
 					'code' => 'locked',
-					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Create a free account to unlock AI Insights.', 'insightistic' ) ),
+					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Insightistic Cloud AI needs a free account, or choose your own AI key in Settings. Email digests do not need an account.', 'insightistic' ) ),
 				)
 			);
 		}
@@ -71,7 +71,7 @@ class Insightistic_AI {
 		// below, never echoed. json_decode() returns null for malformed input.
 		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$data     = json_decode( $raw_data, true );
-		$days     = intval( $_POST['days'] ?? 28 );
+		$days     = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
 
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			wp_send_json_error( __( 'No analytics data to analyse.', 'insightistic' ) );

@@ -164,7 +164,8 @@ class Insightistic_Cloudflare {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$days   = min( max( intval( $_POST['days'] ?? 28 ), 1 ), 90 );
+		$days  = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+		$days  = min( max( $days, 1 ), 90 );
 		$force  = ! empty( $_POST['force'] );
 		$result = $this->get_dashboard_data( $days, $force );
 
@@ -197,7 +198,7 @@ class Insightistic_Cloudflare {
 			wp_send_json_error(
 				array(
 					'code' => 'locked',
-					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Create a free account to unlock AI Insights.', 'insightistic' ) ),
+					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Insightistic Cloud AI needs a free account, or choose your own AI key in Settings.', 'insightistic' ) ),
 				)
 			);
 		}
@@ -209,7 +210,7 @@ class Insightistic_Cloudflare {
 			wp_send_json_error( __( 'No traffic data to analyse. Load Traffic Insights data first.', 'insightistic' ) );
 		}
 
-		$days   = intval( $_POST['days'] ?? 28 );
+		$days   = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
 		$result = ( new Insightistic_AI() )->analyze_cloudflare( $data, $days );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $result->get_error_message() );

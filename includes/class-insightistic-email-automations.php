@@ -91,13 +91,6 @@ class Insightistic_Email_Automations {
 			return false;
 		}
 
-		// Account gate: scheduled digests need a free connected account.
-		// Skip quietly when disconnected — never fatal in cron.
-		if ( class_exists( 'Insightistic_Feature_Gate' )
-			&& ! Insightistic_Feature_Gate::can( 'email_audit_automation' ) ) {
-			return false;
-		}
-
 		return $this->send_now( false );
 	}
 

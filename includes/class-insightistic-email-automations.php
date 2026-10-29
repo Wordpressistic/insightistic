@@ -191,6 +191,7 @@ class Insightistic_Email_Automations {
 		$pages         = is_array( $data ) && ! empty( $data['pages'] ) ? array_slice( $data['pages'], 0, 5 ) : array();
 		$posts         = is_array( $data ) && ! empty( $data['top_posts'] ) ? array_slice( $data['top_posts'], 0, 5 ) : array();
 		$opportunities = $this->build_opportunities( $overview, $channels, $pages, $posts );
+		$seo_summary   = $this->render_seo_summary( is_array( $data ) ? $data : array() );
 
 		ob_start();
 		?>
@@ -210,6 +211,9 @@ class Insightistic_Email_Automations {
 
 				<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:0;padding:24px 28px;">
 					<?php echo wp_kses_post( $this->render_kpi_grid( $overview ) ); ?>
+					<?php if ( '' !== $seo_summary ) : ?>
+						<?php echo wp_kses_post( $seo_summary ); ?>
+					<?php endif; ?>
 
 					<h2 style="margin:28px 0 12px;font-size:18px;color:#0F2044;"><?php esc_html_e( 'What changed', 'insightistic' ); ?></h2>
 					<?php echo wp_kses_post( $this->render_opportunities( $opportunities ) ); ?>
@@ -246,6 +250,102 @@ class Insightistic_Email_Automations {
 		</div>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render optional Search Console/PageSpeed/AI data as presentation cards.
+	 * Some Brother Tours payloads arrive from the operations bridge rather than
+	 * the GA4 dashboard and may contain JSON strings. Decode those values and
+	 * expose only named, escaped metrics so raw JSON never reaches an email.
+	 *
+	 * @param array $data Analytics payload.
+	 * @return string
+	 */
+	private function render_seo_summary( $data ) {
+		$gsc = $this->decode_email_value( $data['gsc'] ?? $data['gsc_7d'] ?? $data['search_console'] ?? $data['searchConsole'] ?? array() );
+		$psi = $this->decode_email_value( $data['pagespeed'] ?? $data['psi'] ?? $data['page_speed'] ?? $data['pageSpeed'] ?? array() );
+		$ai  = $this->decode_email_value( $data['ai'] ?? $data['ai_analysis'] ?? $data['aiSummary'] ?? array() );
+		$ai_error = $data['ai_error'] ?? $data['analysis_error'] ?? ( is_array( $ai ) ? ( $ai['error'] ?? '' ) : '' );
+		$summary_text = (string) ( $data['summary'] ?? $data['analysis'] ?? '' );
+		if ( '' === $ai_error && preg_match( '/AI analysis failed\s*:\s*(.+)$/i', $summary_text, $match ) ) {
+			$ai_error = $match[1];
+		}
+		if ( is_string( $ai ) && preg_match( '/AI analysis failed\s*:\s*(.+)$/i', $ai, $match ) ) {
+			$ai_error = $match[1];
+			$ai       = array();
+		}
+
+		$gsc_rows = array();
+		if ( is_array( $gsc ) ) {
+			$is_list   = empty( $gsc ) || array_keys( $gsc ) === range( 0, count( $gsc ) - 1 );
+			$gsc_rows = isset( $gsc['rows'] ) && is_array( $gsc['rows'] ) ? $gsc['rows'] : ( $is_list ? $gsc : array() );
+		}
+		$gsc_clicks = 0;
+		$gsc_impressions = 0;
+		$position_total = 0.0;
+		$position_count = 0;
+		foreach ( $gsc_rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$gsc_clicks      += (float) ( $row['clicks'] ?? 0 );
+			$gsc_impressions += (float) ( $row['impressions'] ?? 0 );
+			if ( is_numeric( $row['avg_position'] ?? null ) ) {
+				$position_total += (float) $row['avg_position'];
+				++$position_count;
+			}
+		}
+		$gsc_ctr = $gsc_impressions > 0 ? ( $gsc_clicks / $gsc_impressions ) * 100 : null;
+		$psi = is_array( $psi ) ? $psi : array();
+		$has_seo = $gsc_rows || $psi || $ai_error || $ai;
+		if ( ! $has_seo ) {
+			return '';
+		}
+
+		$metric = static function ( $label, $value, $tone = '#111827' ) {
+			return '<td style="width:25%;padding:5px;vertical-align:top"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:13px;background:#ffffff"><div style="font-size:11px;color:#6b7280;margin-bottom:5px">' . esc_html( $label ) . '</div><div style="font-size:20px;font-weight:800;line-height:1.2;color:' . esc_attr( $tone ) . '">' . esc_html( (string) $value ) . '</div></div></td>';
+		};
+	$money_or_dash = static function ( $value ) {
+		return is_numeric( $value ) ? number_format_i18n( (float) $value, 0 ) : '—';
+	};
+		ob_start();
+		?>
+		<div style="margin-top:28px;padding-top:22px;border-top:1px solid #e5e7eb">
+			<h2 style="margin:0 0 12px;font-size:18px;color:#0F2044">Search and site health</h2>
+			<?php if ( $gsc_rows ) : ?>
+			<table role="presentation" style="width:100%;border-collapse:collapse"><tr>
+				<?php echo $metric( 'Search clicks', $money_or_dash( $gsc_clicks ), '#0F2044' ); ?>
+				<?php echo $metric( 'Impressions', $money_or_dash( $gsc_impressions ), '#0F2044' ); ?>
+				<?php echo $metric( 'CTR', $gsc_ctr === null ? '—' : number_format_i18n( $gsc_ctr, 2 ) . '%', '#047857' ); ?>
+				<?php echo $metric( 'Avg. position', $position_count ? number_format_i18n( $position_total / $position_count, 1 ) : '—', '#047857' ); ?>
+			</tr></table>
+			<?php endif; ?>
+			<?php if ( $psi ) : ?>
+			<h3 style="margin:18px 0 8px;font-size:14px;color:#374151">PageSpeed snapshot</h3>
+			<table role="presentation" style="width:100%;border-collapse:collapse"><tr>
+				<?php echo $metric( 'Performance', $psi['perf'] ?? $psi['performance'] ?? '—', '#047857' ); ?>
+				<?php echo $metric( 'SEO', $psi['seo'] ?? '—', '#047857' ); ?>
+				<?php echo $metric( 'LCP', $psi['lcp'] ?? '—', '#0F2044' ); ?>
+				<?php echo $metric( 'CLS', $psi['cls'] ?? '—', '#0F2044' ); ?>
+			</tr></table>
+			<?php endif; ?>
+			<?php if ( $ai_error ) : ?>
+			<div style="margin-top:18px;padding:14px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#92400e"><strong style="display:block;margin-bottom:4px">AI analysis temporarily unavailable</strong><span style="font-size:13px;color:#a16207">The measured data above is still complete. Insightistic will retry the AI explanation on the next run.</span></div>
+			<?php elseif ( is_array( $ai ) && ! empty( $ai ) ) : ?>
+			<div style="margin-top:18px;padding:14px 16px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534"><strong style="display:block;margin-bottom:4px">AI growth note</strong><span style="font-size:13px;color:#166534"><?php echo esc_html( (string) ( $ai['summary'] ?? $ai['insight'] ?? $ai['text'] ?? '' ) ); ?></span></div>
+			<?php endif; ?>
+		</div>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/** @return mixed */
+	private function decode_email_value( $value ) {
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( $value, true );
+			return JSON_ERROR_NONE === json_last_error() ? $decoded : $value;
+		}
+		return $value;
 	}
 
 	/**

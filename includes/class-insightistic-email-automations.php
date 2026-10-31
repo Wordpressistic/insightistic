@@ -91,13 +91,6 @@ class Insightistic_Email_Automations {
 			return false;
 		}
 
-		// Account gate: scheduled digests need a free connected account.
-		// Skip quietly when disconnected — never fatal in cron.
-		if ( class_exists( 'Insightistic_Feature_Gate' )
-			&& ! Insightistic_Feature_Gate::can( 'email_audit_automation' ) ) {
-			return false;
-		}
-
 		return $this->send_now( false );
 	}
 
@@ -309,31 +302,34 @@ class Insightistic_Email_Automations {
 			return '';
 		}
 
-		$metric = static function ( $label, $value, $tone = '#111827' ) {
-			return '<td style="width:25%;padding:5px;vertical-align:top"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:13px;background:#ffffff"><div style="font-size:11px;color:#6b7280;margin-bottom:5px">' . esc_html( $label ) . '</div><div style="font-size:20px;font-weight:800;line-height:1.2;color:' . esc_attr( $tone ) . '">' . esc_html( (string) $value ) . '</div></div></td>';
-		};
-	$money_or_dash = static function ( $value ) {
-		return is_numeric( $value ) ? number_format_i18n( (float) $value, 0 ) : '—';
-	};
+		$clicks_label      = $this->email_metric_number( $gsc_clicks );
+		$impressions_label = $this->email_metric_number( $gsc_impressions );
+		$ctr_label         = null === $gsc_ctr ? '—' : $this->email_metric_number( $gsc_ctr, 2 ) . '%';
+		$position_label    = $position_count > 0 ? $this->email_metric_number( $position_total / $position_count, 1 ) : '—';
+		$perf_label        = $this->email_metric_text( $psi['perf'] ?? ( $psi['performance'] ?? '—' ) );
+		$seo_label         = $this->email_metric_text( $psi['seo'] ?? '—' );
+		$lcp_label         = $this->email_metric_text( $psi['lcp'] ?? '—' );
+		$cls_label         = $this->email_metric_text( $psi['cls'] ?? '—' );
+
 		ob_start();
 		?>
 		<div style="margin-top:28px;padding-top:22px;border-top:1px solid #e5e7eb">
-			<h2 style="margin:0 0 12px;font-size:18px;color:#0F2044">Search and site health</h2>
+			<h2 style="margin:0 0 12px;font-size:18px;color:#0F2044"><?php esc_html_e( 'Search and site health', 'insightistic' ); ?></h2>
 			<?php if ( $gsc_rows ) : ?>
 			<table role="presentation" style="width:100%;border-collapse:collapse"><tr>
-				<?php echo $metric( 'Search clicks', $money_or_dash( $gsc_clicks ), '#0F2044' ); ?>
-				<?php echo $metric( 'Impressions', $money_or_dash( $gsc_impressions ), '#0F2044' ); ?>
-				<?php echo $metric( 'CTR', $gsc_ctr === null ? '—' : number_format_i18n( $gsc_ctr, 2 ) . '%', '#047857' ); ?>
-				<?php echo $metric( 'Avg. position', $position_count ? number_format_i18n( $position_total / $position_count, 1 ) : '—', '#047857' ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'Search clicks', 'insightistic' ), $clicks_label, '#0F2044' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'Impressions', 'insightistic' ), $impressions_label, '#0F2044' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'CTR', 'insightistic' ), $ctr_label, '#047857' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'Avg. position', 'insightistic' ), $position_label, '#047857' ) ); ?>
 			</tr></table>
 			<?php endif; ?>
 			<?php if ( $psi ) : ?>
-			<h3 style="margin:18px 0 8px;font-size:14px;color:#374151">PageSpeed snapshot</h3>
+			<h3 style="margin:18px 0 8px;font-size:14px;color:#374151"><?php esc_html_e( 'PageSpeed snapshot', 'insightistic' ); ?></h3>
 			<table role="presentation" style="width:100%;border-collapse:collapse"><tr>
-				<?php echo $metric( 'Performance', $psi['perf'] ?? $psi['performance'] ?? '—', '#047857' ); ?>
-				<?php echo $metric( 'SEO', $psi['seo'] ?? '—', '#047857' ); ?>
-				<?php echo $metric( 'LCP', $psi['lcp'] ?? '—', '#0F2044' ); ?>
-				<?php echo $metric( 'CLS', $psi['cls'] ?? '—', '#0F2044' ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'Performance', 'insightistic' ), $perf_label, '#047857' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'SEO', 'insightistic' ), $seo_label, '#047857' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'LCP', 'insightistic' ), $lcp_label, '#0F2044' ) ); ?>
+				<?php echo wp_kses_post( $this->email_metric_cell( __( 'CLS', 'insightistic' ), $cls_label, '#0F2044' ) ); ?>
 			</tr></table>
 			<?php endif; ?>
 			<?php if ( $ai_error ) : ?>
@@ -344,6 +340,54 @@ class Insightistic_Email_Automations {
 		</div>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * One email metric card. Returned markup is escaped.
+	 *
+	 * @param string $label Visible label.
+	 * @param string $value Visible value.
+	 * @param string $tone  Hex color.
+	 * @return string
+	 */
+	private function email_metric_cell( $label, $value, $tone = '#111827' ) {
+		return '<td style="width:25%;padding:5px;vertical-align:top"><div style="border:1px solid #e5e7eb;border-radius:10px;padding:13px;background:#ffffff"><div style="font-size:11px;color:#6b7280;margin-bottom:5px">' . esc_html( $label ) . '</div><div style="font-size:20px;font-weight:800;line-height:1.2;color:' . esc_attr( $tone ) . '">' . esc_html( $value ) . '</div></div></td>';
+	}
+
+	/**
+	 * Format a numeric email metric, or an em dash when it is not numeric.
+	 *
+	 * @param mixed $value    Raw value.
+	 * @param int   $decimals Decimal places.
+	 * @return string
+	 */
+	private function email_metric_number( $value, $decimals = 0 ) {
+		if ( ! is_numeric( $value ) ) {
+			return '—';
+		}
+		return number_format_i18n( (float) $value, $decimals );
+	}
+
+	/**
+	 * Flatten a PageSpeed field to a single display string.
+	 *
+	 * @param mixed $value Raw value, including nested score arrays.
+	 * @return string
+	 */
+	private function email_metric_text( $value ) {
+		if ( is_array( $value ) ) {
+			foreach ( array( 'display', 'displayValue', 'value', 'score' ) as $key ) {
+				if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) ) {
+					$value = $value[ $key ];
+					break;
+				}
+			}
+		}
+		if ( ! is_scalar( $value ) ) {
+			return '—';
+		}
+		$text = trim( (string) $value );
+		return '' === $text ? '—' : $text;
 	}
 
 	/** @return mixed */

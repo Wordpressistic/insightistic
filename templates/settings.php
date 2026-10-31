@@ -893,7 +893,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 				<div class="isp-field">
 					<label class="isp-label" > Documentation URL
 </label>
-					<a href="https://www.chatbotistic.com/insightistic-installation-documents" target="_blank" class="isp-guide-link isp-guide-docs">
+					<a href="https://wordpressistic.com/insightistic" target="_blank" rel="noopener noreferrer" class="isp-guide-link isp-guide-docs">
 						Documentation
 					</a>
 				</div>

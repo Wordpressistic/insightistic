@@ -39,7 +39,8 @@ class Insightistic_GA {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$days   = min( max( intval( $_POST['days'] ?? 28 ), 1 ), 365 );
+		$days  = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+		$days  = min( max( $days, 1 ), 365 );
 		$force  = ! empty( $_POST['force'] );
 		$result = $this->get_dashboard_data( $days, $force );
 

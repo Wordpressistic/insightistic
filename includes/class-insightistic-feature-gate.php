@@ -1,21 +1,15 @@
 <?php
 /**
- * Central feature gate. insightistic is a fully free plugin — every module
- * (GA4 / GSC / PageSpeed dashboards, WooCommerce Intelligence, SEO Opportunity
- * Finder, Anomaly Alerts, Content Lab, the engagement tracker, settings) works
- * with zero account required.
+ * Central feature gate.
  *
- * Exactly two flows ask this class before doing work, because they use the
- * Insightistic cloud (AI inference, outbound email delivery):
- *   ai_insights            — the "Get AI Insights" buttons.
- *   email_audit_automation — scheduled + manual email digest sending.
+ * Every feature that ships in this plugin and can run on the site itself is
+ * free with no account: GA4, Search Console, PageSpeed, Cloudflare (bring
+ * your own token), WooCommerce Intelligence, SEO, anomaly alerts, content
+ * lab, engagement tracking, and email digests (sent with wp_mail()).
  *
- * Both simply require a free Insightistic account (Insightistic_License_Manager
- * ::is_connected()) — there is no paid tier, trial, or plan to fall out of.
- *
- * Legacy grace: installs upgrading from <= 3.3.0 that already used the old
- * gated add-ons keep them working for 14 days (insightistic_legacy_grace_until),
- * so existing users are never cut off overnight.
+ * The only remaining account check is Insightistic Cloud AI — an external
+ * service. Bring-your-own-key providers (OpenAI, Gemini, OpenRouter, Groq,
+ * Claude) are not gated. Nothing here is a paid plan, trial, or license lock.
  *
  * @package Insightistic
  */
@@ -30,32 +24,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Insightistic_Feature_Gate {
 
 	/**
-	 * The only feature slugs that require a free connected account.
-	 * Everything else in the plugin is unconditionally free.
+	 * Feature that calls the Insightistic cloud. Bring-your-own-key providers
+	 * skip this check. Email digests are local and are not listed.
 	 *
 	 * @var string[]
 	 */
-	const ACCOUNT_GATED_FEATURES = array( 'ai_insights', 'email_audit_automation' );
+	const ACCOUNT_GATED_FEATURES = array( 'ai_insights' );
 
 	/**
-	 * Account statuses that block the two gated features even though
-	 * connector credentials are still stored locally — e.g. a key that was
-	 * revoked for abuse. NOT a paid-plan concept (there is no plan to expire
-	 * or cancel out of); this only guards against a genuinely invalid account.
+	 * Account statuses that stop Cloud AI even if a key is still stored —
+	 * a revoked or suspended account. Not a paid-plan concept.
 	 *
 	 * @var string[]
 	 */
 	const BLOCKED_STATUSES = array( 'revoked', 'suspended' );
 
 	/**
-	 * Add-on slug -> required feature. Only add-ons that need the Insightistic
-	 * cloud belong here; every other add-on resolves to '' (ungated).
+	 * No add-on is account-gated. Email digests send with wp_mail().
 	 *
 	 * @var array<string,string>
 	 */
-	const ADDON_FEATURES = array(
-		'email_automations' => 'email_audit_automation',
-	);
+	const ADDON_FEATURES = array();
 
 	/**
 	 * Whether a feature may run right now.
@@ -66,7 +55,13 @@ class Insightistic_Feature_Gate {
 	public static function can( $feature ) {
 		$feature = sanitize_key( $feature );
 
-		if ( ! in_array( $feature, self::ACCOUNT_GATED_FEATURES, true ) ) {
+		if ( 'ai_insights' !== $feature ) {
+			return true;
+		}
+
+		// The site owner's own provider key never needs an Insightistic account.
+		$provider = sanitize_key( (string) get_option( 'insightistic_ai_provider', 'insightistic_cloud' ) );
+		if ( in_array( $provider, array( 'openai', 'gemini', 'openrouter', 'groq', 'claude' ), true ) ) {
 			return true;
 		}
 
@@ -74,7 +69,7 @@ class Insightistic_Feature_Gate {
 			return true;
 		}
 
-		if ( ! Insightistic_License_Manager::is_connected() ) {
+		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
 			return false;
 		}
 
@@ -140,7 +135,7 @@ class Insightistic_Feature_Gate {
 		$title   = $title ? $title : __( 'Create a free account', 'insightistic' );
 
 		if ( '' === $message ) {
-			$message = __( 'AI Insights and email automations need a free Insightistic account.', 'insightistic' );
+			$message = __( 'Insightistic Cloud AI needs a free account. Or pick your own OpenAI, Gemini, Groq, Claude, or OpenRouter key in Settings — those work with no account.', 'insightistic' );
 		}
 
 		switch ( $reason ) {

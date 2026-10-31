@@ -31,11 +31,11 @@ $insightistic_isp_status_class  = 'none' === $insightistic_isp_status
 	? 'isp-license-status-neutral'
 	: ( $insightistic_isp_blocked ? 'isp-license-status-bad' : 'isp-license-status-good' );
 
-// Every module in Insightistic is free. A connected account only unlocks
-// these two cloud-powered flows — nothing else in the plugin reads this list.
+// Optional cloud services only. Email digests and bring-your-own AI keys
+// are not in this list — they do not need an account.
 $insightistic_isp_features_meta = array(
-	'ai_insights'            => array( __( 'AI Insights', 'insightistic' ), __( 'AI-generated analysis of your data', 'insightistic' ) ),
-	'email_audit_automation' => array( __( 'Email Automations', 'insightistic' ), __( 'Scheduled branded audit digests', 'insightistic' ) ),
+	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Your own OpenAI, Gemini, Groq, Claude, or OpenRouter key works with no account.', 'insightistic' ) ),
+	'cloud_sync'  => array( __( 'Dashboard sync', 'insightistic' ), __( 'Optional. Analytics leave this site only after you activate a key here.', 'insightistic' ) ),
 );
 ?>
 <div class="wrap isp-wrap isp-license-wrap">
@@ -44,7 +44,7 @@ $insightistic_isp_features_meta = array(
 		<div class="isp-header-brand">
 			<div>
 				<h1 class="isp-header-title"><?php esc_html_e( 'License & Connection', 'insightistic' ); ?></h1>
-				<p class="isp-header-sub"><?php esc_html_e( 'One free account connects this site for AI Insights, email automations, and cloud sync — everything else in Insightistic is free without it.', 'insightistic' ); ?></p>
+				<p class="isp-header-sub"><?php esc_html_e( 'Optional. Connect a free account only if you want Insightistic Cloud AI or to sync this site to your Insightistic dashboard. The plugin is fully usable without one.', 'insightistic' ); ?></p>
 			</div>
 		</div>
 		<div class="isp-header-actions">
@@ -60,11 +60,11 @@ $insightistic_isp_features_meta = array(
 
 	<?php if ( $insightistic_isp_grace && ! $insightistic_isp_connected ) : ?>
 		<div class="isp-license-banner isp-license-banner-grace">
-			<strong><?php esc_html_e( 'Upgrade grace period active.', 'insightistic' ); ?></strong>
+			<strong><?php esc_html_e( 'Legacy connection window.', 'insightistic' ); ?></strong>
 			<?php
 			printf(
 				/* translators: %s: formatted date */
-				esc_html__( 'AI Insights and email automations keep working until %s. Connect your free Insightistic account to keep them active after that — every other module stays free either way.', 'insightistic' ),
+				esc_html__( 'Cloud AI keeps working until %s on this upgraded site. Connect a free account only if you want to keep using Cloud AI after that. Email digests and every other module stay available either way.', 'insightistic' ),
 				esc_html( date_i18n( get_option( 'date_format' ), (int) get_option( 'insightistic_legacy_grace_until', 0 ) ) )
 			);
 			?>
@@ -79,7 +79,7 @@ $insightistic_isp_features_meta = array(
 			<div class="isp-license-card isp-license-card-main isp-animate-in">
 				<h2 class="isp-license-card-title"><?php esc_html_e( 'Activate your license', 'insightistic' ); ?></h2>
 				<p class="isp-license-card-sub">
-					<?php esc_html_e( 'Every module in Insightistic is free. Paste the key from your free Insightistic account to unlock AI Insights and email automation delivery.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Optional. Paste a key from a free Insightistic account to turn on Cloud AI and dashboard sync. Nothing else in the plugin requires it.', 'insightistic' ); ?>
 				</p>
 
 				<div class="isp-license-form">
@@ -122,7 +122,7 @@ $insightistic_isp_features_meta = array(
 			</div>
 
 			<div class="isp-license-card isp-animate-in isp-animate-delay-1">
-				<h2 class="isp-license-card-title"><?php esc_html_e( 'What a free account unlocks', 'insightistic' ); ?></h2>
+				<h2 class="isp-license-card-title"><?php esc_html_e( 'What an optional account adds', 'insightistic' ); ?></h2>
 				<ul class="isp-license-features">
 					<?php foreach ( $insightistic_isp_features_meta as $insightistic_isp_slug => $insightistic_isp_meta ) : ?>
 						<li class="isp-license-feature isp-license-feature-locked">
@@ -180,24 +180,24 @@ $insightistic_isp_features_meta = array(
 					</div>
 					<div>
 						<dt><?php esc_html_e( 'Monthly AI credits', 'insightistic' ); ?></dt>
-						<dd><?php echo esc_html( number_format_i18n( (int) ( $isp_state['credits']['monthly_included']['remaining'] ?? $isp_state['monthly_ai_credits'] ?? 0 ) ) . ' / ' . number_format_i18n( (int) ( $isp_state['credits']['monthly_included']['granted'] ?? $isp_state['monthly_ai_credits'] ?? 0 ) ) ); ?></dd>
+						<dd><?php echo esc_html( number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['remaining'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) . ' / ' . number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['granted'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) ); ?></dd>
 					</div>
 					<div>
 						<dt><?php esc_html_e( 'Purchased credits', 'insightistic' ); ?></dt>
-						<dd><?php echo esc_html( number_format_i18n( (int) ( $isp_state['credits']['purchased']['remaining'] ?? 0 ) ) ); ?></dd>
+						<dd><?php echo esc_html( number_format_i18n( (int) ( $insightistic_isp_state['credits']['purchased']['remaining'] ?? 0 ) ) ); ?></dd>
 					</div>
 				</dl>
 
 				<?php if ( $insightistic_isp_blocked ) : ?>
 					<div class="isp-license-banner isp-license-banner-warn">
-						<?php esc_html_e( 'This account is no longer in good standing, so AI Insights and email automations are paused. Every other module keeps working. Contact Insightistic support or connect a different account.', 'insightistic' ); ?>
+						<?php esc_html_e( 'This account can no longer use Insightistic Cloud AI. Email digests, bring-your-own AI keys, and every other module keep working. Contact Insightistic support or connect a different account.', 'insightistic' ); ?>
 						<a href="<?php echo esc_url( $insightistic_isp_app_url . '/dashboard?ref=plugin' ); ?>" target="_blank" rel="noopener" class="isp-btn isp-btn-primary">
 							<?php esc_html_e( 'Open dashboard →', 'insightistic' ); ?>
 						</a>
 					</div>
 				<?php elseif ( $insightistic_isp_stale ) : ?>
 					<div class="isp-license-banner isp-license-banner-warn">
-						<?php esc_html_e( 'We have not been able to reach Insightistic for a while, so AI Insights and email automations are paused. Every other module keeps working — click Refresh License below once your site is back online.', 'insightistic' ); ?>
+						<?php esc_html_e( 'We have not been able to reach Insightistic for a while, so Cloud AI is paused. Email digests, your own AI keys, and every other module keep working. Click Refresh License once this site is back online.', 'insightistic' ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -211,8 +211,8 @@ $insightistic_isp_features_meta = array(
 					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( $insightistic_isp_app_url . '/dashboard/licenses?ref=plugin' ); ?>" target="_blank" rel="noopener">
 						<?php esc_html_e( 'Manage in dashboard', 'insightistic' ); ?>
 					</a>
-					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( ! empty( $isp_state['upgrade_url'] ) ? $isp_state['upgrade_url'] : $isp_app_url . '/dashboard/billing?ref=plugin' ); ?>" target="_blank" rel="noopener">
-						<?php esc_html_e( 'Plans & credits', 'insightistic' ); ?>
+					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( ! empty( $insightistic_isp_state['upgrade_url'] ) ? $insightistic_isp_state['upgrade_url'] : $insightistic_isp_app_url . '/dashboard/billing?ref=plugin' ); ?>" target="_blank" rel="noopener">
+						<?php esc_html_e( 'AI credits', 'insightistic' ); ?>
 					</a>
 					<button type="button" class="isp-btn isp-btn-danger-ghost" id="isp-license-disconnect">
 						<?php esc_html_e( 'Disconnect site', 'insightistic' ); ?>
@@ -241,7 +241,7 @@ $insightistic_isp_features_meta = array(
 					<?php endforeach; ?>
 				</ul>
 				<p class="isp-license-card-sub" style="margin-top:12px;">
-					<?php esc_html_e( 'Every other module — WooCommerce Intelligence, SEO, Anomaly Alerts, Content Lab — is free with no account needed.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Email digests, GA4, Search Console, PageSpeed, WooCommerce, and your own AI keys do not use this connection.', 'insightistic' ); ?>
 				</p>
 			</div>
 		</div>

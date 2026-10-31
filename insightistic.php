@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Insightistic - GA4 Analytics & AI Insights
  * Plugin URI:  https://wordpressistic.com/insightistic
- * Description: Connect Google Analytics 4, Search Console, PageSpeed and WooCommerce to your WordPress dashboard — fully free. Create a free Insightistic account to unlock AI Insights and email automation delivery.
- * Version:     4.6.1
+ * Description: Connect Google Analytics 4, Search Console, PageSpeed, Cloudflare, and WooCommerce to your WordPress dashboard. Core analytics features work without an account. An optional free Insightistic account adds Cloud AI, dashboard sync, and hosted traffic insights.
+ * Version:     4.6.4
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
- * License:     GPL-2.0+
+ * License:     GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: insightistic
  * Domain Path: /languages
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION', '4.6.1' );
+define( 'INSIGHTISTIC_VERSION', '4.6.4' );
 define( 'INSIGHTISTIC_FILE', __FILE__ );
 define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
@@ -96,6 +96,22 @@ function insightistic_load() {
 	( new Insightistic_Woocommerce() )->init();
 }
 add_action( 'plugins_loaded', 'insightistic_load' );
+
+/**
+ * Add the plugin's data-handling summary to the site's Privacy Policy guide.
+ */
+function insightistic_add_privacy_policy_content() {
+	if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+		return;
+	}
+
+	$content  = '<p>' . esc_html__( 'Insightistic stores locally configured analytics settings and, when enabled, a rolling log of 404 request paths and external referrer host names. The 404 log does not store IP addresses or user agents and can be cleared from the plugin dashboard.', 'insightistic' ) . '</p>';
+	$content .= '<p>' . esc_html__( 'When you connect an Insightistic account, the plugin can send the site URL, plugin version, analytics summaries, WooCommerce summaries, configured Cloudflare summaries, IndexNow submission data, and 404/broken-link summaries to Insightistic for dashboard sync and Cloud AI. Disconnecting the account stops those calls.', 'insightistic' ) . '</p>';
+	$content .= '<p>' . esc_html__( 'When you configure Google, Cloudflare, or another AI provider, the plugin sends only the requests and data described in its External services documentation and your selected provider settings.', 'insightistic' ) . '</p>';
+
+	wp_add_privacy_policy_content( 'Insightistic', $content );
+}
+add_action( 'admin_init', 'insightistic_add_privacy_policy_content' );
 
 /**
  * Activation hook.

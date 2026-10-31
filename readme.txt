@@ -1,20 +1,24 @@
 === Insightistic - GA4 Analytics & AI Insights ===
-Contributors: wordpressistic
-Tags: google analytics, analytics, search console, pagespeed, ai insights
+Contributors: developershuvo
+Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.1
+Stable tag: 4.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-View GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, and AI growth insights inside your WordPress dashboard.
+View GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, and AI growth insights inside your WordPress dashboard. No account required.
 
 == Description ==
 
 Insightistic brings your most important website metrics directly into WordPress. It gives business owners, agencies, marketers, publishers, and WooCommerce stores a clean analytics dashboard without constant tab-switching.
 
-Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring, and optionally activate AI insights through your connected Insightistic account or a bring-your-own-key provider.
+Insightistic is not affiliated with or endorsed by Google or Cloudflare.
+
+Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring. AI insights are optional: use your own OpenAI, Gemini, Groq, Claude, or OpenRouter key, or an optional free Insightistic account for Cloud AI.
+
+Core analytics, WooCommerce, email-digest, engagement-tracking, and local broken-link features work without an Insightistic account. An optional account adds Cloud AI, dashboard sync, IndexNow submission, and hosted traffic insights. Email digests are sent by WordPress (`wp_mail`) on your own site.
 
 = GA4 Overview =
 
@@ -64,22 +68,18 @@ Connect your Google Analytics 4 property and Google Search Console via a single 
 = AI Insights (on demand) =
 
 * Click "Get AI Insights" on the dashboard to analyse your GA4 and GSC data
-* Choose your AI provider: Insightistic Cloud AI (recommended; no provider key needed), OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude. Free accounts use the server's free AI route; account plan determines paid model routing.
-* AI never runs automatically  you stay in full control of API usage and cost
+* Bring your own key — OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude. These work with no Insightistic account
+* Or choose Insightistic Cloud AI, which needs a free Insightistic account (no card). That account's plan selects the model route
+* AI never runs automatically — you stay in full control of API usage and cost
 
-Connected accounts receive the current plan entitlements from Insightistic,
-including the monthly AI-credit allowance and any purchased credits. Monthly
-included credits refresh with the account period; purchased Insight Credits do
-not expire during normal service operation. Plan changes and credit purchases
-are completed in the Insightistic dashboard through the secure Paddle checkout
-popup — this plugin never receives payment credentials.
+An optional connected account can also receive plan entitlements from Insightistic, including a monthly AI-credit allowance. Credit purchases are completed in the Insightistic dashboard. This plugin never receives payment credentials, and no feature in the plugin is locked behind a purchase.
 
-= Email Automations (free account required) =
+= Email Automations =
 
 * Send branded analytics digests to your team on a daily, weekly, or monthly schedule
 * Includes KPI cards, period-over-period changes, top channels, top pages, top content, and recommended next actions
 * Schedule by site timezone, choose weekly day and send time, and send a manual test digest before launch
-* Sending needs a free Insightistic account (no card, free forever) — everything else in the plugin works without one
+* Sent with WordPress mail (`wp_mail`) on this site. No account, no license, no remote mailer
 
 = Addon Intelligence =
 
@@ -99,7 +99,7 @@ popup — this plugin never receives payment credentials.
 * All analytics data is fetched via admin-only AJAX  zero impact on frontend page load
 * 15-minute transient caching minimises Google API quota usage
 * Minified JS and CSS served in production (source files served when SCRIPT_DEBUG is on)
-* Chart.js bundled locally  no external CDN requests
+* Chart.js 4.4.4 bundled locally under the MIT License  no external CDN requests. Source: https://github.com/chartjs/Chart.js/tree/v4.4.4
 
 == Installation ==
 
@@ -138,6 +138,14 @@ Service account tokens never expire and require no browser callback. OAuth token
 
 Yes. Every credential is encrypted with AES-256-CBC using your site's unique WordPress auth salt before being written to the database. Keys are never stored in plaintext.
 
+= Does this plugin require an Insightistic account? =
+
+No. GA4, Search Console, PageSpeed, Cloudflare (with your own token), WooCommerce Intelligence, SEO, anomaly alerts, content lab, engagement tracking, and email digests all work with no account. An account is optional and is only used for Insightistic Cloud AI and for syncing this site to the Insightistic dashboard. Bring-your-own AI keys do not need an account.
+
+= Is Insightistic affiliated with Google? =
+
+No. "GA4", "Google Analytics", and "Search Console" are used only to describe the services you connect with your own credentials.
+
 = Does the AI analysis run automatically? =
 
 No. AI analysis is always triggered manually by clicking "Get AI Insights". This keeps you in full control of API usage and cost.
@@ -171,7 +179,108 @@ The plugin can be network-activated but each site requires its own credentials c
 5. Settings page  tabbed interface covering GA4, Search Console, PageSpeed, Engagement, AI, and Docs
 6. Addons page  five free modules: Email, SEO, Anomaly, Content Lab, and WooCommerce Intelligence
 
+== External services ==
+
+This plugin contacts external services only after you save credentials or explicitly activate an optional account. Nothing is sent on activation.
+
+**Google Analytics Data API and OAuth (when you save a service account)**
+
+* Used for: reading GA4 reports you ask the dashboard to load.
+* Data sent: your GA4 property ID and the report request (date range, dimensions, metrics). No visitor list is uploaded by the plugin.
+* When: admin dashboard loads and manual refreshes, and when you send an email digest that includes GA4 numbers.
+* Services: oauth2.googleapis.com (to mint a token from your service-account key) and analyticsdata.googleapis.com.
+* Terms: https://policies.google.com/terms
+* Privacy: https://policies.google.com/privacy
+
+**Google Search Console API (optional, same service account)**
+
+* Used for: clicks, impressions, queries, and pages.
+* Data sent: your Search Console property URL and the report request.
+* When: you open the Search Console tab or refresh it.
+* Service: searchconsole.googleapis.com (token from oauth2.googleapis.com).
+* Terms: https://policies.google.com/terms
+* Privacy: https://policies.google.com/privacy
+
+**PageSpeed Insights API (optional, your API key)**
+
+* Used for: Lighthouse scores and Core Web Vitals for a URL you choose.
+* Data sent: the URL you test, and your API key.
+* When: you run a speed test.
+* Service: www.googleapis.com (PageSpeed Insights API).
+* Terms: https://policies.google.com/terms
+* Privacy: https://policies.google.com/privacy
+
+**GA4 Measurement Protocol (optional, only if Engagement tracking is enabled)**
+
+* Used for: forwarding the events you opted into (outbound clicks, scroll depth, downloads, and similar) to your own GA4 property.
+* Data sent: event name and non-PII parameters, plus your Measurement ID. The API secret stays on the server.
+* When: a front-end event fires and the site posts it to admin-ajax, which forwards it.
+* Service: www.google-analytics.com
+* Terms: https://policies.google.com/terms
+* Privacy: https://policies.google.com/privacy
+
+**Cloudflare API (optional, only if you paste your own API token)**
+
+* Used for: edge traffic, cache, and firewall summaries for your zone.
+* Data sent: zone id and the read request. The token stays on this site.
+* When: you open Traffic Insights or refresh it.
+* Service: api.cloudflare.com
+* Terms: https://www.cloudflare.com/terms/
+* Privacy: https://www.cloudflare.com/privacypolicy/
+
+**404 & broken-link monitoring (local by default)**
+
+* Used for: identifying broken URLs on this site and showing their hit counts and external referring hosts in the local WordPress dashboard.
+* Data stored locally: the request path, first/last-seen timestamps, hit count, and distinct external referrer host names. No IP address or user agent is stored. The rolling log keeps up to 200 paths and can be cleared by an administrator.
+* Data sent: nothing is sent while the plugin is unconnected. After you activate an Insightistic account, the daily dashboard sync can send the local 404/broken-link summaries to Insightistic.
+* Service: local WordPress storage by default; api.insightistic.com only after account activation and sync.
+
+* Terms: https://www.insightistic.com/terms/
+* Privacy: https://www.insightistic.com/privacy-policy/
+
+**AI providers (optional, only the one you select, using your own key)**
+
+* OpenAI: api.openai.com — https://openai.com/policies/terms-of-use — https://openai.com/policies/privacy-policy
+* Google Gemini: generativelanguage.googleapis.com — https://policies.google.com/terms — https://policies.google.com/privacy
+* OpenRouter: openrouter.ai — https://openrouter.ai/terms — https://openrouter.ai/privacy
+* Groq: api.groq.com — https://groq.com/terms-of-use/ — https://groq.com/privacy-policy/
+* Anthropic: api.anthropic.com — https://www.anthropic.com/legal/consumer-terms — https://www.anthropic.com/legal/privacy
+* Data sent: the analytics summary already on screen, only when you click "Get AI Insights".
+
+**Insightistic (optional, only after you paste a license key)**
+
+* Used for: Insightistic Cloud AI, and for syncing this site to your Insightistic dashboard (GA4/GSC summaries, Cloudflare summaries if configured, WooCommerce order and product summaries, 404/broken-link summaries, and IndexNow URL submission).
+* Data sent: site URL, plugin version, and the datasets above. Customer details are included only as part of the WooCommerce summary sync you start by activating the key. No payment card data is ever sent.
+* When: you click Activate, Refresh, or Sync now, once a day after that via WP-Cron, and when you click Get AI Insights with Cloud AI selected.
+* Service: api.insightistic.com and app.insightistic.com
+* Terms: https://www.insightistic.com/terms/
+* Privacy: https://www.insightistic.com/privacy-policy/
+
+Disconnecting on the License screen stops all calls to Insightistic.
+
 == Changelog ==
+
+= 4.6.4 (2026-10-31) =
+
+* Added the bundled Chart.js source link and MIT license reference.
+* Documented local 404/broken-link data collection and optional connected-account sync in the External services section.
+* Added a WordPress Privacy Policy guide entry for the plugin's local and connected data handling.
+* Repaired the Settings documentation link and synchronized release metadata for the WordPress.org submission build.
+
+= 4.6.3 =
+
+* Fixed Plugin Check EscapeOutput errors in the email digest Search and PageSpeed cards. Metric values are escaped before output.
+
+= 4.6.2 =
+
+WordPress.org directory submission pass, using the same review lessons as Bookingistic.
+
+* Guidelines: email digests are sent with wp_mail() on this site and no longer require an Insightistic account. Bring-your-own AI keys (OpenAI, Gemini, OpenRouter, Groq, Claude) no longer require an account. An account is optional and is only used for Insightistic Cloud AI and dashboard sync.
+* Guidelines: removed the admin-wide "create an account" notice.
+* Readme: documented every external service, what is sent, and when. Added a non-affiliation note for Google and Cloudflare.
+* Fixed: License screen undefined variables left behind by the 4.6.1 prefix rename (credits and billing link warned under WP_DEBUG).
+* Hardening: numeric admin AJAX inputs use absint() instead of a raw intval() cast, matching the Plugin Check playground ruleset.
+* Readme contributor slug set to the WordPress.org account used for Bookingistic.
 
 = 4.6.1 (2026-10-25) =
 

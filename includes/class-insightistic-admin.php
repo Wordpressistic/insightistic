@@ -32,7 +32,6 @@ class Insightistic_Admin {
 		add_action( 'wp_ajax_insightistic_license_refresh', array( $this, 'ajax_license_refresh' ) );
 		add_action( 'wp_ajax_insightistic_license_disconnect', array( $this, 'ajax_license_disconnect' ) );
 		add_action( 'wp_ajax_insightistic_sync_now', array( $this, 'ajax_sync_now' ) );
-		add_action( 'admin_notices', array( $this, 'maybe_show_connect_notice' ) );
 	}
 
 	/**
@@ -284,20 +283,6 @@ class Insightistic_Admin {
 			wp_send_json_error( __( 'Invalid addon.', 'insightistic' ) );
 		}
 
-		// Account gate: only Email Automations needs a free Insightistic account
-		// (disabling is always allowed). The response carries the signup card.
-		$feature = Insightistic_Feature_Gate::addon_feature( $slug );
-		if ( $enabled && $feature && ! Insightistic_Feature_Gate::can( $feature ) ) {
-			wp_send_json_error(
-				array(
-					'code'    => 'locked',
-					'feature' => $feature,
-					'message' => __( 'Create a free account to enable this addon.', 'insightistic' ),
-					'html'    => Insightistic_Feature_Gate::locked_card( $feature, '', __( 'Create a free account to enable this addon.', 'insightistic' ) ),
-				)
-			);
-		}
-
 		$addons          = $this->get_addons_state();
 		$addons[ $slug ] = $enabled;
 		update_option( 'insightistic_addons', $addons );
@@ -326,15 +311,6 @@ class Insightistic_Admin {
 		$addons = $this->get_addons_state();
 		if ( empty( $addons['email_automations'] ) ) {
 			wp_send_json_error( __( 'Enable Email Automations addon first.', 'insightistic' ) );
-		}
-
-		if ( ! Insightistic_Feature_Gate::can( 'email_audit_automation' ) ) {
-			wp_send_json_error(
-				array(
-					'code' => 'locked',
-					'html' => Insightistic_Feature_Gate::locked_card( 'email_audit_automation', '', __( 'Create a free account to enable email automations.', 'insightistic' ) ),
-				)
-			);
 		}
 
 		$recipients        = sanitize_text_field( wp_unslash( $_POST['recipients'] ?? '' ) );
@@ -376,15 +352,6 @@ class Insightistic_Admin {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		if ( ! Insightistic_Feature_Gate::can( 'email_audit_automation' ) ) {
-			wp_send_json_error(
-				array(
-					'code' => 'locked',
-					'html' => Insightistic_Feature_Gate::locked_card( 'email_audit_automation', '', __( 'Create a free account to enable email automations.', 'insightistic' ) ),
-				)
-			);
-		}
-
 		$result = ( new Insightistic_Email_Automations() )->send_now( true );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $result->get_error_message() );
@@ -406,21 +373,6 @@ class Insightistic_Admin {
 		$addons = $this->get_addons_state();
 		if ( empty( $addons[ $slug ] ) ) {
 			wp_send_json_error( __( 'Enable this addon first.', 'insightistic' ) );
-		}
-
-		// Server-side account gate (the toggle gate alone is not enough — the
-		// addon may have been enabled during legacy grace). Only Email
-		// Automations resolves to a non-empty feature here; every other
-		// addon is unconditionally free.
-		$feature = Insightistic_Feature_Gate::addon_feature( $slug );
-		if ( $feature && ! Insightistic_Feature_Gate::can( $feature ) ) {
-			wp_send_json_error(
-				array(
-					'code'    => 'locked',
-					'feature' => $feature,
-					'html'    => Insightistic_Feature_Gate::locked_card( $feature, '', __( 'Create a free account to enable this addon.', 'insightistic' ) ),
-				)
-			);
 		}
 
 		$report = Insightistic_Addons::get_report( $slug );
@@ -645,34 +597,15 @@ class Insightistic_Admin {
 		}
 
 		( new Insightistic_License_Manager() )->disconnect();
-		wp_send_json_success( __( 'Disconnected. Advanced features are paused; your analytics settings are untouched.', 'insightistic' ) );
+		wp_send_json_success( __( 'Disconnected. Cloud AI and dashboard sync are paused. Analytics, email digests, and your own AI keys keep working.', 'insightistic' ) );
 	}
 
 	/**
-	 * One quiet notice on Insightistic pages while unconnected (never site-wide).
+	 * Retired in 4.6.2. A connect banner on every plugin screen read as an
+	 * upsell. Cloud AI explains itself on Settings → AI and the License page.
 	 */
 	public function maybe_show_connect_notice() {
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || false === strpos( (string) $screen->id, 'insightistic' ) ) {
-			return;
-		}
-		if ( false !== strpos( (string) $screen->id, 'insightistic-license' ) ) {
-			return; // The license page speaks for itself.
-		}
-		if ( Insightistic_License_Manager::is_connected() || ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		$grace = Insightistic_Feature_Gate::in_legacy_grace();
-		printf(
-			'<div class="notice notice-info isp-connect-notice"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
-			esc_html__( 'Create a free account to unlock AI Insights and email automations.', 'insightistic' ),
-			$grace
-				? esc_html__( 'Your existing add-ons keep working during the upgrade grace period — connect your free Insightistic account to keep them active afterwards.', 'insightistic' )
-				: esc_html__( 'Every module in Insightistic is free. A free account is only needed for AI-generated insights and automated email delivery.', 'insightistic' ),
-			esc_url( admin_url( 'admin.php?page=insightistic-license' ) ),
-			esc_html__( 'Create a free account →', 'insightistic' )
-		);
+		return;
 	}
 
 	/**

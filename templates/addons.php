@@ -77,13 +77,11 @@ $insightistic_addons = array(
 	),
 );
 
-// Only Email Automations resolves to a gated feature today (email delivery
-// needs a free connected account); everything else is unconditionally free.
+// No add-on is account-gated. Email digests send with wp_mail().
 foreach ( $insightistic_addons as &$insightistic_addon ) {
-	$insightistic_feature         = Insightistic_Feature_Gate::addon_feature( $insightistic_addon['slug'] );
-	$insightistic_addon['locked'] = $insightistic_feature && ! Insightistic_Feature_Gate::can( $insightistic_feature );
-	$insightistic_addon['status'] = $insightistic_addon['locked'] ? 'locked' : 'available';
-	$insightistic_addon['type']   = $insightistic_addon['locked'] ? __( 'Account required', 'insightistic' ) : __( 'Free', 'insightistic' );
+	$insightistic_addon['locked'] = false;
+	$insightistic_addon['status'] = 'available';
+	$insightistic_addon['type']   = __( 'Free', 'insightistic' );
 }
 unset( $insightistic_addon );
 ?>
@@ -107,7 +105,7 @@ unset( $insightistic_addon );
 	<div class="isp-addons-hero">
 		<div class="isp-addons-hero-text">
 			<h2><?php esc_html_e( 'Every module. No paywall.', 'insightistic' ); ?></h2>
-			<p><?php esc_html_e( 'WooCommerce, SEO, anomaly, and content intelligence work the moment you flip them on — no account needed. Email Automations sends through your free Insightistic account.', 'insightistic' ); ?></p>
+			<p><?php esc_html_e( 'Every module works the moment you turn it on. Email digests are sent by WordPress mail on this site. An Insightistic account is optional, and only for Cloud AI or dashboard sync.', 'insightistic' ); ?></p>
 		</div>
 		<div class="isp-addons-hero-stats">
 			<div class="isp-addon-stat">
@@ -124,7 +122,6 @@ unset( $insightistic_addon );
 	<div class="isp-addons-filter">
 		<button class="isp-addon-filter-btn isp-addon-filter-active" data-filter="all"><?php esc_html_e( 'All', 'insightistic' ); ?></button>
 		<button class="isp-addon-filter-btn" data-filter="available"><?php esc_html_e( 'Ready to use', 'insightistic' ); ?></button>
-		<button class="isp-addon-filter-btn" data-filter="locked"><?php esc_html_e( 'Needs free account', 'insightistic' ); ?></button>
 	</div>
 
 	<div class="isp-addons-grid" id="isp-addons-grid">
@@ -140,10 +137,6 @@ unset( $insightistic_addon );
 				</div>
 				<h3 class="isp-addon-name"><?php echo esc_html( $insightistic_addon['name'] ); ?></h3>
 				<p class="isp-addon-desc"><?php echo esc_html( $insightistic_addon['desc'] ); ?></p>
-
-				<?php if ( $insightistic_addon['locked'] ) : ?>
-					<?php echo Insightistic_Feature_Gate::locked_card( 'email_audit_automation', __( 'Create a free account to enable this addon', 'insightistic' ), __( 'Email Automations sends through your Insightistic account.', 'insightistic' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- locked_card() escapes internally. ?>
-				<?php endif; ?>
 
 				<div class="isp-addon-footer">
 					<label class="isp-addon-toggle">

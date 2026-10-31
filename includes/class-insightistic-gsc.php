@@ -42,7 +42,8 @@ class Insightistic_GSC {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$days         = min( max( intval( $_POST['days'] ?? 28 ), 1 ), 90 );
+		$days  = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+		$days  = min( max( $days, 1 ), 90 );
 		$force        = ! empty( $_POST['force'] );
 		$property_url = get_option( 'insightistic_gsc_property_url' );
 

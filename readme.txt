@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.2
+Stable tag: 4.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -249,6 +249,10 @@ This plugin contacts external services only after you save credentials or explic
 Disconnecting on the License screen stops all calls to Insightistic.
 
 == Changelog ==
+
+= 4.6.3 =
+
+* Fixed Plugin Check EscapeOutput errors in the email digest Search and PageSpeed cards. Metric values are escaped before output.
 
 = 4.6.2 =
 

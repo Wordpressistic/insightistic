@@ -1,10 +1,10 @@
-=== Insightistic - GA4 Analytics & AI Insights ===
+=== Insightistic ===
 Contributors: developershuvo
 Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.4
+Stable tag: 4.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -259,6 +259,11 @@ This plugin contacts external services only after you save credentials or explic
 Disconnecting on the License screen stops all calls to Insightistic.
 
 == Changelog ==
+
+= 4.6.5 (2026-10-31) =
+
+* Corrected the plugin header metadata for WordPress.org automated scanning: the tested-up-to value remains in readme.txt only, and the display name now matches the insightistic text domain.
+* Rebuilt the submission package as the latest verified release.
 
 = 4.6.4 (2026-10-31) =
 

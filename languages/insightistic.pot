@@ -2,14 +2,14 @@
 # This file is distributed under the same license as the Insightistic plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Insightistic 4.6.4\n"
+"Project-Id-Version: Insightistic 4.6.5\n"
 "Report-Msgid-Bugs-To: https://wordpressistic.com\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T06:48:23+00:00\n"
+"POT-Creation-Date: 2026-10-31T06:58:23+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: insightistic/make-pot 1.0\n"
 "X-Domain: insightistic\n"
@@ -1164,11 +1164,11 @@ msgstr ""
 msgid "Insightistic System Status"
 msgstr ""
 
-#: insightistic.php:108
+#: insightistic.php:107
 msgid "Insightistic stores locally configured analytics settings and, when enabled, a rolling log of 404 request paths and external referrer host names. The 404 log does not store IP addresses or user agents and can be cleared from the plugin dashboard."
 msgstr ""
 
-#: insightistic.php:69
+#: insightistic.php:68
 msgid "Insightistic: Missing file %s. Please reinstall the plugin."
 msgstr ""
 
@@ -2536,11 +2536,11 @@ msgstr ""
 msgid "When enabled, a small script is loaded on the frontend of your site."
 msgstr ""
 
-#: insightistic.php:110
+#: insightistic.php:109
 msgid "When you configure Google, Cloudflare, or another AI provider, the plugin sends only the requests and data described in its External services documentation and your selected provider settings."
 msgstr ""
 
-#: insightistic.php:109
+#: insightistic.php:108
 msgid "When you connect an Insightistic account, the plugin can send the site URL, plugin version, analytics summaries, WooCommerce summaries, configured Cloudflare summaries, IndexNow submission data, and 404/broken-link summaries to Insightistic for dashboard sync and Cloud AI. Disconnecting the account stops those calls."
 msgstr ""
 

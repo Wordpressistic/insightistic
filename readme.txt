@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.3
+Stable tag: 4.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ Insightistic is not affiliated with or endorsed by Google or Cloudflare.
 
 Connect your Google Analytics 4 property and Google Search Console via a single service account (no OAuth pop-ups, no re-authentication). Add a PageSpeed API key for real-time Core Web Vitals scoring. AI insights are optional: use your own OpenAI, Gemini, Groq, Claude, or OpenRouter key, or an optional free Insightistic account for Cloud AI.
 
-Every feature in this plugin works without an Insightistic account. Email digests are sent by WordPress (`wp_mail`) on your own site.
+Core analytics, WooCommerce, email-digest, engagement-tracking, and local broken-link features work without an Insightistic account. An optional account adds Cloud AI, dashboard sync, IndexNow submission, and hosted traffic insights. Email digests are sent by WordPress (`wp_mail`) on your own site.
 
 = GA4 Overview =
 
@@ -99,7 +99,7 @@ An optional connected account can also receive plan entitlements from Insightist
 * All analytics data is fetched via admin-only AJAX  zero impact on frontend page load
 * 15-minute transient caching minimises Google API quota usage
 * Minified JS and CSS served in production (source files served when SCRIPT_DEBUG is on)
-* Chart.js bundled locally  no external CDN requests
+* Chart.js 4.4.4 bundled locally under the MIT License  no external CDN requests. Source: https://github.com/chartjs/Chart.js/tree/v4.4.4
 
 == Installation ==
 
@@ -228,6 +228,16 @@ This plugin contacts external services only after you save credentials or explic
 * Terms: https://www.cloudflare.com/terms/
 * Privacy: https://www.cloudflare.com/privacypolicy/
 
+**404 & broken-link monitoring (local by default)**
+
+* Used for: identifying broken URLs on this site and showing their hit counts and external referring hosts in the local WordPress dashboard.
+* Data stored locally: the request path, first/last-seen timestamps, hit count, and distinct external referrer host names. No IP address or user agent is stored. The rolling log keeps up to 200 paths and can be cleared by an administrator.
+* Data sent: nothing is sent while the plugin is unconnected. After you activate an Insightistic account, the daily dashboard sync can send the local 404/broken-link summaries to Insightistic.
+* Service: local WordPress storage by default; api.insightistic.com only after account activation and sync.
+
+* Terms: https://www.insightistic.com/terms/
+* Privacy: https://www.insightistic.com/privacy-policy/
+
 **AI providers (optional, only the one you select, using your own key)**
 
 * OpenAI: api.openai.com — https://openai.com/policies/terms-of-use — https://openai.com/policies/privacy-policy
@@ -239,7 +249,7 @@ This plugin contacts external services only after you save credentials or explic
 
 **Insightistic (optional, only after you paste a license key)**
 
-* Used for: Insightistic Cloud AI, and for syncing this site to your Insightistic dashboard (GA4/GSC summaries, Cloudflare summaries if configured, WooCommerce order and product summaries, and IndexNow URL submission).
+* Used for: Insightistic Cloud AI, and for syncing this site to your Insightistic dashboard (GA4/GSC summaries, Cloudflare summaries if configured, WooCommerce order and product summaries, 404/broken-link summaries, and IndexNow URL submission).
 * Data sent: site URL, plugin version, and the datasets above. Customer details are included only as part of the WooCommerce summary sync you start by activating the key. No payment card data is ever sent.
 * When: you click Activate, Refresh, or Sync now, once a day after that via WP-Cron, and when you click Get AI Insights with Cloud AI selected.
 * Service: api.insightistic.com and app.insightistic.com
@@ -249,6 +259,13 @@ This plugin contacts external services only after you save credentials or explic
 Disconnecting on the License screen stops all calls to Insightistic.
 
 == Changelog ==
+
+= 4.6.4 (2026-10-31) =
+
+* Added the bundled Chart.js source link and MIT license reference.
+* Documented local 404/broken-link data collection and optional connected-account sync in the External services section.
+* Added a WordPress Privacy Policy guide entry for the plugin's local and connected data handling.
+* Repaired the Settings documentation link and synchronized release metadata for the WordPress.org submission build.
 
 = 4.6.3 =
 

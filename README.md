@@ -13,6 +13,14 @@
 
 <p align="center"><em>Published by <strong>WordPressistic — Your Digital Partner for Global Impact</strong></em></p>
 
+<p align="center">
+  <a href="https://github.com/Wordpressistic/insightistic/releases"><strong>Download releases</strong></a>
+  ·
+  <a href="https://wordpress.org/plugins/developers/add/">WordPress.org submission</a>
+  ·
+  <a href="https://wordpressistic.com/insightistic">Product documentation</a>
+</p>
+
 ---
 
 ## Overview
@@ -46,6 +54,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 | License | GPLv2 or later |
 | Publisher | WordPressistic |
 | Plugin URI | https://wordpressistic.com/insightistic |
+| Latest GitHub release | [Insightistic 4.6.5](https://github.com/Wordpressistic/insightistic/releases/tag/insightistic.4.6.5) |
 
 ---
 
@@ -67,7 +76,7 @@ The plugin source lives directly at the repository root (standard WordPress plug
 | [`scripts/`](scripts/) | Release/build tooling (asset builder, POT generator, release validator, ZIP builder/validator). |
 | [`composer.json`](composer.json) / [`phpcs.xml.dist`](phpcs.xml.dist) | PHP tooling: PHP_CodeSniffer, WordPress Coding Standards, PHPCompatibilityWP. |
 | [`package.json`](package.json) | Node tooling: terser + clean-css asset builds. |
-| [`.github/workflows/`](.github/workflows/) | CI (lint/standards/tests/build) and tag-driven release workflows. |
+| [`docs/RELEASING.md`](docs/RELEASING.md) | Manual, reproducible release and GitHub asset publication process. |
 
 ---
 
@@ -78,7 +87,7 @@ From a release (recommended):
 1. Download the release ZIP: `insightistic.4.6.5.zip`.
 2. In WordPress, go to **Plugins > Add New > Upload Plugin**.
 3. Upload the ZIP file — it extracts to a single `insightistic/` directory.
-4. Activate **Insightistic - GA4 Analytics & AI Insights**.
+4. Activate **Insightistic**.
 5. Go to **Insightistic > Settings** and connect the services you want to use.
 
 Manual install:
@@ -161,15 +170,20 @@ composer release-check    # full pre-release gate (versions, lint, tests, assets
 | `assets/js/tracking.js` | `assets/js/tracking.min.js` | Rebuilt with terser; hard size budget < 3 KiB enforced by the build. |
 | `assets/js/vendor/chart.umd.min.js` | — | Bundled Chart.js **4.4.4** dependency. Never rebuilt or version-bumped with the plugin. |
 
-Minified files are served in production; readable sources are served when `SCRIPT_DEBUG` is on. A release fails CI if the committed minified files differ from a fresh build.
+Minified files are served in production; readable sources are served when `SCRIPT_DEBUG` is on. The local release gate fails if the committed minified files differ from a fresh build.
 
 ### Release process
 
-1. Update the version contract — `insightistic.php` header + `INSIGHTISTIC_VERSION`, `readme.txt` stable tag + changelog, `package.json`, and regenerate the POT. `php scripts/validate-release.php` must pass.
-2. Run `composer release-check` (versions, PHP lint, tests, assets, POT, ZIP build + ZIP content validation).
-3. Commit, then tag `insightistic-X.Y.Z` and push the tag. The **Release** GitHub Actions workflow builds the ZIP **from the tagged commit**, validates it, and attaches it (plus its SHA-256 checksum) to the GitHub release. Manually built ZIPs are never published.
+Releases are built and published manually so every public asset is produced from a locally verified commit. GitHub Actions are intentionally not required for this repository.
 
-The tag workflow refuses to release when the tag version does not exactly match the plugin's internal version.
+See [`docs/RELEASING.md`](docs/RELEASING.md) for the complete release checklist. The short version is:
+
+1. Update the version contract — `insightistic.php` header + `INSIGHTISTIC_VERSION`, `readme.txt` stable tag + changelog, `package.json`, and the translation template.
+2. Run `composer release-check`, `node scripts/check-js.mjs`, the official WordPress.org readme validator, and the fresh-install acceptance checks.
+3. Commit and create a dotted tag such as `insightistic.4.6.6` that matches the plugin version.
+4. Build the ZIP and SHA-256 file from that exact tagged commit.
+5. Create the matching GitHub Release and attach both verified assets.
+6. Verify the published asset checksum and single-root ZIP structure.
 
 ---
 
@@ -186,7 +200,7 @@ All suites run standalone (WordPress APIs are stubbed; HTTP is served from fixtu
 
 ## License
 
-Released under the [GPL v2 or later](LICENSE).
+Released under the [GNU GPL v2 or later](LICENSE). The canonical license text is included in the repository root and in every production ZIP.
 
 ---
 

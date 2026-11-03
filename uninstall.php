@@ -39,6 +39,7 @@ $insightistic_options = array(
 	'insightistic_ai_provider',
 	'insightistic_ai_consent',
 	'insightistic_migrated_470',
+	'insightistic_indexnow_direct',
 	'insightistic_ai_skill_profile',
 	'insightistic_openai_key',
 	'insightistic_openai_model',

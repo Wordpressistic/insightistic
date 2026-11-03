@@ -2058,7 +2058,7 @@
 			var key  = $.trim( $( '#isp-license-key' ).val() || '' );
 
 			if ( ! key ) {
-				licenseMsg( 'error', 'Please paste your license key first.' );
+				licenseMsg( 'error', 'Please paste your account key first.' );
 				return;
 			}
 
@@ -2076,10 +2076,6 @@
 					} else {
 						var msg = licenseResponseMessage( res );
 						licenseMsg( 'error', msg );
-						if ( res.data && res.data.upgrade_url ) {
-							$( '<a>', { href: res.data.upgrade_url, target: '_blank', rel: 'noopener', text: ' Upgrade →' } )
-								.appendTo( '#isp-license-msg' );
-						}
 						$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 					}
 				},
@@ -2101,7 +2097,7 @@
 		$( '#isp-license-refresh' ).on( 'click', function () {
 			var $btn = $( this );
 			$btn.prop( 'disabled', true ).addClass( 'isp-btn-busy' );
-			licenseMsg( 'info', 'Checking your license…' );
+			licenseMsg( 'info', 'Checking your connection…' );
 
 			$.ajax( {
 				url: insightisticPro.ajaxUrl,

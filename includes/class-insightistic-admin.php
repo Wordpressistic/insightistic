@@ -104,10 +104,10 @@ class Insightistic_Admin {
 
 		add_submenu_page(
 			'insightistic',
-			__( 'Insightistic License', 'insightistic' ),
+			__( 'Insightistic Account', 'insightistic' ),
 			Insightistic_License_Manager::is_connected()
-				? __( 'License', 'insightistic' )
-				: __( 'License ✦', 'insightistic' ),
+				? __( 'Account', 'insightistic' )
+				: __( 'Account (optional)', 'insightistic' ),
 			'manage_options',
 			'insightistic-license',
 			array( $this, 'render_license' )
@@ -454,24 +454,22 @@ class Insightistic_Admin {
 		// The raw key passes through this request once and is never stored.
 		$raw_key = sanitize_text_field( wp_unslash( $_POST['license_key'] ?? '' ) );
 		if ( '' === $raw_key ) {
-			wp_send_json_error( __( 'Please paste your license key.', 'insightistic' ) );
+			wp_send_json_error( __( 'Please paste your account key.', 'insightistic' ) );
 		}
 
 		$result = ( new Insightistic_License_Manager() )->activate( $raw_key );
 		if ( is_wp_error( $result ) ) {
-			$extra = $result->get_error_data();
 			wp_send_json_error(
 				array(
-					'code'        => $result->get_error_code(),
-					'message'     => $result->get_error_message(),
-					'upgrade_url' => is_array( $extra ) && ! empty( $extra['upgrade_url'] ) ? esc_url_raw( $extra['upgrade_url'] ) : '',
+					'code'    => $result->get_error_code(),
+					'message' => $result->get_error_message(),
 				)
 			);
 		}
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'License activated! Your site is now connected to Insightistic.', 'insightistic' ),
+				'message' => __( 'Connected. This site is now linked to your free Insightistic account.', 'insightistic' ),
 				'state'   => $result,
 				'gate'    => Insightistic_Feature_Gate::js_state(),
 			)
@@ -499,7 +497,7 @@ class Insightistic_Admin {
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'License refreshed.', 'insightistic' ),
+				'message' => __( 'Connection refreshed.', 'insightistic' ),
 				'state'   => $result,
 				'gate'    => Insightistic_Feature_Gate::js_state(),
 			)
@@ -541,7 +539,7 @@ class Insightistic_Admin {
 		}
 
 		( new Insightistic_License_Manager() )->disconnect();
-		wp_send_json_success( __( 'Disconnected. Cloud AI and dashboard sync are paused. Analytics, email digests, and your own AI keys keep working.', 'insightistic' ) );
+		wp_send_json_success( __( 'Disconnected. Cloud AI and dashboard sync are paused. Analytics, IndexNow, email digests and every other module keep working.', 'insightistic' ) );
 	}
 
 	/**
@@ -717,6 +715,7 @@ class Insightistic_Admin {
 		update_option( 'insightistic_engagement_enabled', isset( $_POST['engagement_enabled'] ) ? 1 : 0 );
 		update_option( 'insightistic_measurement_id', sanitize_text_field( wp_unslash( $_POST['measurement_id'] ?? '' ) ) );
 		update_option( 'insightistic_404_monitor_enabled', isset( $_POST['monitor_404_enabled'] ) ? 1 : 0 );
+		update_option( 'insightistic_indexnow_direct', isset( $_POST['indexnow_direct'] ) ? 1 : 0 );
 
 		if ( ! empty( $_POST['measurement_secret'] ) ) {
 			$sec = sanitize_text_field( wp_unslash( $_POST['measurement_secret'] ) );

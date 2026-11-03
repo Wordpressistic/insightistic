@@ -502,6 +502,24 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 				</div>
 			</div>
 
+			<div class="isp-settings-card">
+				<div class="isp-settings-card-header">
+					<h2><?php esc_html_e( 'IndexNow', 'insightistic' ); ?></h2>
+					<p class="isp-header-desc"><?php esc_html_e( 'Optional and off by default. When on, the URL of each public post or page you publish or update is sent to the IndexNow API (api.indexnow.org), which shares it with participating search engines such as Bing and Yandex. No account is needed. The plugin writes a small key file to your site root so search engines can verify the site.', 'insightistic' ); ?></p>
+				</div>
+				<div class="isp-field isp-field-toggle">
+					<label class="isp-label"><?php esc_html_e( 'Submit new and updated URLs to IndexNow', 'insightistic' ); ?></label>
+					<label class="isp-toggle">
+						<input type="checkbox" name="indexnow_direct" value="1" <?php checked( (int) get_option( 'insightistic_indexnow_direct', 0 ) ); ?>>
+						<span class="isp-toggle-track"><span class="isp-toggle-thumb"></span></span>
+						<span class="isp-toggle-label">
+							<span class="isp-on"><?php esc_html_e( 'Enabled', 'insightistic' ); ?></span>
+							<span class="isp-off"><?php esc_html_e( 'Disabled', 'insightistic' ); ?></span>
+						</span>
+					</label>
+				</div>
+			</div>
+
 		</div><!-- /#isp-tab-engagement -->
 
 		<!-- ================================================= TAB: AI -->
@@ -599,7 +617,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 						<option value="ollama-balanced" <?php selected( $insightistic_cloud_model, 'ollama-balanced' ); ?>><?php esc_html_e( 'Balanced analytics', 'insightistic' ); ?></option>
 						<option value="hermes-seo" <?php selected( $insightistic_cloud_model, 'hermes-seo' ); ?>><?php esc_html_e( 'SEO-focused analysis', 'insightistic' ); ?></option>
 					</select>
-					<p class="isp-hint"><?php esc_html_e( 'Choose the analysis focus. Insightistic selects the available AI provider and model from your account plan, with free routing for free accounts.', 'insightistic' ); ?></p>
+					<p class="isp-hint"><?php esc_html_e( 'Choose the analysis focus. Insightistic Cloud AI picks the model on its side; each run uses AI credits from your free account allowance.', 'insightistic' ); ?></p>
 				</div>
 
 				<?php if ( $insightistic_cloud_connected && $insightistic_ai_consent ) : ?>

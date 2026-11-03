@@ -263,7 +263,7 @@ if ( ! function_exists( 'wp_remote_request' ) ) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Plugin-class doubles (mirrors test-platform-bridge.php).             */
+/* Plugin-class doubles             .             */
 /* ------------------------------------------------------------------ */
 
 if ( ! class_exists( 'Insightistic_License_Manager', false ) ) {
@@ -676,6 +676,30 @@ indexnow_reset();
 Insightistic_License_Manager::$connected = false;
 assert_true( ! Insightistic_IndexNow::ensure_key(), 'disconnected ensure_key returns false quietly' );
 assert_same( 0, count( $GLOBALS['insightistic_test_http_calls'] ), 'disconnected ensure_key makes no calls' );
+
+/* 8b. Account-free direct mode (opt-in). */
+echo "- direct (no account) mode\n";
+indexnow_reset();
+Insightistic_License_Manager::$connected = false;
+$in->maybe_submit_post( 70, indexnow_post( 70, 'publish' ), true );
+assert_same( 0, indexnow_action_count( Insightistic_IndexNow::SUBMIT_HOOK ), 'direct mode off by default: nothing enqueued' );
+indexnow_reset();
+Insightistic_License_Manager::$connected = false;
+$GLOBALS['insightistic_test_options']['insightistic_indexnow_direct'] = 1;
+assert_true( Insightistic_IndexNow::can_submit(), 'opted-in site can submit without an account' );
+assert_true( Insightistic_IndexNow::ensure_key(), 'direct mode generates a local key' );
+$st = Insightistic_IndexNow::settings();
+assert_true( 1 === preg_match( '/^[a-f0-9]{32}$/', $st['key'] ) && 'local' === $st['key_source'], 'local key is 32 hex chars' );
+assert_same( 0, count( $GLOBALS['insightistic_test_http_calls'] ), 'local key provisioning makes no HTTP calls' );
+Insightistic_IndexNow::queue_add( 'https://site.example/a' );
+queue_http( 202, '' );
+$in->flush_queue();
+$calls = $GLOBALS['insightistic_test_http_calls'];
+assert_same( 1, count( $calls ), 'direct flush makes one call' );
+assert_same( 'https://api.indexnow.org/indexnow', $calls[0]['url'], 'direct flush posts to api.indexnow.org' );
+$b = json_decode( $calls[0]['args']['body'], true );
+assert_true( $b['key'] === $st['key'] && array( 'https://site.example/a' ) === $b['urlList'], 'payload carries key and URL list' );
+assert_same( array(), Insightistic_IndexNow::queue(), 'queue drained after 202' );
 
 /* 9. init(): cron schedule registration. */
 echo "- init cron scheduling\n";

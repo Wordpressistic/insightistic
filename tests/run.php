@@ -17,7 +17,6 @@ $suites = array(
 	'test-ga4-named-ranges.php',
 	'test-ga4-legacy.php',
 	'test-ga4-edge-cases.php',
-	'test-platform-bridge.php',
 	'test-indexnow.php',
 	'test-cloudflare-sync.php',
 );

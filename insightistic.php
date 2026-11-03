@@ -36,7 +36,6 @@ define( 'INSIGHTISTIC_BASENAME', plugin_basename( __FILE__ ) );
 function insightistic_load() {
 	insightistic_migrate_legacy_keys();
 	insightistic_migrate_encryption();
-	insightistic_migrate_400();
 	insightistic_migrate_470();
 
 	$files = array(
@@ -78,8 +77,6 @@ function insightistic_load() {
 		}
 		require_once $file;
 	}
-
-	require_once INSIGHTISTIC_PATH . 'includes/class-insightistic-platform-bridge.php';
 
 	// Text translations are loaded automatically for WordPress.org-hosted
 	// plugins since 4.6 (Plugin Check flags a manual load_plugin_textdomain()).
@@ -269,6 +266,9 @@ function insightistic_migrate_470() {
 		return;
 	}
 
+	// Retired: the pre-4.0 add-on grace window (every module is free now).
+	delete_option( 'insightistic_legacy_grace_until' );
+
 	foreach ( array( 'openai', 'gemini', 'openrouter', 'claude', 'groq' ) as $insightistic_provider ) {
 		delete_option( 'insightistic_' . $insightistic_provider . '_key' );
 		delete_option( 'insightistic_' . $insightistic_provider . '_model' );
@@ -278,28 +278,6 @@ function insightistic_migrate_470() {
 	add_option( 'insightistic_ai_consent', 0, '', 'no' );
 
 	update_option( 'insightistic_migrated_470', 1, false );
-}
-
-/**
- * One-time 4.0.0 migration. Installs upgrading from <= 3.3.0 that already
- * enabled add-ons which are now plan-gated get a 14-day legacy grace window
- * so nothing switches off overnight; a notice on the plugin pages explains
- * the change and links to license activation.
- */
-function insightistic_migrate_400() {
-	if ( get_option( 'insightistic_migrated_400', 0 ) ) {
-		return;
-	}
-
-	$addons        = get_option( 'insightistic_addons', array() );
-	$was_installed = false !== get_option( 'insightistic_property_id', false );
-	$used_gated    = is_array( $addons ) && array_sum( array_map( 'intval', $addons ) ) > 0;
-
-	if ( $was_installed && $used_gated && ! get_option( 'insightistic_connector_key_id', '' ) ) {
-		update_option( 'insightistic_legacy_grace_until', time() + 14 * DAY_IN_SECONDS, false );
-	}
-
-	update_option( 'insightistic_migrated_400', 1, false );
 }
 
 /**

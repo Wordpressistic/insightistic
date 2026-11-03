@@ -14,13 +14,12 @@ $insightistic_isp_state     = Insightistic_License_Manager::state();
 $insightistic_isp_status    = Insightistic_License_Manager::status();
 $insightistic_isp_stale     = Insightistic_License_Manager::is_stale();
 $insightistic_isp_last4     = get_option( 'insightistic_license_last4', '' );
-$insightistic_isp_grace     = Insightistic_Feature_Gate::in_legacy_grace();
 $insightistic_isp_app_url   = 'https://app.insightistic.com';
 
 // Only 'revoked' / 'suspended' actually change behaviour (see
 // Insightistic_Feature_Gate::BLOCKED_STATUSES) — every other status, however
 // the SaaS labels its own billing state internally, simply reads "Connected"
-// here so the badge never contradicts a green dot with scary paid-plan text.
+// here so the badge never contradicts a green dot with alarming status text.
 $insightistic_isp_status_labels = array(
 	'none'      => __( 'Not connected', 'insightistic' ),
 	'revoked'   => __( 'Revoked', 'insightistic' ),
@@ -34,7 +33,7 @@ $insightistic_isp_status_class  = 'none' === $insightistic_isp_status
 // Optional cloud services only. Email digests are not in this list; they
 // do not need an account.
 $insightistic_isp_features_meta = array(
-	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Sends analytics summaries to Insightistic only after you give consent in Settings > AI Insights. Free accounts include a limited monthly AI credit allowance.', 'insightistic' ) ),
+	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Sends analytics summaries to Insightistic only after you give consent in Settings > AI Insights. Free accounts include a monthly AI credit allowance.', 'insightistic' ) ),
 	'cloud_sync'  => array( __( 'Dashboard sync', 'insightistic' ), __( 'Optional. Analytics leave this site only after you activate a key here.', 'insightistic' ) ),
 );
 ?>
@@ -43,7 +42,7 @@ $insightistic_isp_features_meta = array(
 	<div class="isp-header">
 		<div class="isp-header-brand">
 			<div>
-				<h1 class="isp-header-title"><?php esc_html_e( 'License & Connection', 'insightistic' ); ?></h1>
+				<h1 class="isp-header-title"><?php esc_html_e( 'Insightistic Account (optional)', 'insightistic' ); ?></h1>
 				<p class="isp-header-sub"><?php esc_html_e( 'Optional. Connect a free account only if you want Insightistic Cloud AI or to sync this site to your Insightistic dashboard. The plugin is fully usable without one.', 'insightistic' ); ?></p>
 			</div>
 		</div>
@@ -58,32 +57,19 @@ $insightistic_isp_features_meta = array(
 		</div>
 	</div>
 
-	<?php if ( $insightistic_isp_grace && ! $insightistic_isp_connected ) : ?>
-		<div class="isp-license-banner isp-license-banner-grace">
-			<strong><?php esc_html_e( 'Legacy connection window.', 'insightistic' ); ?></strong>
-			<?php
-			printf(
-				/* translators: %s: formatted date */
-				esc_html__( 'Cloud AI keeps working until %s on this upgraded site. Connect a free account only if you want to keep using Cloud AI after that. Email digests and every other module stay available either way.', 'insightistic' ),
-				esc_html( date_i18n( get_option( 'date_format' ), (int) get_option( 'insightistic_legacy_grace_until', 0 ) ) )
-			);
-			?>
-		</div>
-	<?php endif; ?>
-
 	<div id="isp-license-msg" class="isp-license-msg" style="display:none;" role="status"></div>
 
 	<?php if ( ! $insightistic_isp_connected ) : ?>
 
 		<div class="isp-license-grid">
 			<div class="isp-license-card isp-license-card-main isp-animate-in">
-				<h2 class="isp-license-card-title"><?php esc_html_e( 'Activate your license', 'insightistic' ); ?></h2>
+				<h2 class="isp-license-card-title"><?php esc_html_e( 'Connect a free account (optional)', 'insightistic' ); ?></h2>
 				<p class="isp-license-card-sub">
 					<?php esc_html_e( 'Optional. Paste a key from a free Insightistic account to turn on Cloud AI and dashboard sync. Nothing else in the plugin requires it.', 'insightistic' ); ?>
 				</p>
 
 				<div class="isp-license-form">
-					<label class="screen-reader-text" for="isp-license-key"><?php esc_html_e( 'License key', 'insightistic' ); ?></label>
+					<label class="screen-reader-text" for="isp-license-key"><?php esc_html_e( 'Account key', 'insightistic' ); ?></label>
 					<input
 						type="text"
 						id="isp-license-key"
@@ -112,7 +98,7 @@ $insightistic_isp_features_meta = array(
 							);
 							?>
 						</li>
-						<li><?php esc_html_e( 'Copy the license key shown after signup (also in Dashboard → Licenses).', 'insightistic' ); ?></li>
+						<li><?php esc_html_e( 'Copy the account key shown after signup (also in Dashboard → Licenses).', 'insightistic' ); ?></li>
 						<li><?php esc_html_e( 'Paste it above and click Activate. This site appears in your dashboard automatically.', 'insightistic' ); ?></li>
 					</ol>
 					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( $insightistic_isp_app_url . '/register?ref=plugin' ); ?>" target="_blank" rel="noopener">
@@ -147,9 +133,6 @@ $insightistic_isp_features_meta = array(
 
 				<div class="isp-license-keyline">
 					<code class="isp-license-masked">insightistic_ ••••••••••••••••••••<?php echo esc_html( $insightistic_isp_last4 ); ?></code>
-					<?php if ( ! empty( $insightistic_isp_state['plan_name'] ) ) : ?>
-						<span class="isp-license-plan-badge"><?php echo esc_html( $insightistic_isp_state['plan_name'] ); ?></span>
-					<?php endif; ?>
 				</div>
 
 				<dl class="isp-license-meta">
@@ -182,37 +165,30 @@ $insightistic_isp_features_meta = array(
 						<dt><?php esc_html_e( 'Monthly AI credits', 'insightistic' ); ?></dt>
 						<dd><?php echo esc_html( number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['remaining'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) . ' / ' . number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['granted'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) ); ?></dd>
 					</div>
-					<div>
-						<dt><?php esc_html_e( 'Purchased credits', 'insightistic' ); ?></dt>
-						<dd><?php echo esc_html( number_format_i18n( (int) ( $insightistic_isp_state['credits']['purchased']['remaining'] ?? 0 ) ) ); ?></dd>
-					</div>
 				</dl>
 
 				<?php if ( $insightistic_isp_blocked ) : ?>
 					<div class="isp-license-banner isp-license-banner-warn">
-						<?php esc_html_e( 'This account can no longer use Insightistic Cloud AI. Email digests, bring-your-own AI keys, and every other module keep working. Contact Insightistic support or connect a different account.', 'insightistic' ); ?>
+						<?php esc_html_e( 'This account can no longer use Insightistic Cloud AI. Email digests and every other module keep working. Contact Insightistic support or connect a different account.', 'insightistic' ); ?>
 						<a href="<?php echo esc_url( $insightistic_isp_app_url . '/dashboard?ref=plugin' ); ?>" target="_blank" rel="noopener" class="isp-btn isp-btn-primary">
 							<?php esc_html_e( 'Open dashboard →', 'insightistic' ); ?>
 						</a>
 					</div>
 				<?php elseif ( $insightistic_isp_stale ) : ?>
 					<div class="isp-license-banner isp-license-banner-warn">
-						<?php esc_html_e( 'We have not been able to reach Insightistic for a while, so Cloud AI is paused. Email digests, your own AI keys, and every other module keep working. Click Refresh License once this site is back online.', 'insightistic' ); ?>
+						<?php esc_html_e( 'We have not been able to reach Insightistic for a while, so Cloud AI is paused. Email digests and every other module keep working. Click Refresh connection once this site is back online.', 'insightistic' ); ?>
 					</div>
 				<?php endif; ?>
 
 				<div class="isp-license-actions">
 					<button type="button" class="isp-btn isp-btn-primary" id="isp-license-refresh">
-						<span class="isp-btn-text"><?php esc_html_e( 'Refresh License', 'insightistic' ); ?></span>
+						<span class="isp-btn-text"><?php esc_html_e( 'Refresh connection', 'insightistic' ); ?></span>
 					</button>
 					<button type="button" class="isp-btn isp-btn-secondary" id="isp-sync-now">
 						<span class="isp-btn-text"><?php esc_html_e( 'Sync now', 'insightistic' ); ?></span>
 					</button>
 					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( $insightistic_isp_app_url . '/dashboard/licenses?ref=plugin' ); ?>" target="_blank" rel="noopener">
 						<?php esc_html_e( 'Manage in dashboard', 'insightistic' ); ?>
-					</a>
-					<a class="isp-btn isp-btn-ghost" href="<?php echo esc_url( ! empty( $insightistic_isp_state['upgrade_url'] ) ? $insightistic_isp_state['upgrade_url'] : $insightistic_isp_app_url . '/dashboard/billing?ref=plugin' ); ?>" target="_blank" rel="noopener">
-						<?php esc_html_e( 'AI credits', 'insightistic' ); ?>
 					</a>
 					<button type="button" class="isp-btn isp-btn-danger-ghost" id="isp-license-disconnect">
 						<?php esc_html_e( 'Disconnect site', 'insightistic' ); ?>
@@ -241,7 +217,7 @@ $insightistic_isp_features_meta = array(
 					<?php endforeach; ?>
 				</ul>
 				<p class="isp-license-card-sub" style="margin-top:12px;">
-					<?php esc_html_e( 'Email digests, GA4, Search Console, PageSpeed, WooCommerce, and your own AI keys do not use this connection.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Email digests, GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, IndexNow and every other module work without this connection.', 'insightistic' ); ?>
 				</p>
 			</div>
 		</div>

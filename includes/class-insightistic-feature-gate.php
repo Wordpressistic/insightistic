@@ -23,8 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Insightistic_Feature_Gate {
 
 	/**
-	 * Feature that calls the Insightistic cloud. Bring-your-own-key providers
-	 * skip this check. Email digests are local and are not listed.
+	 * Feature that calls the Insightistic cloud. Email digests are local and are not listed.
 	 *
 	 * @var string[]
 	 */
@@ -55,10 +54,6 @@ class Insightistic_Feature_Gate {
 		$feature = sanitize_key( $feature );
 
 		if ( 'ai_insights' !== $feature ) {
-			return true;
-		}
-
-		if ( self::in_legacy_grace() ) {
 			return true;
 		}
 
@@ -104,18 +99,7 @@ class Insightistic_Feature_Gate {
 	}
 
 	/**
-	 * Legacy 14-day grace for pre-4.0 installs (set once at upgrade).
-	 *
-	 * @return bool
-	 */
-	public static function in_legacy_grace() {
-		$until = (int) get_option( 'insightistic_legacy_grace_until', 0 );
-
-		return $until > time();
-	}
-
-	/**
-	 * Locked-state upgrade card (spec §9). Also used inside AJAX error payloads.
+	 * Connect-account card for the optional Cloud AI service. Also used inside AJAX error payloads.
 	 *
 	 * @param string $feature Feature slug.
 	 * @param string $title   Card heading.
@@ -176,11 +160,10 @@ class Insightistic_Feature_Gate {
 	 */
 	public static function js_state() {
 		return array(
-			'connected'   => Insightistic_License_Manager::is_connected(),
-			'status'      => Insightistic_License_Manager::status(),
-			'features'    => Insightistic_License_Manager::features(),
-			'stale'       => Insightistic_License_Manager::is_stale(),
-			'legacyGrace' => self::in_legacy_grace(),
+			'connected' => Insightistic_License_Manager::is_connected(),
+			'status'    => Insightistic_License_Manager::status(),
+			'features'  => Insightistic_License_Manager::features(),
+			'stale'     => Insightistic_License_Manager::is_stale(),
 		);
 	}
 }

@@ -69,6 +69,21 @@ class Insightistic_IndexNow {
 		add_action( self::SUBMIT_HOOK, array( $this, 'handle_submit_single' ), 10, 1 );
 		add_action( self::FLUSH_HOOK, array( $this, 'flush_queue' ) );
 
+		// Scheduling runs wp_get_schedules(), which fires every plugin's
+		// cron_schedules filter (many translate labels); wait for init.
+		if ( did_action( 'init' ) ) {
+			$this->maybe_schedule_flush();
+		} else {
+			add_action( 'init', array( $this, 'maybe_schedule_flush' ) );
+		}
+	}
+
+	/**
+	 * Schedule the queue flush cron when the account is connected.
+	 *
+	 * @return void
+	 */
+	public function maybe_schedule_flush() {
 		if (
 			class_exists( 'Insightistic_License_Manager' )
 			&& Insightistic_License_Manager::is_connected()
@@ -89,7 +104,8 @@ class Insightistic_IndexNow {
 		if ( ! isset( $schedules[ self::CRON_SCHEDULE ] ) ) {
 			$schedules[ self::CRON_SCHEDULE ] = array(
 				'interval' => 15 * MINUTE_IN_SECONDS,
-				'display'  => __( 'Every 15 Minutes (Insightistic IndexNow)', 'insightistic' ),
+				// Translate only after init (WP 6.7+ just-in-time loading notice).
+				'display'  => did_action( 'init' ) ? __( 'Every 15 Minutes (Insightistic IndexNow)', 'insightistic' ) : 'Every 15 Minutes (Insightistic IndexNow)',
 			);
 		}
 
@@ -471,31 +487,27 @@ class Insightistic_IndexNow {
 		$path    = self::key_file_path( $key );
 		$content = $key; // The file's body must be exactly the key.
 
-		if ( ! defined( 'FS_CHMOD_FILE' ) ) {
-			define( 'FS_CHMOD_FILE', 0644 ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant, defined defensively for the filesystem API fallback.
-		}
-
-		if ( ! function_exists( 'WP_Filesystem' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		if ( function_exists( 'WP_Filesystem' ) ) {
-			global $wp_filesystem;
-			if ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) {
-				WP_Filesystem();
-			}
-			if ( $wp_filesystem && is_object( $wp_filesystem ) && method_exists( $wp_filesystem, 'put_contents' ) ) {
-				if ( $wp_filesystem->put_contents( $path, $content, FS_CHMOD_FILE ) ) {
-					return true;
-				}
-			}
+		global $wp_filesystem;
+		if ( ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) && ! WP_Filesystem() ) {
+			return false;
+		}
+		if ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) {
+			return false;
 		}
 
-		// Direct fallback — ABSPATH is writable in the overwhelming majority
-		// of installs (that is where wp-config.php lives). A failed write
-		// returns false and is logged by the caller.
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged -- Direct write is the documented fallback when the filesystem API cannot initialize (credentials required).
-		return false !== @file_put_contents( $path, $content );
+		if ( ! $wp_filesystem->put_contents( $path, $content ) ) {
+			return false;
+		}
+
+		// Explicit permissions on our own key file only (world-readable so
+		// search engines can fetch it); no global FS_CHMOD_FILE override.
+		$wp_filesystem->chmod( $path, 0644 );
+
+		return true;
 	}
 
 	/*

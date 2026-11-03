@@ -1,7 +1,8 @@
 <?php
 /**
  * AI Analysis class for Insightistic.
- * Supports OpenAI, Google Gemini, OpenRouter, Groq, and Anthropic Claude.
+ * Sends analysis requests only to the Insightistic Cloud AI service
+ * (api.insightistic.com), and only after the site owner opts in.
  *
  * @package Insightistic
  */
@@ -32,6 +33,44 @@ class Insightistic_AI {
 	/** Result de-dupe cache TTL (seconds). */
 	const RESULT_CACHE_TTL = 60;
 
+	/** The only AI service this plugin talks to. */
+	const PROVIDER = 'insightistic_cloud';
+
+	/**
+	 * Whether the site owner has explicitly opted in to sending data to
+	 * Insightistic Cloud AI. Off by default.
+	 *
+	 * @return bool
+	 */
+	public static function has_consent() {
+		return (bool) get_option( 'insightistic_ai_consent', 0 );
+	}
+
+	/**
+	 * AI credit balance from the last license check-in.
+	 *
+	 * @return array{total:int,monthly:int,granted:int,purchased:int}
+	 */
+	public static function credits_summary() {
+		$state   = class_exists( 'Insightistic_License_Manager' ) ? Insightistic_License_Manager::state() : array();
+		$credits = is_array( $state['credits'] ?? null ) ? $state['credits'] : array();
+		return array(
+			'total'     => absint( $credits['total_usable'] ?? 0 ),
+			'monthly'   => absint( $credits['monthly_included']['remaining'] ?? 0 ),
+			'granted'   => absint( $credits['monthly_included']['granted'] ?? ( $state['monthly_ai_credits'] ?? 0 ) ),
+			'purchased' => absint( $credits['purchased']['remaining'] ?? 0 ),
+		);
+	}
+
+	/**
+	 * Re-read the credit balance from Insightistic after a request.
+	 */
+	private function refresh_credits() {
+		if ( class_exists( 'Insightistic_License_Manager' ) ) {
+			( new Insightistic_License_Manager() )->refresh();
+		}
+	}
+
 	/**
 	 * Register AJAX hook.
 	 */
@@ -53,23 +92,24 @@ class Insightistic_AI {
 			wp_send_json_error( __( 'AI analysis is disabled. Enable it in Settings.', 'insightistic' ) );
 		}
 
-		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
-		if ( 'none' === $provider ) {
-			wp_send_json_error( __( 'No AI provider selected. Please configure one in Settings.', 'insightistic' ) );
+		if ( ! self::has_consent() ) {
+			wp_send_json_error( __( 'Insightistic Cloud AI is off. To use it, open Settings > AI Insights and agree to send analytics summaries to the Insightistic service.', 'insightistic' ) );
 		}
+
+		$provider = self::PROVIDER;
 
 		if ( class_exists( 'Insightistic_Feature_Gate' ) && ! Insightistic_Feature_Gate::can( 'ai_insights' ) ) {
 			wp_send_json_error(
 				array(
 					'code' => 'locked',
-					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Insightistic Cloud AI needs a free account, or choose your own AI key in Settings. Email digests do not need an account.', 'insightistic' ) ),
+					'html' => Insightistic_Feature_Gate::locked_card( 'ai_insights', '', __( 'Insightistic Cloud AI is an optional hosted service and needs a free Insightistic account. Your analytics dashboards and email digests work without one.', 'insightistic' ) ),
 				)
 			);
 		}
 
 		// Raw JSON payload built by our own dashboard JS; decoded and re-encoded
 		// below, never echoed. json_decode() returns null for malformed input.
-		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 		$data     = json_decode( $raw_data, true );
 		$days     = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
 
@@ -79,7 +119,7 @@ class Insightistic_AI {
 
 		// Cost guardrails: serve a recent identical result instead of paying
 		// for a duplicate provider call, and block overlapping runs.
-		$model       = get_option( 'insightistic_' . $provider . '_model', '' );
+		$model       = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 		$fingerprint = md5( $provider . '|' . $model . '|' . $days . '|' . wp_json_encode( $data ) );
 		$cache_key   = 'insightistic_ai_cache_' . $fingerprint;
 		$lock_key    = 'insightistic_ai_lock_' . get_current_user_id();
@@ -104,30 +144,7 @@ class Insightistic_AI {
 
 		$prompt = $this->build_prompt( $data, $days );
 
-		switch ( $provider ) {
-			case 'openai':
-				$result = $this->call_openai( $prompt );
-				break;
-			case 'gemini':
-				$result = $this->call_gemini( $prompt );
-				break;
-			case 'openrouter':
-				$result = $this->call_openrouter( $prompt );
-				break;
-			case 'claude':
-				$result = $this->call_claude( $prompt );
-				break;
-			case 'groq':
-				$result = $this->call_groq( $prompt );
-				break;
-			case 'insightistic_cloud':
-				$result = $this->call_insightistic_cloud( $prompt );
-				break;
-			default:
-				delete_transient( $lock_key );
-				wp_send_json_error( __( 'Unknown AI provider.', 'insightistic' ) );
-				return;
-		}
+		$result = $this->call_insightistic_cloud( $prompt );
 
 		if ( is_wp_error( $result ) ) {
 			delete_transient( $lock_key );
@@ -158,30 +175,13 @@ class Insightistic_AI {
 	 * @param string $provider Provider slug.
 	 * @return true|WP_Error
 	 */
-	public function test_provider( $provider ) {
-		$prompt = 'Respond with the JSON {"overall_score": 90, "summary": "ok"}.';
-		switch ( $provider ) {
-			case 'openai':
-				$result = $this->call_openai( $prompt );
-				break;
-			case 'gemini':
-				$result = $this->call_gemini( $prompt );
-				break;
-			case 'openrouter':
-				$result = $this->call_openrouter( $prompt );
-				break;
-			case 'groq':
-				$result = $this->call_groq( $prompt );
-				break;
-			case 'claude':
-				$result = $this->call_claude( $prompt );
-				break;
-			case 'insightistic_cloud':
-				$result = $this->call_insightistic_cloud( $prompt );
-				break;
-			default:
-				return new WP_Error( 'unknown_provider', __( 'Unknown provider.', 'insightistic' ) );
+	public function test_provider( $provider = self::PROVIDER ) {
+		unset( $provider );
+		if ( ! self::has_consent() ) {
+			return new WP_Error( 'no_consent', __( 'Give consent in Settings > AI Insights before testing Insightistic Cloud AI.', 'insightistic' ) );
 		}
+		$prompt = 'Respond with the JSON {"overall_score": 90, "summary": "ok"}.';
+		$result = $this->call_insightistic_cloud( $prompt );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -205,10 +205,11 @@ class Insightistic_AI {
 	 * @return array|WP_Error  Rendered HTML on success.
 	 */
 	public function analyze_commerce( $data, $days = 28 ) {
-		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
-		if ( 'none' === $provider ) {
-			return new WP_Error( 'no_provider', __( 'No AI provider selected.', 'insightistic' ) );
+		if ( ! get_option( 'insightistic_ai_enabled', 0 ) || ! self::has_consent() ) {
+			return new WP_Error( 'no_consent', __( 'Insightistic Cloud AI is off. Enable it and give consent in Settings > AI Insights.', 'insightistic' ) );
 		}
+
+		$provider = self::PROVIDER;
 
 		// Use a per-request profile override so commerce analysis gets the
 		// commerce-tuned system prompt without persisting any global option
@@ -218,28 +219,7 @@ class Insightistic_AI {
 		$prompt = $this->build_commerce_prompt( $data, $days );
 
 		try {
-			switch ( $provider ) {
-				case 'openai':
-					$result = $this->call_openai( $prompt );
-					break;
-				case 'gemini':
-					$result = $this->call_gemini( $prompt );
-					break;
-				case 'openrouter':
-					$result = $this->call_openrouter( $prompt );
-					break;
-				case 'claude':
-					$result = $this->call_claude( $prompt );
-					break;
-				case 'groq':
-					$result = $this->call_groq( $prompt );
-					break;
-				case 'insightistic_cloud':
-					$result = $this->call_insightistic_cloud( $prompt );
-					break;
-				default:
-					return new WP_Error( 'unknown_provider', __( 'Unknown AI provider.', 'insightistic' ) );
-			}
+			$result = $this->call_insightistic_cloud( $prompt );
 		} finally {
 			// Always clear the override, even if a provider call throws.
 			$this->active_profile = null;
@@ -314,38 +294,18 @@ class Insightistic_AI {
 	 * @return array|WP_Error Rendered HTML on success.
 	 */
 	public function analyze_cloudflare( $data, $days = 28 ) {
-		$provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
-		if ( 'none' === $provider ) {
-			return new WP_Error( 'no_provider', __( 'No AI provider selected.', 'insightistic' ) );
+		if ( ! get_option( 'insightistic_ai_enabled', 0 ) || ! self::has_consent() ) {
+			return new WP_Error( 'no_consent', __( 'Insightistic Cloud AI is off. Enable it and give consent in Settings > AI Insights.', 'insightistic' ) );
 		}
+
+		$provider = self::PROVIDER;
 
 		$this->active_profile = 'traffic_expert';
 
 		$prompt = $this->build_cloudflare_prompt( $data, $days );
 
 		try {
-			switch ( $provider ) {
-				case 'openai':
-					$result = $this->call_openai( $prompt );
-					break;
-				case 'gemini':
-					$result = $this->call_gemini( $prompt );
-					break;
-				case 'openrouter':
-					$result = $this->call_openrouter( $prompt );
-					break;
-				case 'claude':
-					$result = $this->call_claude( $prompt );
-					break;
-				case 'groq':
-					$result = $this->call_groq( $prompt );
-					break;
-				case 'insightistic_cloud':
-					$result = $this->call_insightistic_cloud( $prompt );
-					break;
-				default:
-					return new WP_Error( 'unknown_provider', __( 'Unknown AI provider.', 'insightistic' ) );
-			}
+			$result = $this->call_insightistic_cloud( $prompt );
 		} finally {
 			$this->active_profile = null;
 		}
@@ -414,304 +374,6 @@ class Insightistic_AI {
 	/* ------------------------------------------------------------------ */
 
 	/**
-	 * Call OpenAI Chat Completions API.
-	 *
-	 * @param string $prompt User prompt.
-	 * @return string|WP_Error JSON content string.
-	 */
-	private function call_openai( $prompt ) {
-		$key = $this->get_key( 'insightistic_openai_key' );
-		if ( is_wp_error( $key ) ) {
-			return $key;
-		}
-
-		$model = get_option( 'insightistic_openai_model', 'gpt-4o-mini' );
-
-		$response = wp_remote_post(
-			'https://api.openai.com/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			array(
-				'timeout' => 45,
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $key,
-					'Content-Type'  => 'application/json',
-				),
-				'body'    => wp_json_encode(
-					array(
-						'model'           => $model,
-						'messages'        => array(
-							array(
-								'role'    => 'system',
-								'content' => $this->system_prompt(),
-							),
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
-						),
-						'temperature'     => 0.5,
-						'max_tokens'      => 2000,
-						'response_format' => array( 'type' => 'json_object' ),
-					)
-				),
-			)
-		);
-
-		return $this->extract_openai_content( $response );
-	}
-
-	/**
-	 * Call Google Gemini API.
-	 *
-	 * @param string $prompt User prompt.
-	 * @return string|WP_Error JSON content string.
-	 */
-	private function call_gemini( $prompt ) {
-		$key = $this->get_key( 'insightistic_gemini_key' );
-		if ( is_wp_error( $key ) ) {
-			return $key;
-		}
-
-		$model    = get_option( 'insightistic_gemini_model', 'gemini-1.5-flash' );
-		$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . rawurlencode( $key ); // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-
-		$full_prompt = $this->system_prompt() . "\n\n" . $prompt;
-
-		$response = wp_remote_post(
-			$endpoint,
-			array(
-				'timeout' => 45,
-				'headers' => array( 'Content-Type' => 'application/json' ),
-				'body'    => wp_json_encode(
-					array(
-						'contents'         => array(
-							array( 'parts' => array( array( 'text' => $full_prompt ) ) ),
-						),
-						'generationConfig' => array(
-							'temperature'      => 0.5,
-							'maxOutputTokens'  => 2000,
-							'responseMimeType' => 'application/json',
-						),
-					)
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new WP_Error( 'gemini_error', $body['error']['message'] );
-		}
-
-		$text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
-		if ( ! $text ) {
-			return new WP_Error( 'gemini_empty', __( 'Gemini returned an empty response.', 'insightistic' ) );
-		}
-
-		// Strip possible markdown fences.
-		$text = preg_replace( '/^```json\s*/i', '', $text );
-		$text = preg_replace( '/```\s*$/', '', $text );
-		return trim( $text );
-	}
-
-	/**
-	 * Call OpenRouter API (OpenAI-compatible).
-	 *
-	 * @param string $prompt User prompt.
-	 * @return string|WP_Error JSON content string.
-	 */
-	private function call_openrouter( $prompt ) {
-		$key = $this->get_key( 'insightistic_openrouter_key' );
-		if ( is_wp_error( $key ) ) {
-			return $key;
-		}
-
-		$model = get_option( 'insightistic_openrouter_model', 'meta-llama/llama-3.3-70b-instruct:free' );
-
-		// NOTE: response_format is intentionally omitted here.
-		// Most free OpenRouter models do not support JSON mode (response_format).
-		// JSON output is enforced via the system prompt and user prompt instead.
-		$response = wp_remote_post(
-			'https://openrouter.ai/api/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			array(
-				'timeout' => 45,
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $key,
-					'Content-Type'  => 'application/json',
-					'HTTP-Referer'  => home_url(),
-					'X-Title'       => 'Insightistic Analytics',
-				),
-				'body'    => wp_json_encode(
-					array(
-						'model'       => $model,
-						'messages'    => array(
-							array(
-								'role'    => 'system',
-								'content' => $this->system_prompt(),
-							),
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
-						),
-						'temperature' => 0.3,
-						'max_tokens'  => 2000,
-					)
-				),
-			)
-		);
-
-		$result = $this->extract_openai_content( $response );
-		if ( is_wp_error( $result ) ) {
-			return $this->translate_openrouter_error( $result, $model );
-		}
-		return $result;
-	}
-
-	/**
-	 * Translate a generic OpenRouter API error into an actionable message
-	 * that names the model slug and points the operator at the current
-	 * free-model catalogue. Without this, the dashboard only shows the
-	 * raw "Model not found" / "404" string which doesn't tell the user
-	 * what to fix.
-	 *
-	 * @param WP_Error $err   Original error.
-	 * @param string   $model Configured model slug.
-	 * @return WP_Error
-	 */
-	private function translate_openrouter_error( $err, $model ) {
-		$msg     = $err->get_error_message();
-		$low     = strtolower( $msg );
-		$is_free = ( false !== strpos( $model, ':free' ) );
-
-		// Detect the OpenRouter "data policy" gate. Free models on OpenRouter
-		// require the account to explicitly opt in to "providers may train on
-		// my prompts" at openrouter.ai/settings/privacy. Without that opt-in,
-		// every :free model returns "no allowed providers" / "no endpoints
-		// found" / "data policy". This is the #1 cause of "I tried every free
-		// model and they all error" reports.
-		$is_data_policy = false !== strpos( $low, 'data policy' )
-			|| false !== strpos( $low, 'no allowed providers' )
-			|| false !== strpos( $low, 'no endpoints found' )
-			|| false !== strpos( $low, 'provider preferences' )
-			|| false !== strpos( $low, 'privacy settings' );
-
-		if ( $is_data_policy && $is_free ) {
-			$hint = sprintf(
-				/* translators: 1: model slug, 2: OpenRouter privacy URL */
-				__( 'OpenRouter is blocking this :free model because your account has not opted in to free-tier data sharing. Open %2$s, enable "Free model providers may train on my prompts" (or set the privacy level to allow free providers), save, then click Test This Provider again. (Failing model: %1$s)', 'insightistic' ),
-				$model,
-				'https://openrouter.ai/settings/privacy' // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			);
-			return new WP_Error( 'openrouter_privacy_gate', $hint );
-		}
-
-		// Wrong-type model (re-ranker, embedding, audio, vision-only).
-		$is_wrong_type = false !== strpos( $model, '-rerank' )
-			|| false !== strpos( $model, '-embed' )
-			|| false !== strpos( $model, '-tts' )
-			|| false !== strpos( $model, '-stt' );
-
-		if ( $is_wrong_type ) {
-			$hint = sprintf(
-				/* translators: %s: model slug */
-				__( 'The model "%s" is not a chat-completion model (re-rankers, embeddings, and audio models cannot answer prompts). Pick an instruct/chat model instead, such as meta-llama/llama-3.3-70b-instruct:free.', 'insightistic' ),
-				$model
-			);
-			return new WP_Error( 'openrouter_wrong_model_type', $hint );
-		}
-
-		// Model genuinely not found / deprecated / 404.
-		$is_model_404 = false !== strpos( $low, 'not found' )
-			|| false !== strpos( $low, 'deprecated' )
-			|| false !== strpos( $low, 'no longer available' )
-			|| ( false !== strpos( $low, '404' ) && false !== strpos( $low, 'model' ) );
-
-		if ( $is_model_404 ) {
-			$hint = sprintf(
-				/* translators: 1: model slug, 2: openrouter.ai URL */
-				__( 'OpenRouter does not have an active endpoint for the model "%1$s" right now. Open %2$s, pick any current free model, and paste its slug into the "custom model" field below the dropdown.', 'insightistic' ),
-				$model,
-				'https://openrouter.ai/models?max_price=0' // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			);
-			return new WP_Error( 'openrouter_model_unavailable', $hint );
-		}
-
-		// Auth / 401.
-		if ( false !== strpos( $low, '401' ) || ( false !== strpos( $low, 'invalid' ) && false !== strpos( $low, 'key' ) ) || false !== strpos( $low, 'unauthorized' ) ) {
-			return new WP_Error(
-				'openrouter_auth',
-				__( 'OpenRouter rejected the API key. Verify the key at https://openrouter.ai/keys and re-paste it in Settings > AI Insights.', 'insightistic' ) // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			);
-		}
-
-		// Rate limit / 429.
-		if ( false !== strpos( $low, '429' ) || false !== strpos( $low, 'rate limit' ) || false !== strpos( $low, 'rate-limited' ) ) {
-			return new WP_Error(
-				'openrouter_rate_limit',
-				__( 'OpenRouter rate-limited this free model. Wait a minute and try again, or switch to another free model in the dropdown.', 'insightistic' )
-			);
-		}
-
-		// Insufficient credits.
-		if ( false !== strpos( $low, 'insufficient' ) || false !== strpos( $low, 'credit' ) ) {
-			return new WP_Error(
-				'openrouter_credits',
-				__( 'OpenRouter reports insufficient credits for this model. Switch to a model with a ":free" suffix or top up at https://openrouter.ai/credits.', 'insightistic' ) // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			);
-		}
-
-		// Default: surface the original message with the model name appended for context.
-		return new WP_Error( 'openrouter_error', sprintf( '%s (model: %s)', $msg, $model ) );
-	}
-
-	/**
-	 * Call Groq API (OpenAI-compatible).
-	 *
-	 * @param string $prompt User prompt.
-	 * @return string|WP_Error JSON content string.
-	 */
-	private function call_groq( $prompt ) {
-		$key = $this->get_key( 'insightistic_groq_key' );
-		if ( is_wp_error( $key ) ) {
-			return $key;
-		}
-
-		$model    = get_option( 'insightistic_groq_model', 'llama-3.1-8b-instant' );
-		$response = wp_remote_post(
-			'https://api.groq.com/openai/v1/chat/completions', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			array(
-				'timeout' => 45,
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $key,
-					'Content-Type'  => 'application/json',
-				),
-				'body'    => wp_json_encode(
-					array(
-						'model'       => $model,
-						'messages'    => array(
-							array(
-								'role'    => 'system',
-								'content' => $this->system_prompt(),
-							),
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
-						),
-						'temperature' => 0.3,
-						'max_tokens'  => 2000,
-					)
-				),
-			)
-		);
-		return $this->extract_openai_content( $response );
-	}
-
-	/**
 	 * Call Insightistic Cloud AI through the account's plan-aware provider chain.
 	 * No provider key is stored on this site. The free tier uses the configured
 	 * WordPressistic gateway and zero-cost OpenRouter fallbacks; paid tiers are
@@ -732,6 +394,14 @@ class Insightistic_AI {
 
 		$model   = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 		$profile = null !== $this->active_profile ? $this->active_profile : get_option( 'insightistic_ai_skill_profile', 'basic' );
+		// The API accepts basic|seo_expert|commerce_expert; any other focus
+		// (e.g. traffic_expert) is already expressed in the system prompt.
+		if ( ! in_array( $profile, array( 'basic', 'seo_expert', 'commerce_expert' ), true ) ) {
+			$profile = 'basic';
+		}
+		if ( ! in_array( $model, array( 'ollama-balanced', 'hermes-seo' ), true ) ) {
+			$model = 'ollama-balanced';
+		}
 
 		$result = Insightistic_Saas_Client::ai_insights(
 			array(
@@ -748,11 +418,15 @@ class Insightistic_AI {
 			}
 
 			$code = is_array( $result['data'] ) && ! empty( $result['data']['code'] ) ? $result['data']['code'] : '';
-			if ( 'quota_exceeded' === $code ) {
+			if ( 'quota_exceeded' === $code || 'insufficient_credits' === $code || 402 === $result['status'] || 429 === $result['status'] ) {
+				$this->refresh_credits();
 				return new WP_Error(
 					'cloud_quota',
-					__( 'You have used this period\'s free Insightistic Cloud AI quota. It resets automatically  or switch to a bring-your-own-key provider (OpenAI, Gemini, OpenRouter, Groq, Claude) in Settings meanwhile.', 'insightistic' )
+					__( 'You have used all of your Insightistic AI credits for this period. Your free monthly credits reset automatically at the start of next month. Your analytics dashboards keep working in the meantime.', 'insightistic' )
 				);
+			}
+			if ( 'ai_provider_unavailable' === $code ) {
+				return new WP_Error( 'cloud_unavailable', __( 'Insightistic Cloud AI is temporarily unavailable for this site. Please try again later.', 'insightistic' ) );
 			}
 			if ( 'no_license' === $code || in_array( $result['status'], array( 401, 403 ), true ) ) {
 				return new WP_Error( 'cloud_unauthorized', __( 'Your Insightistic account connection could not be verified. Open Insightistic → License and reconnect.', 'insightistic' ) );
@@ -764,6 +438,9 @@ class Insightistic_AI {
 			);
 		}
 
+		// Credits were spent; refresh the cached balance.
+		$this->refresh_credits();
+
 		$content = is_array( $result['data'] ) ? ( $result['data']['content'] ?? '' ) : '';
 		if ( ! $content ) {
 			return new WP_Error( 'cloud_empty', __( 'Insightistic Cloud AI returned an empty response.', 'insightistic' ) );
@@ -774,67 +451,6 @@ class Insightistic_AI {
 		return trim( $content );
 	}
 
-	/**
-	 * Call Anthropic Claude Messages API.
-	 *
-	 * @param string $prompt User prompt.
-	 * @return string|WP_Error JSON content string.
-	 */
-	private function call_claude( $prompt ) {
-		$key = $this->get_key( 'insightistic_claude_key' );
-		if ( is_wp_error( $key ) ) {
-			return $key;
-		}
-
-		$model = get_option( 'insightistic_claude_model', 'claude-haiku-4-5-20251001' );
-
-		$full_prompt = $prompt . "\n\nIMPORTANT: Respond ONLY with valid JSON. Do not include any text outside the JSON object.";
-
-		$response = wp_remote_post(
-			'https://api.anthropic.com/v1/messages', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-			array(
-				'timeout' => 45,
-				'headers' => array(
-					'x-api-key'         => $key,
-					'anthropic-version' => '2023-06-01',
-					'Content-Type'      => 'application/json',
-				),
-				'body'    => wp_json_encode(
-					array(
-						'model'      => $model,
-						'system'     => $this->system_prompt(),
-						'messages'   => array(
-							array(
-								'role'    => 'user',
-								'content' => $full_prompt,
-							),
-						),
-						'max_tokens' => 2000,
-					)
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new WP_Error( 'claude_error', $body['error']['message'] );
-		}
-
-		$text = $body['content'][0]['text'] ?? '';
-		if ( ! $text ) {
-			return new WP_Error( 'claude_empty', __( 'Claude returned an empty response.', 'insightistic' ) );
-		}
-
-		$text = preg_replace( '/^```json\s*/i', '', $text );
-		$text = preg_replace( '/```\s*$/', '', $text );
-		return trim( $text );
-	}
-
 	/*
 	------------------------------------------------------------------ */
 	/*
@@ -842,7 +458,7 @@ class Insightistic_AI {
 	/* ------------------------------------------------------------------ */
 
 	/**
-	 * System prompt sent to all AI providers.
+	 * System prompt sent to Insightistic Cloud AI.
 	 */
 	private function system_prompt() {
 		$profile = null !== $this->active_profile
@@ -920,22 +536,12 @@ class Insightistic_AI {
 	 * @return string HTML.
 	 */
 	private function render_insights( $data, $provider ) {
-		$provider_labels = array(
-			'openai'             => 'OpenAI',
-			'gemini'             => 'Google Gemini',
-			'openrouter'         => 'OpenRouter',
-			'claude'             => 'Anthropic Claude',
-			'groq'               => 'Groq',
-			'insightistic_cloud' => 'Insightistic Cloud AI',
-		);
-		$provider_label  = $provider_labels[ $provider ] ?? ucfirst( $provider );
+		unset( $provider );
+		$provider_label = 'Insightistic Cloud AI';
 
-		$engine_label = '';
-		if ( 'insightistic_cloud' === $provider ) {
-			$engine_label = 'hermes-seo' === get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' )
-				? __( 'SEO-focused analysis', 'insightistic' )
-				: __( 'Balanced (Ollama)', 'insightistic' );
-		}
+		$engine_label = 'hermes-seo' === get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' )
+			? __( 'SEO-focused analysis', 'insightistic' )
+			: __( 'Balanced', 'insightistic' );
 
 		$score       = max( 0, min( 100, intval( $data['overall_score'] ?? 0 ) ) );
 		$score_class = $score >= 70 ? 'isp-score-high' : ( $score >= 40 ? 'isp-score-medium' : 'isp-score-low' );
@@ -1040,7 +646,12 @@ class Insightistic_AI {
 			<?php endif; ?>
 
 			<div class="isp-ai-footer">
-				<?php esc_html_e( 'AI analysis generated by', 'insightistic' ); ?> <?php echo esc_html( $provider_label ); ?> &bull; <a href="https://wordpressistic.com" target="_blank" rel="noopener noreferrer">Insightistic</a>
+				<?php esc_html_e( 'AI analysis generated by', 'insightistic' ); ?> <?php echo esc_html( $provider_label ); ?> &bull;
+				<?php
+				$insightistic_credits = self::credits_summary();
+				/* translators: %s: number of AI credits remaining */
+				echo esc_html( sprintf( __( 'AI credits remaining: %s', 'insightistic' ), number_format_i18n( $insightistic_credits['total'] ) ) );
+				?>
 			</div>
 		</div>
 		<?php
@@ -1052,62 +663,6 @@ class Insightistic_AI {
 	/*
 	Helpers                                                              */
 	/* ------------------------------------------------------------------ */
-
-	/**
-	 * Retrieve and decrypt a stored API key.
-	 *
-	 * @param string $option_name WP option name.
-	 * @return string|WP_Error
-	 */
-	private function get_key( $option_name ) {
-		$enc = get_option( $option_name );
-		if ( ! $enc ) {
-			return new WP_Error( 'no_key', __( 'API key not configured. Please add it in Settings  AI Insights.', 'insightistic' ) );
-		}
-		$key = Insightistic_Encryption::decrypt( $enc );
-		if ( ! $key ) {
-			return new WP_Error( 'bad_key', __( 'Failed to read the API key. Please re-save it in Settings.', 'insightistic' ) );
-		}
-		return $key;
-	}
-
-	/**
-	 * Extract text content from an OpenAI-compatible API response.
-	 *
-	 * @param array|WP_Error $response wp_remote_post result.
-	 * @return string|WP_Error
-	 */
-	private function extract_openai_content( $response ) {
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$status = wp_remote_retrieve_response_code( $response );
-		if ( $status < 200 || $status >= 300 ) {
-			$body      = json_decode( wp_remote_retrieve_body( $response ), true );
-			$error_msg = $body['error']['message'] ?? "API error: HTTP {$status}";
-			return new WP_Error( 'api_error', $error_msg );
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new WP_Error( 'api_error', $body['error']['message'] );
-		}
-
-		$text = $body['choices'][0]['message']['content'] ?? '';
-		if ( is_array( $text ) ) {
-			// Some providers return structured content arrays.
-			$text = wp_json_encode( $text );
-		}
-		if ( ! $text ) {
-			return new WP_Error( 'empty_response', __( 'The AI returned an empty response. Please try again.', 'insightistic' ) );
-		}
-
-		$text = preg_replace( '/^```json\s*/i', '', $text );
-		$text = preg_replace( '/```\s*$/', '', $text );
-		return trim( $text );
-	}
 
 	/**
 	 * Parse JSON robustly from providers that may wrap or prepend text.

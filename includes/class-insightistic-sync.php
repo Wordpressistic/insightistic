@@ -128,7 +128,7 @@ class Insightistic_Sync {
 		} else {
 			// Every caller passes a fixed insightistic_sync_* hook name from
 			// the allowlist above; the sniffer just cannot see it statically.
-			do_action( $hook, ...array_values( $args ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
+			do_action( $hook, ...array_values( $args ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name comes from this plugin's own prefixed insightistic_* cron hook list.
 		}
 	}
 

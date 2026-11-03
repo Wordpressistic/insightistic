@@ -31,10 +31,10 @@ $insightistic_isp_status_class  = 'none' === $insightistic_isp_status
 	? 'isp-license-status-neutral'
 	: ( $insightistic_isp_blocked ? 'isp-license-status-bad' : 'isp-license-status-good' );
 
-// Optional cloud services only. Email digests and bring-your-own AI keys
-// are not in this list — they do not need an account.
+// Optional cloud services only. Email digests are not in this list; they
+// do not need an account.
 $insightistic_isp_features_meta = array(
-	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Your own OpenAI, Gemini, Groq, Claude, or OpenRouter key works with no account.', 'insightistic' ) ),
+	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Sends analytics summaries to Insightistic only after you give consent in Settings > AI Insights. Free accounts include a limited monthly AI credit allowance.', 'insightistic' ) ),
 	'cloud_sync'  => array( __( 'Dashboard sync', 'insightistic' ), __( 'Optional. Analytics leave this site only after you activate a key here.', 'insightistic' ) ),
 );
 ?>

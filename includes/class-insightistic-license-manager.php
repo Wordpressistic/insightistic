@@ -39,6 +39,21 @@ class Insightistic_License_Manager {
 		add_action( self::CRON_HOOK, array( $this, 'cron_validate' ) );
 		add_action( 'upgrader_process_complete', array( $this, 'after_plugin_update' ), 10, 2 );
 
+		// Defer scheduling to init so other plugins' cron_schedules filters
+		// do not translate strings too early (WP 6.7+ notice).
+		if ( did_action( 'init' ) ) {
+			$this->maybe_schedule_events();
+		} else {
+			add_action( 'init', array( $this, 'maybe_schedule_events' ) );
+		}
+	}
+
+	/**
+	 * Schedule the daily validate and sync crons for connected sites.
+	 *
+	 * @return void
+	 */
+	public function maybe_schedule_events() {
 		if ( self::is_connected() && ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
 		}

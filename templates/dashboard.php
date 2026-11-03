@@ -13,7 +13,7 @@ $insightistic_property_id = get_option( 'insightistic_property_id' );
 $insightistic_gsc_url     = get_option( 'insightistic_gsc_property_url' );
 $insightistic_psi_key     = get_option( 'insightistic_pagespeed_api_key_enc' );
 $insightistic_ai_enabled  = (int) get_option( 'insightistic_ai_enabled', 0 );
-$insightistic_ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
+$insightistic_ai_provider = Insightistic_AI::has_consent() ? Insightistic_AI::PROVIDER : 'none';
 $insightistic_default_url = get_option( 'insightistic_pagespeed_default_url', home_url( '/' ) );
 $insightistic_woo_active  = class_exists( 'Insightistic_Woocommerce' ) ? ( new Insightistic_Woocommerce() )->is_active() : false;
 // Traffic Insights only ever renders when it can show *something* right

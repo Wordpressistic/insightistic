@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.6.5
+Stable tag: 4.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,11 +68,12 @@ Core analytics, WooCommerce, email-digest, engagement-tracking, and local broken
 = AI Insights (on demand) =
 
 * Click "Get AI Insights" on the dashboard to analyse your GA4 and GSC data
-* Bring your own key — OpenAI, Google Gemini, OpenRouter, Groq, or Anthropic Claude. These work with no Insightistic account
-* Or choose Insightistic Cloud AI, which needs a free Insightistic account (no card). That account's plan selects the model route
-* AI never runs automatically — you stay in full control of API usage and cost
+* Powered by Insightistic Cloud AI, a hosted service that needs a free Insightistic account (no card)
+* Off by default: nothing is sent until you tick the consent box in Settings > AI Insights and click "Get AI Insights" yourself
+* Free accounts include a limited monthly allowance of AI credits. Settings > AI Insights shows the credits remaining; when they run out, AI analysis pauses until the monthly reset and every dashboard keeps working
+* AI never runs automatically
 
-An optional connected account can also receive plan entitlements from Insightistic, including a monthly AI-credit allowance. Credit purchases are completed in the Insightistic dashboard. This plugin never receives payment credentials, and no feature in the plugin is locked behind a purchase.
+The free plugin does not connect to third-party AI providers directly. Connecting your own models (OpenAI GPT, Anthropic Claude, OpenRouter, or a custom endpoint) is available in the separate paid Insightistic plugin ($29/month or $99/year), which is not part of this plugin. Additional AI credits can be bought in the Insightistic dashboard. This plugin never receives payment credentials, and no code in this plugin is locked behind a purchase.
 
 = Email Automations =
 
@@ -99,7 +100,7 @@ An optional connected account can also receive plan entitlements from Insightist
 * All analytics data is fetched via admin-only AJAX  zero impact on frontend page load
 * 15-minute transient caching minimises Google API quota usage
 * Minified JS and CSS served in production (source files served when SCRIPT_DEBUG is on)
-* Chart.js 4.4.4 bundled locally under the MIT License  no external CDN requests. Source: https://github.com/chartjs/Chart.js/tree/v4.4.4
+* Chart.js 4.6.1 bundled locally under the MIT License  no external CDN requests. Source: https://github.com/chartjs/Chart.js/tree/v4.6.1
 
 == Installation ==
 
@@ -140,7 +141,7 @@ Yes. Every credential is encrypted with AES-256-CBC using your site's unique Wor
 
 = Does this plugin require an Insightistic account? =
 
-No. GA4, Search Console, PageSpeed, Cloudflare (with your own token), WooCommerce Intelligence, SEO, anomaly alerts, content lab, engagement tracking, and email digests all work with no account. An account is optional and is only used for Insightistic Cloud AI and for syncing this site to the Insightistic dashboard. Bring-your-own AI keys do not need an account.
+No. GA4, Search Console, PageSpeed, Cloudflare (with your own token), WooCommerce Intelligence, SEO, anomaly alerts, content lab, engagement tracking, and email digests all work with no account. An account is optional and is only used for Insightistic Cloud AI and for syncing this site to the Insightistic dashboard.
 
 = Is Insightistic affiliated with Google? =
 
@@ -148,11 +149,15 @@ No. "GA4", "Google Analytics", and "Search Console" are used only to describe th
 
 = Does the AI analysis run automatically? =
 
-No. AI analysis is always triggered manually by clicking "Get AI Insights". This keeps you in full control of API usage and cost.
+No. AI analysis is off by default, needs your explicit consent in Settings > AI Insights, and then only runs when you click "Get AI Insights".
 
-= Which AI providers are supported? =
+= Which AI service does the plugin use? =
 
-OpenAI, Google Gemini, Anthropic Claude, Groq, OpenRouter, and Insightistic Cloud AI. Cloud AI selects the provider chain server-side from the connected account's entitlement: free accounts use the WPistic gateway and free OpenRouter fallbacks, while paid accounts follow their plan's model route. No provider key is stored in WordPress for Cloud AI.
+Only Insightistic Cloud AI (api.insightistic.com). The plugin does not store any AI provider key and does not call any AI provider directly; the Insightistic service chooses the model on its side. Each analysis uses AI credits from your Insightistic account; free accounts get a limited monthly allowance.
+
+= Can I use my own OpenAI, Claude, or OpenRouter model? =
+
+Not in this plugin. Connecting your own models (GPT, Claude, OpenRouter, or a custom endpoint) is a feature of the separate paid Insightistic plugin ($29/month or $99/year).
 
 = What does the engagement tracking script collect? =
 
@@ -197,7 +202,7 @@ This plugin contacts external services only after you save credentials or explic
 * Used for: clicks, impressions, queries, and pages.
 * Data sent: your Search Console property URL and the report request.
 * When: you open the Search Console tab or refresh it.
-* Service: searchconsole.googleapis.com (token from oauth2.googleapis.com).
+* Service: www.googleapis.com (Search Console API, webmasters/v3; token from oauth2.googleapis.com).
 * Terms: https://policies.google.com/terms
 * Privacy: https://policies.google.com/privacy
 
@@ -238,20 +243,33 @@ This plugin contacts external services only after you save credentials or explic
 * Terms: https://www.insightistic.com/terms/
 * Privacy: https://www.insightistic.com/privacy-policy/
 
-**AI providers (optional, only the one you select, using your own key)**
+**Insightistic Cloud AI (optional, off by default, only after you opt in)**
 
-* OpenAI: api.openai.com — https://openai.com/policies/terms-of-use — https://openai.com/policies/privacy-policy
-* Google Gemini: generativelanguage.googleapis.com — https://policies.google.com/terms — https://policies.google.com/privacy
-* OpenRouter: openrouter.ai — https://openrouter.ai/terms — https://openrouter.ai/privacy
-* Groq: api.groq.com — https://groq.com/terms-of-use/ — https://groq.com/privacy-policy/
-* Anthropic: api.anthropic.com — https://www.anthropic.com/legal/consumer-terms — https://www.anthropic.com/legal/privacy
-* Data sent: the analytics summary already on screen, only when you click "Get AI Insights".
+* Used for: generating the AI Insights analysis shown on the dashboard (GA4/Search Console, WooCommerce, and Cloudflare analysis).
+* Data sent: the analytics summary already shown on the dashboard for the selected date range (for example sessions, top pages and sources, Search Console queries and clicks, WooCommerce revenue, product and refund totals, or Cloudflare traffic totals), the selected analysis focus, and the instructions for the analysis. The request is signed with this site's Insightistic connection key. No GA4/Google/Cloudflare credentials and no payment data are sent.
+* When: only when an administrator has (1) connected a free Insightistic account, (2) enabled AI Insights and ticked the consent box in Settings > AI Insights, and (3) clicks "Get AI Insights" or "Test Connection". The plugin then also asks Insightistic for the updated AI credit balance. Nothing is sent automatically.
+* Service: https://api.insightistic.com (endpoint /api/plugin/ai-insights; credit balance via /api/plugin/validate)
+* Terms: https://www.insightistic.com/terms/
+* Privacy: https://www.insightistic.com/privacy-policy/
+
+**IndexNow (optional, through Insightistic)**
+
+* Used for: notifying search engines that support IndexNow when you publish or update public content.
+* Data sent: the public URLs of published or updated posts, via api.insightistic.com, which forwards them to IndexNow. The plugin writes an IndexNow key file ({key}.txt) to the site root so search engines can verify ownership.
+* When: only after an Insightistic account is connected and IndexNow is enabled, on publish/update.
+* Service: api.insightistic.com
+* Terms: https://www.insightistic.com/terms/ and https://www.indexnow.org/terms
+* Privacy: https://www.insightistic.com/privacy-policy/
+
+**WooCommerce (local)**
+
+* WooCommerce Intelligence reads orders and products from this site's own database. Nothing is sent externally unless you connect an Insightistic account (see below).
 
 **Insightistic (optional, only after you paste a license key)**
 
 * Used for: Insightistic Cloud AI, and for syncing this site to your Insightistic dashboard (GA4/GSC summaries, Cloudflare summaries if configured, WooCommerce order and product summaries, 404/broken-link summaries, and IndexNow URL submission).
 * Data sent: site URL, plugin version, and the datasets above. Customer details are included only as part of the WooCommerce summary sync you start by activating the key. No payment card data is ever sent.
-* When: you click Activate, Refresh, or Sync now, once a day after that via WP-Cron, and when you click Get AI Insights with Cloud AI selected.
+* When: you click Activate, Refresh, or Sync now, once a day after that via WP-Cron, and, for Cloud AI, only when you have given consent and click Get AI Insights.
 * Service: api.insightistic.com and app.insightistic.com
 * Terms: https://www.insightistic.com/terms/
 * Privacy: https://www.insightistic.com/privacy-policy/
@@ -259,6 +277,14 @@ This plugin contacts external services only after you save credentials or explic
 Disconnecting on the License screen stops all calls to Insightistic.
 
 == Changelog ==
+
+= 4.7.0 (2026-11-02) =
+
+* Changed: AI Insights now use only Insightistic Cloud AI. Direct connections to third-party AI providers and their settings were removed from the free plugin; stored provider keys are deleted on upgrade.
+* Added: an explicit consent setting for Insightistic Cloud AI (off by default), AI credits remaining in Settings and on each analysis, and a clear message when the monthly credit allowance is used up.
+* Changed: the IndexNow key file is written with the WordPress Filesystem API only, with explicit permissions on that file.
+* Updated: bundled Chart.js to 4.6.1.
+* Docs: expanded the External services section.
 
 = 4.6.5 (2026-10-31) =
 
@@ -524,6 +550,9 @@ The GA4 Data API returns data differently when date ranges carry names (`current
 * Initial release  GA4 sessions, users, revenue, Top Countries, Top Pages, time-series chart
 
 == Upgrade Notice ==
+
+= 4.7.0 =
+AI Insights now run only through Insightistic Cloud AI and need your consent in Settings > AI Insights. Previously stored third-party AI keys are removed.
 
 = 2.0.0 =
 Major feature release. Adds Search Console, PageSpeed, Engagement Tracking, and 6 new dashboard cards. No breaking changes  existing GA4 credentials and settings are preserved automatically.

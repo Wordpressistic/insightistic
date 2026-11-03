@@ -37,6 +37,8 @@ $insightistic_options = array(
 	// AI.
 	'insightistic_ai_enabled',
 	'insightistic_ai_provider',
+	'insightistic_ai_consent',
+	'insightistic_migrated_470',
 	'insightistic_ai_skill_profile',
 	'insightistic_openai_key',
 	'insightistic_openai_model',
@@ -101,7 +103,7 @@ wp_clear_scheduled_hook( 'insightistic_indexnow_flush' );
 // Sweep any remaining plugin options (e.g. dynamically-named rotation
 // timestamps) plus all plugin transients.
 global $wpdb;
-$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Bulk-deletes this plugin's own prefixed transients by LIKE; no WP API exists for wildcard transient deletion and the result must not be cached.
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
 		'insightistic\_%\_key_updated_at',

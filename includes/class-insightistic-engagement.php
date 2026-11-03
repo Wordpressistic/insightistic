@@ -304,7 +304,7 @@ class Insightistic_Engagement {
 		}
 
 		// Unslashed here; each field is sanitised inside sanitize_params().
-		$params = $this->sanitize_params( wp_unslash( $_POST['params'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$params = $this->sanitize_params( wp_unslash( $_POST['params'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		$endpoint = add_query_arg(

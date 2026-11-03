@@ -91,7 +91,7 @@ class Insightistic_Woocommerce {
 		}
 
 		// Raw JSON payload from our own dashboard JS; decoded below, never echoed.
-		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 		$data     = json_decode( $raw_data, true );
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			wp_send_json_error( __( 'No commerce data to analyse. Load Commerce data first.', 'insightistic' ) );
@@ -684,7 +684,7 @@ class Insightistic_Woocommerce {
 				'post_type'      => array( 'product', 'product_variation' ),
 				'post_status'    => 'publish',
 				'posts_per_page' => 50,
-				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery -- Bounded admin-only query on an indexed WooCommerce meta key, limited and cached.
 					array(
 						'key'     => '_manage_stock',
 						'value'   => 'yes',

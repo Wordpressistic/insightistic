@@ -167,7 +167,7 @@ if ( false === $plugin_src || false === $readme_src ) {
 	$admin_src = $zip->contents( 'insightistic/includes/class-insightistic-admin.php' );
 	if ( false === $admin_src || ! preg_match( "/wp_register_script\(\s*'insightistic-chartjs'.*?'(\d+\.\d+\.\d+)'\s*,\s*true/s", $admin_src, $gm ) ) {
 		$failures[] = 'Cannot verify Chart.js registration inside package.';
-	} elseif ( $version && $gm[1] === $version && '4.4.4' !== $version ) {
+	} elseif ( $version && $gm[1] === $version && '4.6.1' !== $version ) {
 		$failures[] = 'Chart.js dependency version appears overwritten with plugin version.';
 	} else {
 		echo "OK   Chart.js dependency version retained ({$gm[1]})\n";

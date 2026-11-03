@@ -27,30 +27,14 @@ $insightistic_secret_stored  = (bool) get_option( 'insightistic_measurement_secr
 $insightistic_monitor_404_on = (bool) get_option( 'insightistic_404_monitor_enabled', 1 );
 
 // AI.
-$insightistic_ai_enabled        = (int) get_option( 'insightistic_ai_enabled', 0 );
-$insightistic_ai_provider       = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
-$insightistic_openai_stored     = (bool) get_option( 'insightistic_openai_key' );
-$insightistic_gemini_stored     = (bool) get_option( 'insightistic_gemini_key' );
-$insightistic_openrouter_stored = (bool) get_option( 'insightistic_openrouter_key' );
-$insightistic_claude_stored     = (bool) get_option( 'insightistic_claude_key' );
-$insightistic_groq_stored       = (bool) get_option( 'insightistic_groq_key' );
-$insightistic_openai_model      = get_option( 'insightistic_openai_model', 'gpt-4o-mini' );
-$insightistic_gemini_model      = get_option( 'insightistic_gemini_model', 'gemini-1.5-flash' );
-$insightistic_openrouter_model  = get_option( 'insightistic_openrouter_model', 'meta-llama/llama-3.3-70b-instruct:free' );
-$insightistic_claude_model      = get_option( 'insightistic_claude_model', 'claude-haiku-4-5-20251001' );
-$insightistic_groq_model        = get_option( 'insightistic_groq_model', 'llama-3.1-8b-instant' );
-$insightistic_ai_skill_profile  = get_option( 'insightistic_ai_skill_profile', 'basic' );
-$insightistic_cloud_model       = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
-$insightistic_cloud_connected   = class_exists( 'Insightistic_License_Manager' ) && Insightistic_License_Manager::is_connected();
+$insightistic_ai_enabled       = (int) get_option( 'insightistic_ai_enabled', 0 );
+$insightistic_ai_consent       = (int) get_option( 'insightistic_ai_consent', 0 );
+$insightistic_ai_skill_profile = get_option( 'insightistic_ai_skill_profile', 'basic' );
+$insightistic_cloud_model      = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
+$insightistic_cloud_connected  = class_exists( 'Insightistic_License_Manager' ) && Insightistic_License_Manager::is_connected();
 
-// AI key rotation timestamps (per-provider) for the "Last rotated" badge.
-$insightistic_key_updated_at = array(
-	'openai'     => (int) get_option( 'insightistic_openai_key_updated_at', 0 ),
-	'gemini'     => (int) get_option( 'insightistic_gemini_key_updated_at', 0 ),
-	'openrouter' => (int) get_option( 'insightistic_openrouter_key_updated_at', 0 ),
-	'groq'       => (int) get_option( 'insightistic_groq_key_updated_at', 0 ),
-	'claude'     => (int) get_option( 'insightistic_claude_key_updated_at', 0 ),
-);
+// AI credits (from the last license check-in with Insightistic).
+$insightistic_ai_credits = Insightistic_AI::credits_summary();
 
 // Cloudflare Traffic Insights (Phase 0: credentials only).
 $insightistic_cf_zone_id      = get_option( 'insightistic_cloudflare_zone_id', '' );
@@ -541,58 +525,31 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					</label>
 				</div>
 
-				<div class="isp-field">
-					<label class="isp-label"><?php esc_html_e( 'AI Provider', 'insightistic' ); ?></label>
-					<div class="isp-provider-grid">
+				<div class="isp-field isp-field-toggle">
+					<label class="isp-label" for="isp-ai-consent"><?php esc_html_e( 'Consent to use Insightistic Cloud AI', 'insightistic' ); ?></label>
+					<label>
+						<input type="checkbox" id="isp-ai-consent" name="ai_consent" value="1" <?php checked( $insightistic_ai_consent ); ?>>
+						<?php esc_html_e( 'I agree that when I click "Get AI Insights", a summary of this site\'s analytics data (for example GA4, Search Console, WooCommerce or Cloudflare metrics shown on the dashboard) is sent to the Insightistic service at api.insightistic.com to generate the analysis.', 'insightistic' ); ?>
+					</label>
+					<p class="isp-hint">
 						<?php
-						$insightistic_providers = array(
-							'none'               => array(
-								'icon' => '',
-								'name' => __( 'None', 'insightistic' ),
-								'note' => __( 'Disabled', 'insightistic' ),
+						printf(
+							wp_kses(
+								/* translators: 1: terms URL, 2: privacy policy URL */
+								__( 'Off by default. Nothing is sent until you tick this box and run an analysis yourself. See the <a href="%1$s" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="%2$s" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.', 'insightistic' ),
+								array(
+									'a' => array(
+										'href'   => array(),
+										'target' => array(),
+										'rel'    => array(),
+									),
+								)
 							),
-							'openai'             => array(
-								'icon' => '',
-								'name' => 'OpenAI',
-								'note' => 'GPT-4o / GPT-4',
-							),
-							'gemini'             => array(
-								'icon' => '',
-								'name' => 'Google Gemini',
-								'note' => 'Gemini 1.5',
-							),
-							'openrouter'         => array(
-								'icon' => '',
-								'name' => 'OpenRouter',
-								'note' => __( 'Free models available', 'insightistic' ),
-							),
-							'groq'               => array(
-								'icon' => '',
-								'name' => 'Groq',
-								'note' => __( 'Fast and low-cost models', 'insightistic' ),
-							),
-							'claude'             => array(
-								'icon' => '',
-								'name' => 'Anthropic Claude',
-								'note' => 'Claude 3',
-							),
-							'insightistic_cloud' => array(
-								'icon' => '☁',
-								'name' => __( 'Insightistic Cloud AI', 'insightistic' ),
-								'note' => __( 'Free account • plan-aware AI routing', 'insightistic' ),
-							),
+							esc_url( INSIGHTISTIC_TERMS_URL ),
+							esc_url( INSIGHTISTIC_PRIVACY_URL )
 						);
-						foreach ( $insightistic_providers as $insightistic_key => $insightistic_p ) :
-							$insightistic_selected = $insightistic_ai_provider === $insightistic_key ? 'isp-provider-selected' : '';
-							?>
-							<label class="isp-provider-card <?php echo esc_attr( $insightistic_selected ); ?>">
-								<input type="radio" name="ai_provider" value="<?php echo esc_attr( $insightistic_key ); ?>" <?php checked( $insightistic_ai_provider, $insightistic_key ); ?>>
-								<span class="isp-provider-icon"><?php echo esc_html( $insightistic_p['icon'] ); ?></span>
-								<span class="isp-provider-name"><?php echo esc_html( $insightistic_p['name'] ); ?></span>
-								<span class="isp-provider-note"><?php echo esc_html( $insightistic_p['note'] ); ?></span>
-							</label>
-						<?php endforeach; ?>
-					</div>
+						?>
+					</p>
 				</div>
 
 				<div class="isp-field">
@@ -605,145 +562,8 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 				</div>
 			</div>
 
-			<?php
-			foreach ( array( 'openai', 'gemini', 'openrouter', 'groq', 'claude' ) as $insightistic_prov ) :
-				$insightistic_display    = array(
-					'openai'     => 'OpenAI',
-					'gemini'     => 'Google Gemini',
-					'openrouter' => 'OpenRouter',
-					'groq'       => 'Groq',
-					'claude'     => 'Anthropic Claude',
-				);
-				$insightistic_key_stored = array(
-					'openai'     => $insightistic_openai_stored,
-					'gemini'     => $insightistic_gemini_stored,
-					'openrouter' => $insightistic_openrouter_stored,
-					'groq'       => $insightistic_groq_stored,
-					'claude'     => $insightistic_claude_stored,
-				);
-				$insightistic_cur_model  = array(
-					'openai'     => $insightistic_openai_model,
-					'gemini'     => $insightistic_gemini_model,
-					'openrouter' => $insightistic_openrouter_model,
-					'groq'       => $insightistic_groq_model,
-					'claude'     => $insightistic_claude_model,
-				);
-				$insightistic_model_opts = array(
-					'openai'     => array(
-						'gpt-4o-mini' => 'GPT-4o Mini (recommended)',
-						'gpt-4o'      => 'GPT-4o',
-						'gpt-4-turbo' => 'GPT-4 Turbo',
-					),
-					'gemini'     => array(
-						'gemini-1.5-flash'     => 'Gemini 1.5 Flash (recommended)',
-						'gemini-1.5-pro'       => 'Gemini 1.5 Pro',
-						'gemini-2.0-flash-exp' => 'Gemini 2.0 Flash',
-					),
-					'openrouter' => array(
-						// --- Free tier models (:free suffix = no API cost) ---
-						// Current as of the 3.2.1 release. If a slug ever 404s on
-						// OpenRouter, use the custom-model input below with any
-						// slug from https://openrouter.ai/models?max_price=0
-						'meta-llama/llama-3.3-70b-instruct:free' => 'Meta Llama 3.3 70B (Free - recommended)',
-						'deepseek/deepseek-chat-v3-0324:free' => 'DeepSeek Chat V3 (Free)',
-						'deepseek/deepseek-r1-0528:free'  => 'DeepSeek R1 (Free - reasoning)',
-						'google/gemma-2-9b-it:free'       => 'Google Gemma 2 9B (Free)',
-						'mistralai/mistral-small-3.2-24b-instruct:free' => 'Mistral Small 3.2 24B (Free)',
-						'mistralai/mistral-small-3.1-24b-instruct:free' => 'Mistral Small 3.1 24B (Free)',
-						'qwen/qwen3-14b:free'             => 'Qwen 3 14B (Free)',
-						'qwen/qwen3-8b:free'              => 'Qwen 3 8B (Free)',
-						'meta-llama/llama-3.2-3b-instruct:free' => 'Meta Llama 3.2 3B (Free - fast)',
-						'nvidia/nemotron-nano-9b-v2:free' => 'NVIDIA Nemotron Nano 9B v2 (Free)',
-						// --- Reliable paid fallbacks ---
-						'openai/gpt-4o-mini'              => 'GPT-4o Mini (Paid)',
-						'anthropic/claude-3.5-haiku'      => 'Claude 3.5 Haiku (Paid)',
-					),
-					'groq'       => array(
-						'llama-3.1-8b-instant'    => 'Llama 3.1 8B Instant',
-						'llama-3.3-70b-versatile' => 'Llama 3.3 70B Versatile',
-						'mixtral-8x7b-32768'      => 'Mixtral 8x7B',
-						'gemma2-9b-it'            => 'Gemma2 9B IT',
-					),
-					'claude'     => array(
-						'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (recommended)',
-						'claude-sonnet-4-6'         => 'Claude Sonnet 4.6',
-						'claude-opus-4-6'           => 'Claude Opus 4.6',
-					),
-				);
-				$insightistic_key_fields = array(
-					'openai'     => 'openai_api_key',
-					'gemini'     => 'gemini_api_key',
-					'openrouter' => 'openrouter_api_key',
-					'groq'       => 'groq_api_key',
-					'claude'     => 'claude_api_key',
-				);
-				$insightistic_vis        = $insightistic_ai_provider === $insightistic_prov ? '' : 'display:none;';
-				?>
-			<div class="isp-settings-card isp-provider-settings" id="isp-settings-<?php echo esc_attr( $insightistic_prov ); ?>" style="<?php echo esc_attr( $insightistic_vis ); ?>">
-				<div class="isp-settings-card-header">
-					<h3><?php echo esc_html( $insightistic_display[ $insightistic_prov ] ); ?> <?php esc_html_e( 'Settings', 'insightistic' ); ?></h3>
-				</div>
-				<div class="isp-field">
-					<label class="isp-label" for="ai_key_<?php echo esc_attr( $insightistic_prov ); ?>"><?php esc_html_e( 'API Key', 'insightistic' ); ?></label>
-					<?php if ( $insightistic_key_stored[ $insightistic_prov ] ) : ?>
-					<div class="isp-key-stored">
-						<span class="isp-key-badge"><?php esc_html_e( 'Key stored & encrypted', 'insightistic' ); ?></span>
-						<?php if ( ! empty( $insightistic_key_updated_at[ $insightistic_prov ] ) ) : ?>
-						<span class="isp-key-rotated-label"><?php echo esc_html( insightistic_format_rotated( $insightistic_key_updated_at[ $insightistic_prov ] ) ); ?></span>
-						<?php endif; ?>
-						<button type="button" class="isp-link-btn isp-change-ai-key" data-provider="<?php echo esc_attr( $insightistic_prov ); ?>"><?php esc_html_e( 'Change key', 'insightistic' ); ?></button>
-						<button type="button" class="isp-link-btn isp-link-danger isp-clear-ai-key" data-provider="<?php echo esc_attr( $insightistic_prov ); ?>"><?php esc_html_e( 'Clear key', 'insightistic' ); ?></button>
-					</div>
-					<input type="text" id="ai_key_<?php echo esc_attr( $insightistic_prov ); ?>" name="<?php echo esc_attr( $insightistic_key_fields[ $insightistic_prov ] ); ?>" class="isp-input"
-						style="display:none;" placeholder="<?php esc_attr_e( 'Enter new key to replace', 'insightistic' ); ?>" autocomplete="off" />
-					<?php else : ?>
-					<input type="text" id="ai_key_<?php echo esc_attr( $insightistic_prov ); ?>" name="<?php echo esc_attr( $insightistic_key_fields[ $insightistic_prov ] ); ?>" class="isp-input"
-						placeholder="<?php esc_attr_e( 'Enter API key', 'insightistic' ); ?>" autocomplete="off" />
-					<?php endif; ?>
-				</div>
-				<div class="isp-field">
-					<label class="isp-label" for="<?php echo esc_attr( $insightistic_prov ); ?>_model"><?php esc_html_e( 'Model', 'insightistic' ); ?></label>
-					<select id="<?php echo esc_attr( $insightistic_prov ); ?>_model" name="<?php echo esc_attr( $insightistic_prov ); ?>_model" class="isp-select">
-						<?php foreach ( $insightistic_model_opts[ $insightistic_prov ] as $insightistic_val => $insightistic_label ) : ?>
-						<option value="<?php echo esc_attr( $insightistic_val ); ?>" <?php selected( $insightistic_cur_model[ $insightistic_prov ], $insightistic_val ); ?>><?php echo esc_html( $insightistic_label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<input type="text" name="<?php echo esc_attr( $insightistic_prov ); ?>_model_custom" class="isp-input" style="margin-top:8px;" placeholder="<?php esc_attr_e( 'Optional: paste any custom model slug (overrides dropdown when saved)', 'insightistic' ); ?>" />
-					<?php if ( 'openrouter' === $insightistic_prov ) : ?>
-					<div class="isp-notice isp-notice-info" style="margin-top:10px; flex-direction:column; align-items:flex-start;">
-						<strong style="margin-bottom:4px;"><?php esc_html_e( 'Heads up - free models on OpenRouter require a one-time opt-in.', 'insightistic' ); ?></strong>
-						<?php
-						printf(
-							/* translators: 1: privacy URL, 2: free models URL */
-							wp_kses(
-								/* translators: 1: privacy settings URL, 2: free models catalog URL */
-								__( 'Open %1$s and enable <em>"Free model providers may train on my prompts"</em>. Without it every <code>:free</code> model rejects requests with a "no endpoints / data policy" error. Once enabled, any current slug from %2$s will work.', 'insightistic' ),
-								array(
-									'em'   => array(),
-									'code' => array(),
-								)
-							),
-							'<a href="https://openrouter.ai/settings/privacy" target="_blank" rel="noopener noreferrer">openrouter.ai/settings/privacy</a>', // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-							'<a href="https://openrouter.ai/models?max_price=0" target="_blank" rel="noopener noreferrer">openrouter.ai/models?max_price=0</a>' // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- intentional BYO-key provider endpoint; the WordPress AI Client needs WP 7.0+, this plugin supports 5.6+
-						);
-						?>
-					</div>
-					<?php endif; ?>
-				</div>
-				<?php if ( $insightistic_key_stored[ $insightistic_prov ] ) : ?>
-				<div class="isp-field isp-ai-test-field">
-					<button type="button" class="isp-btn isp-btn-secondary isp-test-ai-provider" data-provider="<?php echo esc_attr( $insightistic_prov ); ?>">
-						<?php esc_html_e( 'Test This Provider', 'insightistic' ); ?>
-					</button>
-					<p class="isp-hint"><?php esc_html_e( 'Sends a 1-sentence prompt to verify the key, the model, and the network path.', 'insightistic' ); ?></p>
-					<div class="isp-ai-test-result" style="margin-top:10px;"></div>
-				</div>
-				<?php endif; ?>
-			</div>
-			<?php endforeach; ?>
-
 			<!-- Insightistic Cloud AI  no key: uses the free account connection. -->
-			<div class="isp-settings-card isp-provider-settings" id="isp-settings-insightistic_cloud" style="<?php echo esc_attr( 'insightistic_cloud' === $insightistic_ai_provider ? '' : 'display:none;' ); ?>">
+			<div class="isp-settings-card isp-provider-settings" id="isp-settings-insightistic_cloud">
 				<div class="isp-settings-card-header">
 					<h3><?php esc_html_e( 'Insightistic Cloud AI Settings', 'insightistic' ); ?></h3>
 					<p class="isp-header-desc"><?php esc_html_e( 'Uses the AI provider route assigned to your Insightistic account. Free accounts use free model routing; no provider key is stored on this site.', 'insightistic' ); ?></p>
@@ -751,11 +571,24 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 
 				<?php if ( $insightistic_cloud_connected ) : ?>
 				<div class="isp-notice isp-notice-success">
-					<?php esc_html_e( 'Connected  Insightistic Cloud AI is ready to use.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Connected. Insightistic Cloud AI is ready to use.', 'insightistic' ); ?>
+				</div>
+				<div class="isp-field isp-ai-credits">
+					<label class="isp-label"><?php esc_html_e( 'AI credits remaining', 'insightistic' ); ?></label>
+					<p>
+						<strong><?php echo esc_html( number_format_i18n( $insightistic_ai_credits['total'] ) ); ?></strong>
+						<?php if ( $insightistic_ai_credits['granted'] > 0 ) : ?>
+							<?php
+							/* translators: 1: remaining monthly credits, 2: monthly allowance */
+							echo esc_html( sprintf( __( '(%1$s of %2$s free monthly credits left)', 'insightistic' ), number_format_i18n( $insightistic_ai_credits['monthly'] ), number_format_i18n( $insightistic_ai_credits['granted'] ) ) );
+							?>
+						<?php endif; ?>
+					</p>
+					<p class="isp-hint"><?php esc_html_e( 'Free accounts include a limited monthly allowance of AI credits that resets each month. When it runs out, AI analysis pauses until the reset; every other dashboard keeps working. Balance updates at each license check-in.', 'insightistic' ); ?></p>
 				</div>
 				<?php else : ?>
 				<div class="isp-notice isp-notice-info">
-					<?php esc_html_e( 'Create a free Insightistic account to use this provider  every other provider on this page still needs its own key.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Connect a free Insightistic account to use Insightistic Cloud AI. No AI provider key is stored on this site.', 'insightistic' ); ?>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=insightistic-license' ) ); ?>"><?php esc_html_e( 'Create a free account →', 'insightistic' ); ?></a>
 				</div>
 				<?php endif; ?>
@@ -769,10 +602,10 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<p class="isp-hint"><?php esc_html_e( 'Choose the analysis focus. Insightistic selects the available AI provider and model from your account plan, with free routing for free accounts.', 'insightistic' ); ?></p>
 				</div>
 
-				<?php if ( $insightistic_cloud_connected ) : ?>
+				<?php if ( $insightistic_cloud_connected && $insightistic_ai_consent ) : ?>
 				<div class="isp-field isp-ai-test-field">
 					<button type="button" class="isp-btn isp-btn-secondary isp-test-ai-provider" data-provider="insightistic_cloud">
-						<?php esc_html_e( 'Test This Provider', 'insightistic' ); ?>
+						<?php esc_html_e( 'Test Connection', 'insightistic' ); ?>
 					</button>
 					<p class="isp-hint"><?php esc_html_e( 'Sends a 1-sentence prompt through the Insightistic Cloud AI backend to verify connectivity.', 'insightistic' ); ?></p>
 					<div class="isp-ai-test-result" style="margin-top:10px;"></div>

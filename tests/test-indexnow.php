@@ -216,6 +216,16 @@ if ( ! class_exists( 'Insightistic_Test_Filesystem', false ) ) {
 			);
 			return ! empty( $GLOBALS['insightistic_test_fs_ok'] );
 		}
+
+		public $chmods = array();
+
+		public function chmod( $path, $mode = false ) {
+			$this->chmods[] = array(
+				'path' => $path,
+				'mode' => $mode,
+			);
+			return true;
+		}
 	}
 }
 
@@ -551,6 +561,9 @@ $fs_writes = $GLOBALS['insightistic_test_fs']->writes;
 assert_true( 1 === count( $fs_writes ), 'exactly one key-file write (self-heal)' );
 assert_true( false !== strpos( $fs_writes[0]['path'], '/' . INDEXNOW_TEST_KEY . '.txt' ), 'key file path is ABSPATH/{key}.txt' );
 assert_same( INDEXNOW_TEST_KEY, $fs_writes[0]['contents'], 'key file body is exactly the key' );
+$fs_chmods = $GLOBALS['insightistic_test_fs']->chmods;
+assert_true( 1 === count( $fs_chmods ) && 0644 === $fs_chmods[0]['mode'] && $fs_chmods[0]['path'] === $fs_writes[0]['path'], 'explicit 0644 chmod only on our own key file' );
+assert_true( ! defined( 'FS_CHMOD_FILE' ), 'plugin does not define the core FS_CHMOD_FILE constant' );
 
 /* 7. Failure paths: 422 not initialized + network error keep the queue. */
 echo "- failure paths\n";

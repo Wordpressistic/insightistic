@@ -115,6 +115,6 @@ class Insightistic_Auth {
 	 * @return string
 	 */
 	private static function base64url( $data ) {
-		return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes binary ciphertext/random bytes for storage; not code obfuscation.
 	}
 }

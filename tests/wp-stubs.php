@@ -53,6 +53,11 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 	}
 }
 
+if ( ! function_exists( 'did_action' ) ) {
+	function did_action( $h ) {
+		return 1;
+	}
+}
 if ( ! function_exists( '__' ) ) {
 	function __( $s, $d = null ) {
 		return $s;

@@ -39,6 +39,43 @@ if ( ! function_exists( 'insightistic_addon_icon_svg' ) ) {
 	}
 }
 
+if ( ! function_exists( 'insightistic_addon_icon_kses' ) ) {
+	/**
+	 * Allowed SVG markup for the add-on icons.
+	 *
+	 * @return array
+	 */
+	function insightistic_addon_icon_kses() {
+		$shape = array(
+			'x'      => true,
+			'y'      => true,
+			'width'  => true,
+			'height' => true,
+			'rx'     => true,
+			'cx'     => true,
+			'cy'     => true,
+			'r'      => true,
+			'd'      => true,
+		);
+		return array(
+			'svg'    => array(
+				'width'           => true,
+				'height'          => true,
+				'viewbox'         => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-width'    => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+				'aria-hidden'     => true,
+			),
+			'path'   => $shape,
+			'rect'   => $shape,
+			'circle' => $shape,
+		);
+	}
+}
+
 $insightistic_addons = array(
 	array(
 		'slug'  => 'email_automations',
@@ -132,7 +169,7 @@ unset( $insightistic_addon );
 			?>
 			<div class="isp-addon-card" data-type="<?php echo esc_attr( $insightistic_addon['type'] ); ?>" data-status="<?php echo esc_attr( $insightistic_addon['status'] ); ?>" data-addon-slug="<?php echo esc_attr( $insightistic_addon['slug'] ); ?>">
 				<div class="isp-addon-card-top">
-					<div class="isp-addon-icon isp-addon-icon-<?php echo esc_attr( $insightistic_addon['color'] ); ?>"><?php echo insightistic_addon_icon_svg( $insightistic_addon['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static trusted SVG, no user input. ?></div>
+					<div class="isp-addon-icon isp-addon-icon-<?php echo esc_attr( $insightistic_addon['color'] ); ?>"><?php echo wp_kses( insightistic_addon_icon_svg( $insightistic_addon['icon'] ), insightistic_addon_icon_kses() ); ?></div>
 					<span class="isp-addon-type-badge <?php echo esc_attr( $insightistic_type_class ); ?>"><?php echo esc_html( $insightistic_addon['type'] ); ?></span>
 				</div>
 				<h3 class="isp-addon-name"><?php echo esc_html( $insightistic_addon['name'] ); ?></h3>

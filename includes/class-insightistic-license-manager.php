@@ -39,6 +39,21 @@ class Insightistic_License_Manager {
 		add_action( self::CRON_HOOK, array( $this, 'cron_validate' ) );
 		add_action( 'upgrader_process_complete', array( $this, 'after_plugin_update' ), 10, 2 );
 
+		// Defer scheduling to init so other plugins' cron_schedules filters
+		// do not translate strings too early (WP 6.7+ notice).
+		if ( did_action( 'init' ) ) {
+			$this->maybe_schedule_events();
+		} else {
+			add_action( 'init', array( $this, 'maybe_schedule_events' ) );
+		}
+	}
+
+	/**
+	 * Schedule the daily validate and sync crons for connected sites.
+	 *
+	 * @return void
+	 */
+	public function maybe_schedule_events() {
 		if ( self::is_connected() && ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
 		}
@@ -137,7 +152,7 @@ class Insightistic_License_Manager {
 		if ( ! preg_match( '/^insightistic_[A-Za-z0-9]{20,40}$/', $raw_key ) ) {
 			return new WP_Error(
 				'invalid_format',
-				__( 'That does not look like an Insightistic license key. Keys start with "insightistic_".', 'insightistic' )
+				__( 'That does not look like an Insightistic account key. Keys start with "insightistic_".', 'insightistic' )
 			);
 		}
 
@@ -189,7 +204,7 @@ class Insightistic_License_Manager {
 	 */
 	public function refresh() {
 		if ( ! self::is_connected() ) {
-			return new WP_Error( 'not_connected', __( 'No license is active on this site yet.', 'insightistic' ) );
+			return new WP_Error( 'not_connected', __( 'No Insightistic account is connected to this site.', 'insightistic' ) );
 		}
 
 		$result = Insightistic_Saas_Client::validate();
@@ -213,7 +228,7 @@ class Insightistic_License_Manager {
 
 		// Network failure: keep the cached state, note the miss. The gate honors
 		// the cache until grace runs out (is_stale()).
-		return new WP_Error( 'network', __( 'Could not reach Insightistic — using your cached license for now.', 'insightistic' ) );
+		return new WP_Error( 'network', __( 'Could not reach Insightistic — using the cached connection for now.', 'insightistic' ) );
 	}
 
 	/**
@@ -278,12 +293,9 @@ class Insightistic_License_Manager {
 		$purchased = is_array( $credits['purchased'] ?? null ) ? $credits['purchased'] : array();
 		$state     = array(
 			'status'                       => sanitize_key( $license['status'] ?? 'none' ),
-			'plan'                         => sanitize_key( $license['plan'] ?? '' ),
-			'plan_name'                    => sanitize_text_field( $license['plan_name'] ?? '' ),
 			'features'                     => array_map( 'sanitize_key', (array) ( $license['features'] ?? array() ) ),
 			'activation_limit'             => absint( $license['activation_limit'] ?? 1 ),
 			'activations_used'             => absint( $license['activations_used'] ?? 0 ),
-			'trial_ends_at'                => sanitize_text_field( (string) ( $license['trial_ends_at'] ?? '' ) ),
 			'expires_at'                   => sanitize_text_field( (string) ( $license['expires_at'] ?? '' ) ),
 			'validate_interval'            => absint( $license['validate_interval'] ?? DAY_IN_SECONDS ),
 			'grace_hours'                  => absint( $license['grace_hours'] ?? 72 ),
@@ -302,7 +314,6 @@ class Insightistic_License_Manager {
 				),
 				'total_usable'     => absint( $credits['total_usable'] ?? 0 ),
 			),
-			'upgrade_url'                  => esc_url_raw( $license['upgrade_url'] ?? 'https://app.insightistic.com/dashboard/billing' ),
 			'validated_at'                 => time(),
 		);
 
@@ -321,13 +332,13 @@ class Insightistic_License_Manager {
 	private function human_error( $code, $fallback ) {
 		switch ( $code ) {
 			case 'invalid_key':
-				return __( 'This license key was not recognised. Double-check for typos, or copy it fresh from your Insightistic dashboard.', 'insightistic' );
+				return __( 'This account key was not recognised. Double-check for typos, or copy it fresh from your Insightistic dashboard.', 'insightistic' );
 			case 'key_revoked':
-				return __( 'This license key has been revoked. Generate a new key from your Insightistic dashboard.', 'insightistic' );
+				return __( 'This account key has been revoked. Generate a new key from your Insightistic dashboard.', 'insightistic' );
 			case 'license_expired':
 				return __( 'This key is no longer active. Open your Insightistic dashboard to reconnect this site.', 'insightistic' );
 			case 'activation_limit_reached':
-				return __( 'This key is already connected to the maximum number of sites. Deactivate another site first, or open your Insightistic dashboard for options.', 'insightistic' );
+				return __( 'This key is already connected to the maximum number of sites. Disconnect another site first from your Insightistic dashboard.', 'insightistic' );
 			case 'payment_required':
 				return __( 'There is an issue with your Insightistic account. Please check your account dashboard.', 'insightistic' );
 			default:

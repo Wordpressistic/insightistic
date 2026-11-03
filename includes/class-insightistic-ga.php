@@ -39,8 +39,8 @@ class Insightistic_GA {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$days  = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
-		$days  = min( max( $days, 1 ), 365 );
+		$days   = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+		$days   = min( max( $days, 1 ), 365 );
 		$force  = ! empty( $_POST['force'] );
 		$result = $this->get_dashboard_data( $days, $force );
 
@@ -1091,7 +1091,7 @@ class Insightistic_GA {
 	 */
 	private function log_quota( $decoded ) {
 		$detail = isset( $decoded['error']['message'] ) ? $decoded['error']['message'] : 'GA4 quota exceeded';
-		error_log( '[Insightistic] GA4 API quota: ' . $detail ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		do_action( 'insightistic_log', 'ga4_quota', $detail );
 	}
 
 	/**

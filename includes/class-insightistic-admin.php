@@ -26,7 +26,6 @@ class Insightistic_Admin {
 		add_action( 'wp_ajax_insightistic_preview_email_digest', array( $this, 'ajax_preview_email_digest' ) );
 		add_action( 'wp_ajax_insightistic_get_addon_report', array( $this, 'ajax_get_addon_report' ) );
 		add_action( 'wp_ajax_insightistic_save_ai_snapshot', array( $this, 'ajax_save_ai_snapshot' ) );
-		add_action( 'wp_ajax_insightistic_clear_ai_key', array( $this, 'ajax_clear_ai_key' ) );
 		add_action( 'wp_ajax_insightistic_test_ai_provider', array( $this, 'ajax_test_ai_provider' ) );
 		add_action( 'wp_ajax_insightistic_license_activate', array( $this, 'ajax_license_activate' ) );
 		add_action( 'wp_ajax_insightistic_license_refresh', array( $this, 'ajax_license_refresh' ) );
@@ -42,26 +41,6 @@ class Insightistic_Admin {
 	 */
 	private function ai_provider_meta() {
 		return array(
-			'openai'             => array(
-				'label' => 'OpenAI',
-				'cost'  => '~$0.01 / run',
-			),
-			'gemini'             => array(
-				'label' => 'Google Gemini',
-				'cost'  => '~$0.005 / run',
-			),
-			'openrouter'         => array(
-				'label' => 'OpenRouter',
-				'cost'  => __( 'Free models supported', 'insightistic' ),
-			),
-			'claude'             => array(
-				'label' => 'Anthropic Claude',
-				'cost'  => '~$0.015 / run',
-			),
-			'groq'               => array(
-				'label' => 'Groq',
-				'cost'  => __( 'Low cost / fast', 'insightistic' ),
-			),
 			'insightistic_cloud' => array(
 				'label' => 'Insightistic Cloud AI',
 				'cost'  => __( 'Free with your account (usage limits apply)', 'insightistic' ),
@@ -125,10 +104,10 @@ class Insightistic_Admin {
 
 		add_submenu_page(
 			'insightistic',
-			__( 'Insightistic License', 'insightistic' ),
+			__( 'Insightistic Account', 'insightistic' ),
 			Insightistic_License_Manager::is_connected()
-				? __( 'License', 'insightistic' )
-				: __( 'License ✦', 'insightistic' ),
+				? __( 'Account', 'insightistic' )
+				: __( 'Account (optional)', 'insightistic' ),
 			'manage_options',
 			'insightistic-license',
 			array( $this, 'render_license' )
@@ -159,7 +138,7 @@ class Insightistic_Admin {
 			'insightistic-chartjs',
 			INSIGHTISTIC_URL . 'assets/js/vendor/chart.umd.min.js',
 			array(),
-			'4.4.4',
+			'4.6.1',
 			true
 		);
 
@@ -183,14 +162,11 @@ class Insightistic_Admin {
 			true
 		);
 
-		$ai_provider = get_option( 'insightistic_ai_provider', 'insightistic_cloud' );
+		$ai_provider = Insightistic_AI::PROVIDER;
 		$ai_meta     = $this->ai_provider_meta();
-		$ai_label    = $ai_meta[ $ai_provider ]['label'] ?? '';
-		$ai_cost     = $ai_meta[ $ai_provider ]['cost'] ?? '';
-		$ai_model    = '';
-		if ( 'none' !== $ai_provider ) {
-			$ai_model = get_option( 'insightistic_' . $ai_provider . '_model', '' );
-		}
+		$ai_label    = $ai_meta[ $ai_provider ]['label'];
+		$ai_cost     = $ai_meta[ $ai_provider ]['cost'];
+		$ai_model    = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 
 		wp_localize_script(
 			'insightistic-admin',
@@ -198,7 +174,7 @@ class Insightistic_Admin {
 			array(
 				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'insightistic_nonce' ),
-				'aiEnabled'       => (int) get_option( 'insightistic_ai_enabled', 0 ),
+				'aiEnabled'       => ( get_option( 'insightistic_ai_enabled', 0 ) && Insightistic_AI::has_consent() ) ? 1 : 0,
 				'aiProvider'      => $ai_provider,
 				'aiProviderLabel' => $ai_label,
 				'aiModel'         => $ai_model,
@@ -434,7 +410,7 @@ class Insightistic_Admin {
 			$history,
 			array(
 				'saved_at' => time(),
-				'provider' => get_option( 'insightistic_ai_provider', 'insightistic_cloud' ),
+				'provider' => Insightistic_AI::PROVIDER,
 				'html'     => $html,
 			)
 		);
@@ -444,34 +420,8 @@ class Insightistic_Admin {
 	}
 
 	/**
-	 * Delete an AI provider key without going through the save form.
-	 */
-	public function ajax_clear_ai_key() {
-		check_ajax_referer( 'insightistic_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
-		}
-
-		$provider = sanitize_key( wp_unslash( $_POST['provider'] ?? '' ) );
-		$map      = array(
-			'openai'     => 'insightistic_openai_key',
-			'gemini'     => 'insightistic_gemini_key',
-			'openrouter' => 'insightistic_openrouter_key',
-			'claude'     => 'insightistic_claude_key',
-			'groq'       => 'insightistic_groq_key',
-		);
-		if ( ! isset( $map[ $provider ] ) ) {
-			wp_send_json_error( __( 'Unknown provider.', 'insightistic' ) );
-		}
-		delete_option( $map[ $provider ] );
-		delete_option( $provider . '_key_updated_at' );
-		delete_option( 'insightistic_' . $provider . '_key_updated_at' );
-		wp_send_json_success( __( 'Provider key cleared.', 'insightistic' ) );
-	}
-
-	/**
-	 * Send a one-sentence prompt to the requested AI provider so users can
-	 * verify the key, the model slug, and outbound network all in one click.
+	 * Send a one-sentence prompt to Insightistic Cloud AI so users can verify
+	 * their account connection in one click (only after consent).
 	 */
 	public function ajax_test_ai_provider() {
 		check_ajax_referer( 'insightistic_nonce', 'nonce' );
@@ -479,17 +429,11 @@ class Insightistic_Admin {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$provider = sanitize_key( wp_unslash( $_POST['provider'] ?? '' ) );
-		$allowed  = array( 'openai', 'gemini', 'openrouter', 'claude', 'groq', 'insightistic_cloud' );
-		if ( ! in_array( $provider, $allowed, true ) ) {
-			wp_send_json_error( __( 'Unknown provider.', 'insightistic' ) );
-		}
-
-		$result = ( new Insightistic_AI() )->test_provider( $provider );
+		$result = ( new Insightistic_AI() )->test_provider();
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $result->get_error_message() );
 		}
-		wp_send_json_success( __( 'Provider responded successfully. Key and model are working.', 'insightistic' ) );
+		wp_send_json_success( __( 'Insightistic Cloud AI responded successfully.', 'insightistic' ) );
 	}
 
 	/*
@@ -510,24 +454,22 @@ class Insightistic_Admin {
 		// The raw key passes through this request once and is never stored.
 		$raw_key = sanitize_text_field( wp_unslash( $_POST['license_key'] ?? '' ) );
 		if ( '' === $raw_key ) {
-			wp_send_json_error( __( 'Please paste your license key.', 'insightistic' ) );
+			wp_send_json_error( __( 'Please paste your account key.', 'insightistic' ) );
 		}
 
 		$result = ( new Insightistic_License_Manager() )->activate( $raw_key );
 		if ( is_wp_error( $result ) ) {
-			$extra = $result->get_error_data();
 			wp_send_json_error(
 				array(
-					'code'        => $result->get_error_code(),
-					'message'     => $result->get_error_message(),
-					'upgrade_url' => is_array( $extra ) && ! empty( $extra['upgrade_url'] ) ? esc_url_raw( $extra['upgrade_url'] ) : '',
+					'code'    => $result->get_error_code(),
+					'message' => $result->get_error_message(),
 				)
 			);
 		}
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'License activated! Your site is now connected to Insightistic.', 'insightistic' ),
+				'message' => __( 'Connected. This site is now linked to your free Insightistic account.', 'insightistic' ),
 				'state'   => $result,
 				'gate'    => Insightistic_Feature_Gate::js_state(),
 			)
@@ -555,7 +497,7 @@ class Insightistic_Admin {
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'License refreshed.', 'insightistic' ),
+				'message' => __( 'Connection refreshed.', 'insightistic' ),
 				'state'   => $result,
 				'gate'    => Insightistic_Feature_Gate::js_state(),
 			)
@@ -597,7 +539,7 @@ class Insightistic_Admin {
 		}
 
 		( new Insightistic_License_Manager() )->disconnect();
-		wp_send_json_success( __( 'Disconnected. Cloud AI and dashboard sync are paused. Analytics, email digests, and your own AI keys keep working.', 'insightistic' ) );
+		wp_send_json_success( __( 'Disconnected. Cloud AI and dashboard sync are paused. Analytics, IndexNow, email digests and every other module keep working.', 'insightistic' ) );
 	}
 
 	/**
@@ -605,7 +547,7 @@ class Insightistic_Admin {
 	 * upsell. Cloud AI explains itself on Settings → AI and the License page.
 	 */
 	public function maybe_show_connect_notice() {
-		return;
+		// Intentionally empty.
 	}
 
 	/**
@@ -690,14 +632,14 @@ class Insightistic_Admin {
 			$payload = wp_json_encode( Insightistic_System_Status::export_settings(), JSON_PRETTY_PRINT );
 			header( 'Content-Type: application/json' );
 			header( 'Content-Disposition: attachment; filename=insightistic-settings-' . gmdate( 'Ymd-His' ) . '.json' );
-			echo $payload; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $payload; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Outputs this plugin's own trusted markup/JSON (static SVG icon or a JSON file download), not user input.
 			exit;
 		}
 
 		if ( isset( $_POST['insightistic_import_settings_nonce'] ) &&
 			wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['insightistic_import_settings_nonce'] ) ), 'insightistic_import_settings' ) ) {
 			// Raw JSON export blob; decoded + allowlisted in import_settings(), never echoed.
-			$raw    = wp_unslash( $_POST['insightistic_settings_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$raw    = wp_unslash( $_POST['insightistic_settings_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 			$result = Insightistic_System_Status::import_settings( json_decode( $raw, true ) );
 			add_settings_error(
 				'insightistic_system_messages',
@@ -728,7 +670,7 @@ class Insightistic_Admin {
 		if ( ! empty( $_POST['api_private_key'] ) ) {
 			// Multi-line PEM key  intentionally not run through sanitize_text_field
 			// (which would strip the newlines); it is encrypted immediately below.
-			$raw_key = wp_unslash( $_POST['api_private_key'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$raw_key = wp_unslash( $_POST['api_private_key'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 			$enc     = Insightistic_Encryption::encrypt( $raw_key );
 			if ( $enc ) {
 				update_option( 'insightistic_api_private_key', $enc );
@@ -773,6 +715,7 @@ class Insightistic_Admin {
 		update_option( 'insightistic_engagement_enabled', isset( $_POST['engagement_enabled'] ) ? 1 : 0 );
 		update_option( 'insightistic_measurement_id', sanitize_text_field( wp_unslash( $_POST['measurement_id'] ?? '' ) ) );
 		update_option( 'insightistic_404_monitor_enabled', isset( $_POST['monitor_404_enabled'] ) ? 1 : 0 );
+		update_option( 'insightistic_indexnow_direct', isset( $_POST['indexnow_direct'] ) ? 1 : 0 );
 
 		if ( ! empty( $_POST['measurement_secret'] ) ) {
 			$sec = sanitize_text_field( wp_unslash( $_POST['measurement_secret'] ) );
@@ -788,59 +731,21 @@ class Insightistic_Admin {
 		$ai_enabled = isset( $_POST['ai_enabled'] ) ? 1 : 0;
 		update_option( 'insightistic_ai_enabled', $ai_enabled );
 
-		$provider = sanitize_key( wp_unslash( $_POST['ai_provider'] ?? 'none' ) );
-		$allowed  = array( 'none', 'openai', 'gemini', 'openrouter', 'claude', 'groq', 'insightistic_cloud' );
-		if ( ! in_array( $provider, $allowed, true ) ) {
-			$provider = 'none';
-		}
-		update_option( 'insightistic_ai_provider', $provider );
+		// Explicit, opt-in consent to send data to Insightistic Cloud AI.
+		update_option( 'insightistic_ai_consent', isset( $_POST['ai_consent'] ) ? 1 : 0 );
+		update_option( 'insightistic_ai_provider', Insightistic_AI::PROVIDER );
+
 		$skill_profile = sanitize_key( wp_unslash( $_POST['ai_skill_profile'] ?? 'basic' ) );
 		if ( ! in_array( $skill_profile, array( 'basic', 'seo_expert' ), true ) ) {
 			$skill_profile = 'basic';
 		}
 		update_option( 'insightistic_ai_skill_profile', $skill_profile );
 
-		// API keys.
-		$key_fields = array(
-			'openai_api_key'     => 'insightistic_openai_key',
-			'gemini_api_key'     => 'insightistic_gemini_key',
-			'openrouter_api_key' => 'insightistic_openrouter_key',
-			'claude_api_key'     => 'insightistic_claude_key',
-			'groq_api_key'       => 'insightistic_groq_key',
-		);
-		foreach ( $key_fields as $post_key => $option_name ) {
-			if ( ! empty( $_POST[ $post_key ] ) ) {
-				$val = sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) );
-				if ( strpos( $val, '*' ) === false ) {
-					$enc = Insightistic_Encryption::encrypt( $val );
-					if ( $enc ) {
-						update_option( $option_name, $enc );
-						// Track rotation so users can see "Rotated 2 days ago".
-						$prov = str_replace( '_api_key', '', $post_key );
-						update_option( 'insightistic_' . $prov . '_key_updated_at', time() );
-					}
-				}
-			}
+		$cloud_model = sanitize_key( wp_unslash( $_POST['insightistic_cloud_model'] ?? 'ollama-balanced' ) );
+		if ( ! in_array( $cloud_model, array( 'ollama-balanced', 'hermes-seo' ), true ) ) {
+			$cloud_model = 'ollama-balanced';
 		}
-
-		// AI models.
-		$model_fields = array(
-			'openai_model'             => 'insightistic_openai_model',
-			'gemini_model'             => 'insightistic_gemini_model',
-			'openrouter_model'         => 'insightistic_openrouter_model',
-			'claude_model'             => 'insightistic_claude_model',
-			'groq_model'               => 'insightistic_groq_model',
-			'insightistic_cloud_model' => 'insightistic_insightistic_cloud_model',
-		);
-		foreach ( $model_fields as $post_key => $option_name ) {
-			if ( isset( $_POST[ $post_key ] ) ) {
-				update_option( $option_name, sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) ) );
-			}
-			$custom_key = $post_key . '_custom';
-			if ( ! empty( $_POST[ $custom_key ] ) ) {
-				update_option( $option_name, sanitize_text_field( wp_unslash( $_POST[ $custom_key ] ) ) );
-			}
-		}
+		update_option( 'insightistic_insightistic_cloud_model', $cloud_model );
 
 		// Guide links.
 		update_option( 'insightistic_video_guide_url', esc_url_raw( wp_unslash( $_POST['video_guide_url'] ?? '' ) ) );

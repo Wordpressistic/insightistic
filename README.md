@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://wordpress.org/"><img src="https://img.shields.io/badge/WordPress-5.6%2B-21759b?style=flat-square" alt="WordPress 5.6+"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.0%2B-777bb4?style=flat-square" alt="PHP 8.0+"></a>
-  <img src="https://img.shields.io/badge/version-4.6.5-brightgreen?style=flat-square" alt="version 4.6.5">
+  <img src="https://img.shields.io/badge/version-4.7.0-brightgreen?style=flat-square" alt="version 4.7.0">
   <img src="https://img.shields.io/badge/License-GPLv2%2B-blue?style=flat-square" alt="GPL v2+">
 </p>
 
@@ -47,7 +47,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 
 | Item | Value |
 | --- | --- |
-| Plugin version | 4.6.5 |
+| Plugin version | 4.7.0 |
 | WordPress requirement | 5.6 or newer |
 | Tested up to | WordPress 7.1 |
 | PHP requirement | 8.0 or newer |
@@ -70,7 +70,7 @@ The plugin source lives directly at the repository root (standard WordPress plug
 | [`LICENSE`](LICENSE) | GPL-2.0-or-later license text. |
 | [`includes/`](includes/) | Plugin classes (GA4, GSC, PageSpeed, Cloudflare, AI, encryption, admin, etc.). |
 | [`templates/`](templates/) | Admin page templates (dashboard, settings, addons, license, speed test, system status). |
-| [`assets/`](assets/) | CSS, first-party JS (source + minified), and the bundled Chart.js 4.4.4 vendor file. |
+| [`assets/`](assets/) | CSS, first-party JS (source + minified), and the bundled Chart.js 4.6.1 vendor file. |
 | [`languages/`](languages/) | Translation template (`insightistic.pot`). |
 | [`tests/`](tests/) | Standalone PHP test suites (GA4 regression fixtures, encryption, WordPress stubs). |
 | [`scripts/`](scripts/) | Release/build tooling (asset builder, POT generator, release validator, ZIP builder/validator). |
@@ -84,7 +84,7 @@ The plugin source lives directly at the repository root (standard WordPress plug
 
 From a release (recommended):
 
-1. Download the release ZIP: `insightistic.4.6.5.zip`.
+1. Download the release ZIP: `insightistic.4.7.0.zip`.
 2. In WordPress, go to **Plugins > Add New > Upload Plugin**.
 3. Upload the ZIP file — it extracts to a single `insightistic/` directory.
 4. Activate **Insightistic**.
@@ -168,7 +168,7 @@ composer release-check    # full pre-release gate (versions, lint, tests, assets
 | `assets/css/admin.css` | `assets/css/admin.min.css` | Rebuilt with clean-css (level 2). |
 | `assets/js/admin.js` | `assets/js/admin.min.js` (+ `.map`, dev only — the map is **not** shipped) | Rebuilt with terser. |
 | `assets/js/tracking.js` | `assets/js/tracking.min.js` | Rebuilt with terser; hard size budget < 3 KiB enforced by the build. |
-| `assets/js/vendor/chart.umd.min.js` | — | Bundled Chart.js **4.4.4** dependency. Never rebuilt or version-bumped with the plugin. |
+| `assets/js/vendor/chart.umd.min.js` | — | Bundled Chart.js **4.6.1** dependency. Never rebuilt or version-bumped with the plugin. |
 
 Minified files are served in production; readable sources are served when `SCRIPT_DEBUG` is on. The local release gate fails if the committed minified files differ from a fresh build.
 

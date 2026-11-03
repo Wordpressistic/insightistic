@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed, Cloudflare, and WooCommerce to your WordPress dashboard. Core analytics features work without an account. An optional free Insightistic account adds Cloud AI, dashboard sync, and hosted traffic insights.
- * Version:     4.6.5
+ * Version:     4.7.0
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0-or-later
@@ -22,10 +22,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION', '4.6.5' );
+define( 'INSIGHTISTIC_VERSION', '4.7.0' );
 define( 'INSIGHTISTIC_FILE', __FILE__ );
 define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
+define( 'INSIGHTISTIC_TERMS_URL', 'https://www.insightistic.com/terms/' );
+define( 'INSIGHTISTIC_PRIVACY_URL', 'https://www.insightistic.com/privacy-policy/' );
 define( 'INSIGHTISTIC_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
@@ -34,7 +36,7 @@ define( 'INSIGHTISTIC_BASENAME', plugin_basename( __FILE__ ) );
 function insightistic_load() {
 	insightistic_migrate_legacy_keys();
 	insightistic_migrate_encryption();
-	insightistic_migrate_400();
+	insightistic_migrate_470();
 
 	$files = array(
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-encryption.php',
@@ -76,8 +78,6 @@ function insightistic_load() {
 		require_once $file;
 	}
 
-	require_once INSIGHTISTIC_PATH . 'includes/class-insightistic-platform-bridge.php';
-
 	// Text translations are loaded automatically for WordPress.org-hosted
 	// plugins since 4.6 (Plugin Check flags a manual load_plugin_textdomain()).
 
@@ -106,7 +106,7 @@ function insightistic_add_privacy_policy_content() {
 
 	$content  = '<p>' . esc_html__( 'Insightistic stores locally configured analytics settings and, when enabled, a rolling log of 404 request paths and external referrer host names. The 404 log does not store IP addresses or user agents and can be cleared from the plugin dashboard.', 'insightistic' ) . '</p>';
 	$content .= '<p>' . esc_html__( 'When you connect an Insightistic account, the plugin can send the site URL, plugin version, analytics summaries, WooCommerce summaries, configured Cloudflare summaries, IndexNow submission data, and 404/broken-link summaries to Insightistic for dashboard sync and Cloud AI. Disconnecting the account stops those calls.', 'insightistic' ) . '</p>';
-	$content .= '<p>' . esc_html__( 'When you configure Google, Cloudflare, or another AI provider, the plugin sends only the requests and data described in its External services documentation and your selected provider settings.', 'insightistic' ) . '</p>';
+	$content .= '<p>' . esc_html__( 'AI analysis is off by default. Only after an administrator ticks the Insightistic Cloud AI consent box and clicks "Get AI Insights" does the plugin send an analytics summary to api.insightistic.com. When you configure Google or Cloudflare, the plugin sends only the requests described in its External services documentation.', 'insightistic' ) . '</p>';
 
 	wp_add_privacy_policy_content( 'Insightistic', $content );
 }
@@ -125,8 +125,7 @@ function insightistic_activate() {
 	add_option( 'insightistic_ai_provider', 'insightistic_cloud', '', 'no' );
 	add_option( 'insightistic_ai_enabled', 0, '', 'no' );
 	add_option( 'insightistic_ai_skill_profile', 'basic', '', 'no' );
-	add_option( 'insightistic_openrouter_model', 'meta-llama/llama-3.3-70b-instruct:free', '', 'no' );
-	add_option( 'insightistic_groq_model', 'llama-3.1-8b-instant', '', 'no' );
+	add_option( 'insightistic_ai_consent', 0, '', 'no' );
 	add_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced', '', 'no' );
 	// GSC.
 	add_option( 'insightistic_gsc_property_url', '', '', 'no' );
@@ -198,7 +197,7 @@ function insightistic_deactivate() {
 	wp_clear_scheduled_hook( 'insightistic_indexnow_flush' );
 	// Clear all analytics cache transients.
 	global $wpdb;
-	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Bulk-deletes this plugin's own prefixed transients by LIKE; no WP API exists for wildcard transient deletion and the result must not be cached.
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
 			'_transient_insightistic_data_%',
@@ -230,16 +229,6 @@ function insightistic_migrate_legacy_keys() {
 		'Insightistic_ai_enabled'            => 'insightistic_ai_enabled',
 		'Insightistic_ai_provider'           => 'insightistic_ai_provider',
 		'Insightistic_ai_skill_profile'      => 'insightistic_ai_skill_profile',
-		'Insightistic_openai_key'            => 'insightistic_openai_key',
-		'Insightistic_openai_model'          => 'insightistic_openai_model',
-		'Insightistic_gemini_key'            => 'insightistic_gemini_key',
-		'Insightistic_gemini_model'          => 'insightistic_gemini_model',
-		'Insightistic_openrouter_key'        => 'insightistic_openrouter_key',
-		'Insightistic_openrouter_model'      => 'insightistic_openrouter_model',
-		'Insightistic_claude_key'            => 'insightistic_claude_key',
-		'Insightistic_claude_model'          => 'insightistic_claude_model',
-		'Insightistic_groq_key'              => 'insightistic_groq_key',
-		'Insightistic_groq_model'            => 'insightistic_groq_model',
 		'Insightistic_video_guide_url'       => 'insightistic_video_guide_url',
 		'Insightistic_docs_url'              => 'insightistic_docs_url',
 		'Insightistic_addons'                => 'insightistic_addons',
@@ -268,25 +257,27 @@ function insightistic_migrate_legacy_keys() {
 }
 
 /**
- * One-time 4.0.0 migration. Installs upgrading from <= 3.3.0 that already
- * enabled add-ons which are now plan-gated get a 14-day legacy grace window
- * so nothing switches off overnight; a notice on the plugin pages explains
- * the change and links to license activation.
+ * One-time 4.7.0 migration: the free plugin no longer connects to third-party
+ * AI providers directly, so remove any stored bring-your-own provider keys and
+ * models, and require a fresh explicit opt-in for Insightistic Cloud AI.
  */
-function insightistic_migrate_400() {
-	if ( get_option( 'insightistic_migrated_400', 0 ) ) {
+function insightistic_migrate_470() {
+	if ( get_option( 'insightistic_migrated_470', 0 ) ) {
 		return;
 	}
 
-	$addons        = get_option( 'insightistic_addons', array() );
-	$was_installed = false !== get_option( 'insightistic_property_id', false );
-	$used_gated    = is_array( $addons ) && array_sum( array_map( 'intval', $addons ) ) > 0;
+	// Retired: the pre-4.0 add-on grace window (every module is free now).
+	delete_option( 'insightistic_legacy_grace_until' );
 
-	if ( $was_installed && $used_gated && ! get_option( 'insightistic_connector_key_id', '' ) ) {
-		update_option( 'insightistic_legacy_grace_until', time() + 14 * DAY_IN_SECONDS, false );
+	foreach ( array( 'openai', 'gemini', 'openrouter', 'claude', 'groq' ) as $insightistic_provider ) {
+		delete_option( 'insightistic_' . $insightistic_provider . '_key' );
+		delete_option( 'insightistic_' . $insightistic_provider . '_model' );
+		delete_option( 'insightistic_' . $insightistic_provider . '_key_updated_at' );
 	}
+	update_option( 'insightistic_ai_provider', 'insightistic_cloud', false );
+	add_option( 'insightistic_ai_consent', 0, '', 'no' );
 
-	update_option( 'insightistic_migrated_400', 1, false );
+	update_option( 'insightistic_migrated_470', 1, false );
 }
 
 /**
@@ -311,11 +302,6 @@ function insightistic_migrate_encryption() {
 		'insightistic_api_private_key',
 		'insightistic_pagespeed_api_key_enc',
 		'insightistic_measurement_secret',
-		'insightistic_openai_key',
-		'insightistic_gemini_key',
-		'insightistic_openrouter_key',
-		'insightistic_claude_key',
-		'insightistic_groq_key',
 	);
 
 	foreach ( $secret_options as $option ) {

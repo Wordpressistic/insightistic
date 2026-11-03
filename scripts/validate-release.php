@@ -10,7 +10,7 @@
  *
  * Without an argument the expected version is taken from the plugin header.
  *
- * Also asserts that the bundled Chart.js dependency version (4.4.4) has NOT
+ * Also asserts that the bundled Chart.js dependency version (4.6.1) has NOT
  * been mistakenly rewritten to the plugin version — this was a hazard during
  * the 4.4.2 repair.
  *
@@ -172,18 +172,18 @@ foreach ( $readme_markers as $label => $marker ) {
 
 $ai_defaults = array(
 	"add_option( 'insightistic_ai_provider', 'insightistic_cloud'" => file_get_contents( $root . '/insightistic.php' ),
-	"get_option( 'insightistic_ai_provider', 'insightistic_cloud'" => file_get_contents( $root . '/templates/settings.php' ),
+	"add_option( 'insightistic_ai_consent', 0" => file_get_contents( $root . '/insightistic.php' ),
 );
 foreach ( $ai_defaults as $marker => $source ) {
 	$ok = false !== strpos( $source, $marker );
 	printf( "%-32s %-10s %s\n", 'AI free-route default', $ok ? 'PASS' : 'FAIL', $marker );
 	if ( ! $ok ) {
-		$failures[] = 'The fresh-install Cloud AI default is missing from ' . ( false !== strpos( $marker, 'add_option' ) ? 'insightistic.php' : 'templates/settings.php' ) . '.';
+		$failures[] = 'The fresh-install Cloud AI default is missing from ' . 'insightistic.php' . '.';
 	}
 }
 
 /*
- * Guard the Chart.js dependency version: the 4.4.4 string in
+ * Guard the Chart.js dependency version: the 4.6.1 string in
  * class-insightistic-admin.php is the bundled Chart.js release, NOT the
  * Insightistic plugin version. It must not be rewritten during releases.
  */
@@ -195,7 +195,7 @@ if ( ! $chart_reg || ! $chart_file ) {
 	$failures[] = 'Chart.js version registration could not be verified.';
 } elseif ( $chart_reg !== $chart_file ) {
 	$failures[] = sprintf( 'Chart.js registration (%s) does not match bundled vendor file (%s).', $chart_reg, $chart_file );
-} elseif ( $chart_reg === $expected && '4.4.4' !== $expected ) {
+} elseif ( $chart_reg === $expected && '4.6.1' !== $expected ) {
 	$failures[] = sprintf( 'Chart.js registration was overwritten with the plugin version (%s). It must remain the dependency version.', $chart_reg );
 }
 

@@ -74,7 +74,7 @@ class Insightistic_Encryption {
 		$mac  = hash_hmac( 'sha256', $salt . $iv . $cipher, $mac_key, true );
 		$blob = self::VERSION . $salt . $iv . $mac . $cipher;
 
-		return base64_encode( $blob ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		return base64_encode( $blob ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes binary ciphertext/random bytes for storage; not code obfuscation.
 	}
 
 	/**
@@ -88,7 +88,7 @@ class Insightistic_Encryption {
 			return false;
 		}
 
-		$decoded = base64_decode( $data, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$decoded = base64_decode( $data, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes this plugin's own stored ciphertext; not code obfuscation.
 
 		// Versioned (>= 3.3.0) format: 1 + 16 + 16 + 32 = 65 bytes of header.
 		if ( false !== $decoded && strlen( $decoded ) > 65 && self::VERSION === $decoded[0] ) {
@@ -123,7 +123,7 @@ class Insightistic_Encryption {
 	 * @return string|false
 	 */
 	private static function decrypt_legacy( $data ) {
-		$decoded = base64_decode( $data, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$decoded = base64_decode( $data, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes this plugin's own stored ciphertext; not code obfuscation.
 		if ( false === $decoded || strpos( $decoded, '::' ) === false ) {
 			return false;
 		}
@@ -184,7 +184,7 @@ class Insightistic_Encryption {
 		if ( empty( $value ) ) {
 			return false;
 		}
-		$decoded = base64_decode( $value, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$decoded = base64_decode( $value, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes this plugin's own stored ciphertext; not code obfuscation.
 		if ( false === $decoded ) {
 			return false;
 		}
@@ -204,7 +204,7 @@ class Insightistic_Encryption {
 		if ( empty( $value ) ) {
 			return false;
 		}
-		$decoded = base64_decode( $value, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$decoded = base64_decode( $value, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes this plugin's own stored ciphertext; not code obfuscation.
 		if ( false === $decoded ) {
 			return false;
 		}
@@ -231,7 +231,7 @@ class Insightistic_Encryption {
 
 		// Generate once, store without autoloading.
 		try {
-			$secret = base64_encode( random_bytes( 48 ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+			$secret = base64_encode( random_bytes( 48 ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes binary ciphertext/random bytes for storage; not code obfuscation.
 		} catch ( \Exception $e ) {
 			// Last-resort fallback so encryption still works on exotic hosts.
 			$secret = wp_salt( 'secure_auth' ) . wp_salt( 'auth' );

@@ -164,8 +164,8 @@ class Insightistic_Cloudflare {
 			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
 		}
 
-		$days  = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
-		$days  = min( max( $days, 1 ), 90 );
+		$days   = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+		$days   = min( max( $days, 1 ), 90 );
 		$force  = ! empty( $_POST['force'] );
 		$result = $this->get_dashboard_data( $days, $force );
 
@@ -204,7 +204,7 @@ class Insightistic_Cloudflare {
 		}
 
 		// Raw JSON payload from our own dashboard JS; decoded below, never echoed.
-		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
 		$data     = json_decode( $raw_data, true );
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			wp_send_json_error( __( 'No traffic data to analyse. Load Traffic Insights data first.', 'insightistic' ) );
@@ -659,7 +659,7 @@ class Insightistic_Cloudflare {
 				$message = is_array( $decoded['errors'][0] ) && ! empty( $decoded['errors'][0]['message'] )
 					? $decoded['errors'][0]['message']
 					: __( 'Cloudflare returned an error.', 'insightistic' );
-				error_log( 'Insightistic Cloudflare GraphQL error: ' . wp_json_encode( $decoded['errors'] ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				do_action( 'insightistic_log', 'cloudflare_graphql_error', $decoded['errors'] );
 				return new WP_Error( 'insightistic_cf_graphql', $message );
 			}
 

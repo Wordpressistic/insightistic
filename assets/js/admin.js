@@ -1671,35 +1671,6 @@
 			$( this ).closest( '.isp-key-stored' ).hide();
 			$( '#cf_api_token' ).show().focus();
 		} );
-
-		// Generic "Change key" / "Clear key" handlers for AI provider tiles.
-		// Each AI provider key card uses data-provider for routing.
-		$( document ).on( 'click', '.isp-change-ai-key', function () {
-			var prov = $( this ).data( 'provider' );
-			$( this ).closest( '.isp-key-stored' ).hide();
-			$( '#ai_key_' + prov ).show().focus();
-		} );
-		$( document ).on( 'click', '.isp-clear-ai-key', function () {
-			var prov = $( this ).data( 'provider' );
-			if ( ! window.confirm( insightisticPro.i18n.confirmClearKey || 'Clear this saved key?' ) ) { return; }
-			var $card = $( this ).closest( '.isp-settings-card' );
-			var $result = $card.find( '.isp-ai-test-result' );
-			$result.html( '' );
-			$.ajax( {
-				url: insightisticPro.ajaxUrl, method: 'POST',
-				data: { action: 'insightistic_clear_ai_key', provider: prov, nonce: insightisticPro.nonce },
-				success: function ( res ) {
-					if ( res.success ) {
-						$card.find( '.isp-key-stored' ).remove();
-						$( '#ai_key_' + prov ).val( '' ).show().focus();
-						$result.html( '<div class="isp-notice isp-notice-success">' + escHtml( res.data || 'Key cleared.' ) + '</div>' );
-					} else {
-						$result.html( '<div class="isp-notice isp-notice-error">' + escHtml( res.data || insightisticPro.i18n.error ) + '</div>' );
-					}
-				},
-				error: function () { $result.html( '<div class="isp-notice isp-notice-error">' + escHtml( insightisticPro.i18n.error ) + '</div>' ); }
-			} );
-		} );
 	}
 
 	/* ================================================================== */
@@ -2087,7 +2058,7 @@
 			var key  = $.trim( $( '#isp-license-key' ).val() || '' );
 
 			if ( ! key ) {
-				licenseMsg( 'error', 'Please paste your license key first.' );
+				licenseMsg( 'error', 'Please paste your account key first.' );
 				return;
 			}
 
@@ -2105,10 +2076,6 @@
 					} else {
 						var msg = licenseResponseMessage( res );
 						licenseMsg( 'error', msg );
-						if ( res.data && res.data.upgrade_url ) {
-							$( '<a>', { href: res.data.upgrade_url, target: '_blank', rel: 'noopener', text: ' Upgrade →' } )
-								.appendTo( '#isp-license-msg' );
-						}
 						$btn.prop( 'disabled', false ).removeClass( 'isp-btn-busy' );
 					}
 				},
@@ -2130,7 +2097,7 @@
 		$( '#isp-license-refresh' ).on( 'click', function () {
 			var $btn = $( this );
 			$btn.prop( 'disabled', true ).addClass( 'isp-btn-busy' );
-			licenseMsg( 'info', 'Checking your license…' );
+			licenseMsg( 'info', 'Checking your connection…' );
 
 			$.ajax( {
 				url: insightisticPro.ajaxUrl,

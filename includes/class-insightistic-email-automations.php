@@ -22,7 +22,11 @@ class Insightistic_Email_Automations {
 	public function init() {
 		add_filter( 'cron_schedules', array( $this, 'add_custom_schedules' ) );
 		add_action( self::CRON_HOOK, array( $this, 'send_email_digest' ) );
-		$this->maybe_schedule_event();
+		if ( did_action( 'init' ) ) {
+			$this->maybe_schedule_event();
+		} else {
+			add_action( 'init', array( $this, 'maybe_schedule_event' ) );
+		}
 	}
 
 	/**
@@ -35,14 +39,14 @@ class Insightistic_Email_Automations {
 		if ( ! isset( $schedules['weekly'] ) ) {
 			$schedules['weekly'] = array(
 				'interval' => WEEK_IN_SECONDS,
-				'display'  => __( 'Once Weekly', 'insightistic' ),
+				'display'  => did_action( 'init' ) ? __( 'Once Weekly', 'insightistic' ) : 'Once Weekly',
 			);
 		}
 
 		if ( ! isset( $schedules['insightistic_monthly'] ) ) {
 			$schedules['insightistic_monthly'] = array(
 				'interval' => 30 * DAY_IN_SECONDS,
-				'display'  => __( 'Once Monthly (Insightistic)', 'insightistic' ),
+				'display'  => did_action( 'init' ) ? __( 'Once Monthly (Insightistic)', 'insightistic' ) : 'Once Monthly (Insightistic)',
 			);
 		}
 		return $schedules;
@@ -169,7 +173,7 @@ class Insightistic_Email_Automations {
 
 		$data = ( new Insightistic_GA() )->get_dashboard_data( $days, false );
 		if ( is_wp_error( $data ) ) {
-			error_log( 'Insightistic email digest failed: ' . $data->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			do_action( 'insightistic_log', 'email_digest_failed', $data->get_error_message() );
 		}
 
 		return $data;
@@ -262,10 +266,10 @@ class Insightistic_Email_Automations {
 	 * @return string
 	 */
 	private function render_seo_summary( $data ) {
-		$gsc = $this->decode_email_value( $data['gsc'] ?? $data['gsc_7d'] ?? $data['search_console'] ?? $data['searchConsole'] ?? array() );
-		$psi = $this->decode_email_value( $data['pagespeed'] ?? $data['psi'] ?? $data['page_speed'] ?? $data['pageSpeed'] ?? array() );
-		$ai  = $this->decode_email_value( $data['ai'] ?? $data['ai_analysis'] ?? $data['aiSummary'] ?? array() );
-		$ai_error = $data['ai_error'] ?? $data['analysis_error'] ?? ( is_array( $ai ) ? ( $ai['error'] ?? '' ) : '' );
+		$gsc          = $this->decode_email_value( $data['gsc'] ?? $data['gsc_7d'] ?? $data['search_console'] ?? $data['searchConsole'] ?? array() );
+		$psi          = $this->decode_email_value( $data['pagespeed'] ?? $data['psi'] ?? $data['page_speed'] ?? $data['pageSpeed'] ?? array() );
+		$ai           = $this->decode_email_value( $data['ai'] ?? $data['ai_analysis'] ?? $data['aiSummary'] ?? array() );
+		$ai_error     = $data['ai_error'] ?? $data['analysis_error'] ?? ( is_array( $ai ) ? ( $ai['error'] ?? '' ) : '' );
 		$summary_text = (string) ( $data['summary'] ?? $data['analysis'] ?? '' );
 		if ( '' === $ai_error && preg_match( '/AI analysis failed\s*:\s*(.+)$/i', $summary_text, $match ) ) {
 			$ai_error = $match[1];
@@ -277,13 +281,13 @@ class Insightistic_Email_Automations {
 
 		$gsc_rows = array();
 		if ( is_array( $gsc ) ) {
-			$is_list   = empty( $gsc ) || array_keys( $gsc ) === range( 0, count( $gsc ) - 1 );
+			$is_list  = empty( $gsc ) || array_keys( $gsc ) === range( 0, count( $gsc ) - 1 );
 			$gsc_rows = isset( $gsc['rows'] ) && is_array( $gsc['rows'] ) ? $gsc['rows'] : ( $is_list ? $gsc : array() );
 		}
-		$gsc_clicks = 0;
+		$gsc_clicks      = 0;
 		$gsc_impressions = 0;
-		$position_total = 0.0;
-		$position_count = 0;
+		$position_total  = 0.0;
+		$position_count  = 0;
 		foreach ( $gsc_rows as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
@@ -296,7 +300,7 @@ class Insightistic_Email_Automations {
 			}
 		}
 		$gsc_ctr = $gsc_impressions > 0 ? ( $gsc_clicks / $gsc_impressions ) * 100 : null;
-		$psi = is_array( $psi ) ? $psi : array();
+		$psi     = is_array( $psi ) ? $psi : array();
 		$has_seo = $gsc_rows || $psi || $ai_error || $ai;
 		if ( ! $has_seo ) {
 			return '';
@@ -390,7 +394,12 @@ class Insightistic_Email_Automations {
 		return '' === $text ? '—' : $text;
 	}
 
-	/** @return mixed */
+	/**
+	 * Decode a JSON-encoded email field value when possible.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return mixed
+	 */
 	private function decode_email_value( $value ) {
 		if ( is_string( $value ) ) {
 			$decoded = json_decode( $value, true );

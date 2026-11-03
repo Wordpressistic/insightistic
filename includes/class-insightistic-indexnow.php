@@ -49,6 +49,12 @@ class Insightistic_IndexNow {
 	/** Registered cron recurrence for the flush (see add_cron_schedule()). */
 	const CRON_SCHEDULE = 'insightistic_15min';
 
+	/** Opt-in for account-free submission straight to IndexNow (off by default). */
+	const DIRECT_OPT = 'insightistic_indexnow_direct';
+
+	/** Public IndexNow endpoint used in account-free mode. */
+	const DIRECT_ENDPOINT = 'https://api.indexnow.org/indexnow';
+
 	/** Hard cap on queued URLs (oldest dropped when exceeded). */
 	const QUEUE_MAX = 50;
 
@@ -69,9 +75,23 @@ class Insightistic_IndexNow {
 		add_action( self::SUBMIT_HOOK, array( $this, 'handle_submit_single' ), 10, 1 );
 		add_action( self::FLUSH_HOOK, array( $this, 'flush_queue' ) );
 
+		// Scheduling runs wp_get_schedules(), which fires every plugin's
+		// cron_schedules filter (many translate labels); wait for init.
+		if ( did_action( 'init' ) ) {
+			$this->maybe_schedule_flush();
+		} else {
+			add_action( 'init', array( $this, 'maybe_schedule_flush' ) );
+		}
+	}
+
+	/**
+	 * Schedule the queue flush cron when the account is connected.
+	 *
+	 * @return void
+	 */
+	public function maybe_schedule_flush() {
 		if (
-			class_exists( 'Insightistic_License_Manager' )
-			&& Insightistic_License_Manager::is_connected()
+			self::can_submit()
 			&& self::is_enabled()
 			&& ! wp_next_scheduled( self::FLUSH_HOOK )
 		) {
@@ -89,7 +109,8 @@ class Insightistic_IndexNow {
 		if ( ! isset( $schedules[ self::CRON_SCHEDULE ] ) ) {
 			$schedules[ self::CRON_SCHEDULE ] = array(
 				'interval' => 15 * MINUTE_IN_SECONDS,
-				'display'  => __( 'Every 15 Minutes (Insightistic IndexNow)', 'insightistic' ),
+				// Translate only after init (WP 6.7+ just-in-time loading notice).
+				'display'  => did_action( 'init' ) ? __( 'Every 15 Minutes (Insightistic IndexNow)', 'insightistic' ) : 'Every 15 Minutes (Insightistic IndexNow)',
 			);
 		}
 
@@ -114,6 +135,7 @@ class Insightistic_IndexNow {
 				'key'                 => '',
 				'key_location'        => '',
 				'key_file_confirmed'  => false,
+				'key_source'          => '',
 				'auto_submit_enabled' => 'yes',
 				'last_submitted'      => '',
 			)
@@ -138,6 +160,34 @@ class Insightistic_IndexNow {
 		 * @param bool $enabled Default: the stored auto-submit setting.
 		 */
 		return (bool) apply_filters( 'insightistic_indexnow_enabled', $enabled );
+	}
+
+	/**
+	 * Whether this site may submit right now: either connected to Insightistic
+	 * (connector path), or the admin opted in to direct, account-free IndexNow.
+	 *
+	 * @return bool
+	 */
+	public static function can_submit() {
+		return self::is_connected() || self::direct_enabled();
+	}
+
+	/**
+	 * Whether the site is connected to an Insightistic account.
+	 *
+	 * @return bool
+	 */
+	private static function is_connected() {
+		return class_exists( 'Insightistic_License_Manager' ) && Insightistic_License_Manager::is_connected();
+	}
+
+	/**
+	 * Whether account-free direct IndexNow submission is opted in.
+	 *
+	 * @return bool
+	 */
+	public static function direct_enabled() {
+		return (bool) get_option( self::DIRECT_OPT, 0 );
 	}
 
 	/**
@@ -187,7 +237,7 @@ class Insightistic_IndexNow {
 			return;
 		}
 
-		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
+		if ( ! self::can_submit() ) {
 			return;
 		}
 
@@ -289,7 +339,7 @@ class Insightistic_IndexNow {
 	 * retries — never a hard failure.
 	 */
 	public function flush_queue() {
-		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
+		if ( ! self::can_submit() ) {
 			return;
 		}
 
@@ -316,7 +366,7 @@ class Insightistic_IndexNow {
 			}
 
 			$chunk = array_slice( $queue, 0, self::FLUSH_CHUNK );
-			$res   = Insightistic_Saas_Client::indexnow_submit( $chunk );
+			$res   = self::is_connected() ? Insightistic_Saas_Client::indexnow_submit( $chunk ) : self::direct_submit( $chunk );
 
 			if ( ! $res['ok'] ) {
 				$code = ( is_array( $res['data'] ) && ! empty( $res['data']['code'] ) )
@@ -342,7 +392,7 @@ class Insightistic_IndexNow {
 			$settings                   = self::settings();
 			$settings['last_submitted'] = current_time( 'mysql' );
 			update_option( self::OPT, $settings, false );
-			self::log( sprintf( 'IndexNow: submitted %d URL(s) to the SaaS.', $sent ) );
+			self::log( sprintf( 'IndexNow: submitted %d URL(s).', $sent ) );
 		}
 	}
 
@@ -369,13 +419,13 @@ class Insightistic_IndexNow {
 	 * @return bool True when a confirmed key is in place.
 	 */
 	public static function ensure_key() {
-		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
-			return false; // Silent — same policy as Sync's disconnected guard.
+		if ( ! self::is_connected() ) {
+			return self::direct_enabled() ? self::ensure_local_key() : false;
 		}
 
 		$settings = self::settings();
 
-		if ( '' !== $settings['key'] && preg_match( '/^[a-f0-9]{32}$/', $settings['key'] ) ) {
+		if ( '' !== $settings['key'] && 'local' !== $settings['key_source'] && preg_match( '/^[a-f0-9]{32}$/', $settings['key'] ) ) {
 			if ( $settings['key_file_confirmed'] ) {
 				// Self-heal: the key file must keep being served from the root.
 				if ( ! self::key_file_exists( $settings['key'] ) ) {
@@ -401,6 +451,7 @@ class Insightistic_IndexNow {
 		}
 
 		$settings['key']          = $key;
+		$settings['key_source']   = 'saas';
 		$settings['key_location'] = ! empty( $res['data']['key_location'] )
 			? sanitize_text_field( (string) $res['data']['key_location'] )
 			: home_url( '/' . $key . '.txt' );
@@ -414,6 +465,81 @@ class Insightistic_IndexNow {
 		self::log( 'IndexNow key file written: ' . $key . '.txt' );
 
 		return self::confirm_key( $key );
+	}
+
+	/**
+	 * Account-free mode: generate a key on this site, serve it from the site
+	 * root, and use it directly with the public IndexNow endpoint.
+	 *
+	 * @return bool True when a local key file is in place.
+	 */
+	private static function ensure_local_key() {
+		$settings = self::settings();
+
+		if ( 'local' === $settings['key_source'] && preg_match( '/^[a-f0-9]{32}$/', $settings['key'] ) ) {
+			if ( ! self::key_file_exists( $settings['key'] ) && ! self::write_key_file( $settings['key'] ) ) {
+				return false;
+			}
+			return true;
+		}
+
+		$key = bin2hex( random_bytes( 16 ) );
+
+		if ( ! self::write_key_file( $key ) ) {
+			self::log( 'IndexNow: could not write the key file to the site root.', 'error' );
+			return false;
+		}
+
+		$settings['key']                = $key;
+		$settings['key_source']         = 'local';
+		$settings['key_location']       = home_url( '/' . $key . '.txt' );
+		$settings['key_file_confirmed'] = true;
+		update_option( self::OPT, $settings, false );
+		self::log( 'IndexNow key file written: ' . $key . '.txt' );
+
+		return true;
+	}
+
+	/**
+	 * Account-free mode: submit URLs straight to the public IndexNow endpoint.
+	 *
+	 * @param string[] $urls Canonical URLs on this site.
+	 * @return array{ok:bool,data:mixed,error:string}
+	 */
+	public static function direct_submit( $urls ) {
+		$settings = self::settings();
+		$host     = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		$response = wp_remote_post(
+			self::DIRECT_ENDPOINT,
+			array(
+				'timeout' => 15,
+				'headers' => array( 'Content-Type' => 'application/json; charset=utf-8' ),
+				'body'    => wp_json_encode(
+					array(
+						'host'        => $host,
+						'key'         => $settings['key'],
+						'keyLocation' => $settings['key_location'],
+						'urlList'     => array_values( $urls ),
+					)
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return array(
+				'ok'    => false,
+				'data'  => null,
+				'error' => $response->get_error_message(),
+			);
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+
+		return array(
+			'ok'    => in_array( $code, array( 200, 202 ), true ),
+			'data'  => null,
+			'error' => 'HTTP ' . $code,
+		);
 	}
 
 	/**
@@ -471,31 +597,27 @@ class Insightistic_IndexNow {
 		$path    = self::key_file_path( $key );
 		$content = $key; // The file's body must be exactly the key.
 
-		if ( ! defined( 'FS_CHMOD_FILE' ) ) {
-			define( 'FS_CHMOD_FILE', 0644 ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant, defined defensively for the filesystem API fallback.
-		}
-
-		if ( ! function_exists( 'WP_Filesystem' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		if ( function_exists( 'WP_Filesystem' ) ) {
-			global $wp_filesystem;
-			if ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) {
-				WP_Filesystem();
-			}
-			if ( $wp_filesystem && is_object( $wp_filesystem ) && method_exists( $wp_filesystem, 'put_contents' ) ) {
-				if ( $wp_filesystem->put_contents( $path, $content, FS_CHMOD_FILE ) ) {
-					return true;
-				}
-			}
+		global $wp_filesystem;
+		if ( ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) && ! WP_Filesystem() ) {
+			return false;
+		}
+		if ( ! $wp_filesystem || ! is_object( $wp_filesystem ) ) {
+			return false;
 		}
 
-		// Direct fallback — ABSPATH is writable in the overwhelming majority
-		// of installs (that is where wp-config.php lives). A failed write
-		// returns false and is logged by the caller.
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.NoSilencedErrors.Discouraged -- Direct write is the documented fallback when the filesystem API cannot initialize (credentials required).
-		return false !== @file_put_contents( $path, $content );
+		if ( ! $wp_filesystem->put_contents( $path, $content ) ) {
+			return false;
+		}
+
+		// Explicit permissions on our own key file only (world-readable so
+		// search engines can fetch it); no global FS_CHMOD_FILE override.
+		$wp_filesystem->chmod( $path, 0644 );
+
+		return true;
 	}
 
 	/*

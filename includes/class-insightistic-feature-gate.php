@@ -8,8 +8,7 @@
  * lab, engagement tracking, and email digests (sent with wp_mail()).
  *
  * The only remaining account check is Insightistic Cloud AI — an external
- * service. Bring-your-own-key providers (OpenAI, Gemini, OpenRouter, Groq,
- * Claude) are not gated. Nothing here is a paid plan, trial, or license lock.
+ * service (the only AI service the free plugin talks to). Nothing here is a paid plan, trial, or license lock.
  *
  * @package Insightistic
  */
@@ -24,8 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Insightistic_Feature_Gate {
 
 	/**
-	 * Feature that calls the Insightistic cloud. Bring-your-own-key providers
-	 * skip this check. Email digests are local and are not listed.
+	 * Feature that calls the Insightistic cloud. Email digests are local and are not listed.
 	 *
 	 * @var string[]
 	 */
@@ -56,16 +54,6 @@ class Insightistic_Feature_Gate {
 		$feature = sanitize_key( $feature );
 
 		if ( 'ai_insights' !== $feature ) {
-			return true;
-		}
-
-		// The site owner's own provider key never needs an Insightistic account.
-		$provider = sanitize_key( (string) get_option( 'insightistic_ai_provider', 'insightistic_cloud' ) );
-		if ( in_array( $provider, array( 'openai', 'gemini', 'openrouter', 'groq', 'claude' ), true ) ) {
-			return true;
-		}
-
-		if ( self::in_legacy_grace() ) {
 			return true;
 		}
 
@@ -111,18 +99,7 @@ class Insightistic_Feature_Gate {
 	}
 
 	/**
-	 * Legacy 14-day grace for pre-4.0 installs (set once at upgrade).
-	 *
-	 * @return bool
-	 */
-	public static function in_legacy_grace() {
-		$until = (int) get_option( 'insightistic_legacy_grace_until', 0 );
-
-		return $until > time();
-	}
-
-	/**
-	 * Locked-state upgrade card (spec §9). Also used inside AJAX error payloads.
+	 * Connect-account card for the optional Cloud AI service. Also used inside AJAX error payloads.
 	 *
 	 * @param string $feature Feature slug.
 	 * @param string $title   Card heading.
@@ -135,7 +112,7 @@ class Insightistic_Feature_Gate {
 		$title   = $title ? $title : __( 'Create a free account', 'insightistic' );
 
 		if ( '' === $message ) {
-			$message = __( 'Insightistic Cloud AI needs a free account. Or pick your own OpenAI, Gemini, Groq, Claude, or OpenRouter key in Settings — those work with no account.', 'insightistic' );
+			$message = __( 'Insightistic Cloud AI is an optional hosted service and needs a free Insightistic account. All analytics dashboards work without one.', 'insightistic' );
 		}
 
 		switch ( $reason ) {
@@ -183,11 +160,10 @@ class Insightistic_Feature_Gate {
 	 */
 	public static function js_state() {
 		return array(
-			'connected'   => Insightistic_License_Manager::is_connected(),
-			'status'      => Insightistic_License_Manager::status(),
-			'features'    => Insightistic_License_Manager::features(),
-			'stale'       => Insightistic_License_Manager::is_stale(),
-			'legacyGrace' => self::in_legacy_grace(),
+			'connected' => Insightistic_License_Manager::is_connected(),
+			'status'    => Insightistic_License_Manager::status(),
+			'features'  => Insightistic_License_Manager::features(),
+			'stale'     => Insightistic_License_Manager::is_stale(),
 		);
 	}
 }

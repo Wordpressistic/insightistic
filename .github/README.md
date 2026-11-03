@@ -213,4 +213,4 @@ Released under the [GNU GPL v2 or later](LICENSE). The canonical license text is
 <p align="center">
   <sub>Built and published by <a href="https://wordpressistic.com">wordpressistic.com</a>.</sub>
 </p>
-See [`docs/RELEASING.md`](../docs/RELEASING.md).
+

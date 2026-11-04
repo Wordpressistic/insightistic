@@ -242,7 +242,7 @@ class Insightistic_Engagement {
 
 		wp_localize_script(
 			'insightistic-tracking',
-			'ispTracking',
+			'insightisticTracking',
 			array(
 				'endpoint'       => admin_url( 'admin-ajax.php' ),
 				'action'         => self::ACTION,

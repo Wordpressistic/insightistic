@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed, Cloudflare, and WooCommerce to your WordPress dashboard. Core analytics features work without an account. An optional free Insightistic account adds Cloud AI, dashboard sync, and hosted traffic insights.
- * Version:     4.7.0
+ * Version:     4.7.1
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0-or-later
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION', '4.7.0' );
+define( 'INSIGHTISTIC_VERSION', '4.7.1' );
 define( 'INSIGHTISTIC_FILE', __FILE__ );
 define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
@@ -257,7 +257,7 @@ function insightistic_migrate_legacy_keys() {
 }
 
 /**
- * One-time 4.7.0 migration: the free plugin no longer connects to third-party
+ * One-time 4.7.1 migration: the free plugin no longer connects to third-party
  * AI providers directly, so remove any stored bring-your-own provider keys and
  * models, and require a fresh explicit opt-in for Insightistic Cloud AI.
  */

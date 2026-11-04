@@ -230,13 +230,16 @@ class Insightistic_Encryption {
 		}
 
 		// Generate once, store without autoloading.
+		// Never fall back to WordPress authentication salts. Those values
+		// must not be persisted or reused as encryption keys.
 		try {
 			$secret = base64_encode( random_bytes( 48 ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes binary ciphertext/random bytes for storage; not code obfuscation.
 		} catch ( \Exception $e ) {
-			// Last-resort fallback so encryption still works on exotic hosts.
-			$secret = wp_salt( 'secure_auth' ) . wp_salt( 'auth' );
+			$secret = '';
 		}
-		add_option( self::SECRET_OPTION, $secret, '', 'no' );
+		if ( $secret ) {
+			add_option( self::SECRET_OPTION, $secret, '', 'no' );
+		}
 
 		return $secret;
 	}

@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.7.0
+Stable tag: 4.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -282,8 +282,12 @@ Disconnecting on the Insightistic > Account screen stops all calls to Insightist
 
 == Changelog ==
 
-= 4.7.0 (2026-11-02) =
+= 4.7.1 (2026-11-02) =
 
+* Security: new encryption secrets use only per-site random bytes; if secure random generation fails, encryption is disabled instead of reusing WordPress salts.
+* Security: recursively sanitised decoded analytics payloads before they reach AI, Cloudflare, or WooCommerce analysis handlers.
+* Security: settings imports now accept only an explicit non-secret allowlist and apply type-based sanitisation before updating options.
+* Changed: renamed the frontend tracking global and client cookie to the `insightistic` namespace (`insightisticTracking` and `insightistic_cid`).
 * Changed: AI Insights now use only Insightistic Cloud AI. Direct connections to third-party AI providers and their settings were removed from the free plugin; stored provider keys are deleted on upgrade.
 * Added: an explicit consent setting for Insightistic Cloud AI (off by default), AI credits remaining in Settings and on each analysis, and a clear message when the monthly credit allowance is used up.
 * Changed: the IndexNow key file is written with the WordPress Filesystem API only, with explicit permissions on that file.
@@ -557,7 +561,7 @@ The GA4 Data API returns data differently when date ranges carry names (`current
 
 == Upgrade Notice ==
 
-= 4.7.0 =
+= 4.7.1 =
 Every feature is free and unlocked. AI Insights now run only through the optional Insightistic Cloud AI service and need your consent. Previously stored third-party AI keys are removed.
 
 = 2.0.0 =

@@ -204,8 +204,9 @@ class Insightistic_Cloudflare {
 		}
 
 		// Raw JSON payload from our own dashboard JS; decoded below, never echoed.
-		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
+		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; immediately decoded and sanitized below.
 		$data     = json_decode( $raw_data, true );
+		$data     = is_array( $data ) ? Insightistic_AI::sanitize_analytics_payload( $data ) : array();
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			wp_send_json_error( __( 'No traffic data to analyse. Load Traffic Insights data first.', 'insightistic' ) );
 		}

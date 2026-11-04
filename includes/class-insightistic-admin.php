@@ -638,8 +638,8 @@ class Insightistic_Admin {
 
 		if ( isset( $_POST['insightistic_import_settings_nonce'] ) &&
 			wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['insightistic_import_settings_nonce'] ) ), 'insightistic_import_settings' ) ) {
-			// Raw JSON export blob; decoded + allowlisted in import_settings(), never echoed.
-			$raw    = wp_unslash( $_POST['insightistic_settings_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
+			// Raw JSON export blob; decoded then strictly allowlisted and sanitized inside import_settings().
+			$raw    = wp_unslash( $_POST['insightistic_settings_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; immediately decoded and sanitized by a strict allowlist inside import_settings().
 			$result = Insightistic_System_Status::import_settings( json_decode( $raw, true ) );
 			add_settings_error(
 				'insightistic_system_messages',

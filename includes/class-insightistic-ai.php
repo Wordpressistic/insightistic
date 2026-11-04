@@ -17,6 +17,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Insightistic_AI {
 
 	/**
+	 * Recursively sanitize an analytics payload decoded from JSON.
+	 *
+	 * Strings are run through sanitize_text_field(), numbers are cast,
+	 * and nested arrays are walked. Used before any value is placed in
+	 * an AI prompt or sent to an external provider.
+	 *
+	 * @param mixed $data Raw decoded payload.
+	 * @param int   $depth Current recursion depth (guard).
+	 * @return mixed Sanitized data.
+	 */
+	public static function sanitize_analytics_payload( $data, $depth = 0 ) {
+		if ( $depth > 8 ) {
+			return null;
+		}
+		if ( is_array( $data ) ) {
+			$clean = array();
+			foreach ( $data as $key => $value ) {
+				$clean_key = is_string( $key ) ? sanitize_key( $key ) : $key;
+				$clean[ $clean_key ] = self::sanitize_analytics_payload( $value, $depth + 1 );
+			}
+			return $clean;
+		}
+		if ( is_string( $data ) ) {
+			return sanitize_text_field( $data );
+		}
+		if ( is_int( $data ) || is_float( $data ) ) {
+			return $data;
+		}
+		if ( is_bool( $data ) || null === $data ) {
+			return $data;
+		}
+		return null;
+	}
+
+
+	/**
 	 * Per-request skill-profile override.
 	 *
 	 * When set, system_prompt() uses this instead of reading the stored
@@ -109,8 +145,9 @@ class Insightistic_AI {
 
 		// Raw JSON payload built by our own dashboard JS; decoded and re-encoded
 		// below, never echoed. json_decode() returns null for malformed input.
-		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; it is json_decode()d and each field is sanitized/validated before use, never echoed.
+		$raw_data = wp_unslash( $_POST['data'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON from this plugin's own admin JS; immediately decoded and sanitized below.
 		$data     = json_decode( $raw_data, true );
+		$data     = is_array( $data ) ? self::sanitize_analytics_payload( $data ) : array();
 		$days     = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
 
 		if ( empty( $data ) || ! is_array( $data ) ) {

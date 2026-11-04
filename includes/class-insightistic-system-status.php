@@ -94,14 +94,53 @@ class Insightistic_System_Status {
 			return new WP_Error( 'insightistic_bad_import', __( 'Invalid settings import file.', 'insightistic' ) );
 		}
 
+		// Strict allowlist of non-secret options that may be imported.
+		// Values are sanitized by type before storage.
+		$allowed = array(
+			'insightistic_property_id'               => 'text',
+			'insightistic_api_email'                 => 'email',
+			'insightistic_gsc_property_url'          => 'url',
+			'insightistic_pagespeed_default_url'     => 'url',
+			'insightistic_cloudflare_zone_id'        => 'text',
+			'insightistic_cloudflare_account_id'     => 'text',
+			'insightistic_engagement_enabled'        => 'bool',
+			'insightistic_measurement_id'            => 'text',
+			'insightistic_404_monitor_enabled'       => 'bool',
+			'insightistic_indexnow_direct'           => 'bool',
+			'insightistic_ai_enabled'                => 'bool',
+			'insightistic_ai_consent'                => 'bool',
+			'insightistic_insightistic_cloud_model'  => 'text',
+			'insightistic_addons'                    => 'array',
+			'insightistic_email_automations'         => 'array',
+		);
+
 		foreach ( $payload['settings'] as $key => $value ) {
-			if ( 0 !== strpos( $key, 'insightistic_' ) ) {
+			$key = sanitize_key( $key );
+			if ( ! isset( $allowed[ $key ] ) ) {
 				continue;
 			}
-			if ( false !== strpos( $key, '_key' ) || false !== strpos( $key, '_secret' ) || false !== strpos( $key, 'private_key' ) ) {
-				continue;
+
+			$type = $allowed[ $key ];
+			switch ( $type ) {
+				case 'email':
+					$clean = sanitize_email( is_string( $value ) ? $value : '' );
+					break;
+				case 'url':
+					$clean = esc_url_raw( is_string( $value ) ? $value : '' );
+					break;
+				case 'bool':
+					$clean = empty( $value ) ? 0 : 1;
+					break;
+				case 'array':
+					$clean = is_array( $value ) ? map_deep( $value, 'sanitize_text_field' ) : array();
+					break;
+				case 'text':
+				default:
+					$clean = sanitize_text_field( is_string( $value ) || is_numeric( $value ) ? (string) $value : '' );
+					break;
 			}
-			update_option( sanitize_key( $key ), $value );
+
+			update_option( $key, $clean );
 		}
 
 		return true;

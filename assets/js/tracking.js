@@ -10,11 +10,11 @@
 ( function () {
 	'use strict';
 
-	if ( typeof ispTracking === 'undefined' ) {
+	if ( typeof insightisticTracking === 'undefined' ) {
 		return;
 	}
 
-	var cfg    = ispTracking;
+	var cfg    = insightisticTracking;
 	var origin = window.location.hostname;
 
 	function pageUrl() {
@@ -50,10 +50,10 @@
 				return parts[2] + '.' + parts[3];
 			}
 		}
-		id = readCookie( 'isp_cid' );
+		id = readCookie( 'insightistic_cid' );
 		if ( ! id ) {
 			id              = Math.floor( Math.random() * 1e9 ) + '.' + Math.floor( Date.now() / 1000 );
-			document.cookie = 'isp_cid=' + id + ';max-age=63072000;path=/;SameSite=Lax';
+			document.cookie = 'insightistic_cid=' + id + ';max-age=63072000;path=/;SameSite=Lax';
 		}
 		return id;
 	}

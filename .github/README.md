@@ -54,7 +54,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 | License | GPLv2 or later |
 | Publisher | WordPressistic |
 | Plugin URI | https://wordpressistic.com/insightistic |
-| Latest GitHub release | [Insightistic 4.6.5](https://github.com/Wordpressistic/insightistic/releases/tag/insightistic.4.6.5) |
+| Latest GitHub release | [Insightistic 4.7.0](https://github.com/Wordpressistic/insightistic/releases/tag/insightistic.4.7.0) |
 
 ---
 

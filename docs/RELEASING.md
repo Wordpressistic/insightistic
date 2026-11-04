@@ -24,7 +24,7 @@ This repository uses a manual release process. GitHub Actions are intentionally 
 5. Commit the verified release and create a dotted tag that exactly matches the plugin version:
 
    ```bash
-   git tag -a insightistic.4.6.6 -m "Insightistic 4.6.6"
+   git tag -a insightistic.4.7.0 -m "Insightistic 4.7.0"
    git push origin main --follow-tags
    ```
 
@@ -32,13 +32,13 @@ This repository uses a manual release process. GitHub Actions are intentionally 
 
    ```bash
    php scripts/build-release.php
-   php scripts/validate-zip.php dist/insightistic.4.6.6.zip
-   Get-FileHash dist/insightistic.4.6.6.zip -Algorithm SHA256
+   php scripts/validate-zip.php dist/insightistic.4.7.0.zip
+   Get-FileHash dist/insightistic.4.7.0.zip -Algorithm SHA256
    ```
 
 7. Create a GitHub Release for the exact tag and attach:
-   - `dist/insightistic.4.6.6.zip`
-   - `dist/insightistic.4.6.6.zip.sha256`
+   - `dist/insightistic.4.7.0.zip`
+   - `dist/insightistic.4.7.0.zip.sha256`
 
 8. Verify the downloaded GitHub asset against the checksum and confirm the ZIP contains one root directory named `insightistic/`.
 

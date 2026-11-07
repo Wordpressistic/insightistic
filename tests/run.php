@@ -19,6 +19,7 @@ $suites = array(
 	'test-ga4-edge-cases.php',
 	'test-indexnow.php',
 	'test-cloudflare-sync.php',
+	'test-do-next.php',
 );
 
 $php    = PHP_BINARY;

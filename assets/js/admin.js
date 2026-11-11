@@ -257,6 +257,31 @@
 	}
 
 	/* ================================================================== */
+	/* DO THIS NEXT QUEUE                                                  */
+	/* ================================================================== */
+
+	function initDoNext() {
+		$( '.isp-dtn-snooze' ).on( 'click', function () {
+			var $btn  = $( this );
+			var $item = $btn.closest( '.isp-dtn-item' );
+			$.post( insightisticPro.ajaxUrl, {
+				action: 'insightistic_snooze_do_next',
+				nonce: insightisticPro.nonce,
+				item_id: $item.data( 'item-id' )
+			} ).done( function ( res ) {
+				if ( res && res.success ) {
+					$item.fadeOut( 200, function () {
+						$( this ).remove();
+						if ( ! $( '.isp-dtn-item' ).length ) {
+							$( '#isp-do-next' ).fadeOut( 200 );
+						}
+					} );
+				}
+			} );
+		} );
+	}
+
+	/* ================================================================== */
 	/* GA4: OVERVIEW TAB                                                   */
 	/* ================================================================== */
 
@@ -2401,6 +2426,7 @@
 			// Auto-load GA4 data on first paint.
 			loadData( true, false );
 			init404Monitor();
+			initDoNext();
 
 			$( '#isp-load-data' ).on( 'click', function () { loadData( false, false ); } );
 			$( '#isp-ai-analyze' ).on( 'click', runAI );

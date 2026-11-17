@@ -53,7 +53,7 @@ Insightistic brings your most important website growth signals into one clean Wo
 | PHP requirement | 8.0 or newer |
 | License | GPLv2 or later |
 | Publisher | WordPressistic |
-| Plugin URI | https://wordpressistic.com/insightistic |
+| Plugin URI | [www.insightistic.com](https://www.insightistic.com)|
 | Latest GitHub release | [Insightistic 4.7.1](https://github.com/Wordpressistic/insightistic/releases/tag/insightistic.4.7.1) |
 
 ---
@@ -206,11 +206,11 @@ Released under the [GNU GPL v2 or later](LICENSE). The canonical license text is
 
 <p align="center">
   <strong>
-    <a href="https://wordpressistic.com">WordPressistic — Your Digital Partner for Global Impact</a>
+    <a href="https://www.wordpressistic.com">WordPressistic — Your Digital Partner for Global Impact</a>
   </strong>
 </p>
 
 <p align="center">
-  <sub>Built and published by <a href="https://wordpressistic.com">wordpressistic.com</a>.</sub>
+  <sub>Built and published by <a href="https://www.wordpressistic.com">wordpressistic.com</a>.</sub>
 </p>
 

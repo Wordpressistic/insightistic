@@ -71,7 +71,16 @@ class Insightistic_GSC {
 		$prev_end   = gmdate( 'Y-m-d', strtotime( '-' . ( $days + 4 ) . ' days' ) );
 		$prev_start = gmdate( 'Y-m-d', strtotime( '-' . ( ( $days * 2 ) + 3 ) . ' days' ) );
 
-		$site_url    = rawurlencode( trailingslashit( $property_url ) );
+		$resolved_property = $this->resolve_accessible_property( $property_url, $token );
+		if ( is_wp_error( $resolved_property ) ) {
+			wp_send_json_error( $this->permission_error_message( $resolved_property, $property_url ) );
+		}
+		if ( ! empty( $resolved_property['auto_detected'] ) ) {
+			update_option( 'insightistic_gsc_property_url', $resolved_property['property'] );
+			$property_url = $resolved_property['property'];
+		}
+
+		$site_url    = $resolved_property['encoded'];
 		$overview    = $this->get_overview( $site_url, $token, $start_date, $end_date, $prev_start, $prev_end );
 		$top_queries = $this->get_top_queries( $site_url, $token, $start_date, $end_date );
 		$top_pages   = $this->get_top_pages( $site_url, $token, $start_date, $end_date );
@@ -115,20 +124,146 @@ class Insightistic_GSC {
 			wp_send_json_error( __( 'Search Console property URL is not configured.', 'insightistic' ) );
 		}
 
-		$site_url = rawurlencode( trailingslashit( $property_url ) );
-		$url      = self::API_BASE . $site_url . '/searchAnalytics/query';
-		$body     = array(
+		$resolved_property = $this->resolve_accessible_property( $property_url, $token );
+		if ( is_wp_error( $resolved_property ) ) {
+			wp_send_json_error( $this->permission_error_message( $resolved_property, $property_url ) );
+		}
+
+		if ( ! empty( $resolved_property['auto_detected'] ) ) {
+			update_option( 'insightistic_gsc_property_url', $resolved_property['property'] );
+		}
+
+		if ( ! empty( $resolved_property['auto_detected'] ) ) {
+			wp_send_json_success(
+				sprintf(
+					/* translators: %s: detected Search Console domain property. */
+					__( 'Search Console connection successful. Insightistic detected and saved the domain property %s.', 'insightistic' ),
+					$resolved_property['property']
+				)
+			);
+		}
+
+		wp_send_json_success( __( 'Search Console connection successful!', 'insightistic' ) );
+	}
+
+	/**
+	 * Normalize a URL-prefix or domain property before storing it.
+	 *
+	 * @param string $property_url Raw setting value.
+	 * @return string
+	 */
+	public static function normalize_property_input( $property_url ) {
+		$property_url = trim( sanitize_text_field( (string) $property_url ) );
+		if ( preg_match( '/^sc-domain\s*:\s*(.+)$/i', $property_url, $matches ) ) {
+			$domain = strtolower( trim( $matches[1], " /\t\r\n" ) );
+			$domain = preg_replace( '/^www\./', '', $domain );
+			return $domain ? 'sc-domain:' . $domain : '';
+		}
+
+		return esc_url_raw( $property_url );
+	}
+
+	/**
+	 * Resolve the property that the configured service account can actually
+	 * query. This handles the common case where Search Console shows a domain
+	 * property (sc-domain:example.com) but the admin entered a URL-prefix URL.
+	 *
+	 * @param string $property_url Saved setting value.
+	 * @param string $token        Google access token.
+	 * @return array|WP_Error
+	 */
+	private function resolve_accessible_property( $property_url, $token ) {
+		$property_url = self::normalize_property_input( $property_url );
+		$candidates   = array( $property_url );
+		$domain       = $this->domain_property_candidate( $property_url );
+		if ( $domain && $domain !== $property_url ) {
+			$candidates[] = $domain;
+		}
+
+		$body = array(
 			'startDate' => gmdate( 'Y-m-d', strtotime( '-10 days' ) ),
 			'endDate'   => gmdate( 'Y-m-d', strtotime( '-3 days' ) ),
 			'rowLimit'  => 1,
 		);
 
-		$response = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $response ) ) {
-			wp_send_json_error( $response->get_error_message() );
+		$last_error = null;
+		foreach ( $candidates as $candidate ) {
+			$url      = self::API_BASE . $this->encode_property_url( $candidate ) . '/searchAnalytics/query';
+			$response = $this->api_request( $url, $body, $token );
+			if ( ! is_wp_error( $response ) ) {
+				return array(
+					'property'      => $candidate,
+					'encoded'       => $this->encode_property_url( $candidate ),
+					'auto_detected' => $candidate !== $property_url,
+				);
+			}
+			$last_error = $response;
+			if ( 'gsc_permission_denied' !== $response->get_error_code() ) {
+				break;
+			}
 		}
 
-		wp_send_json_success( __( 'Search Console connection successful!', 'insightistic' ) );
+		return $last_error instanceof WP_Error
+			? $last_error
+			: new WP_Error( 'gsc_error', __( 'Search Console property could not be verified.', 'insightistic' ) );
+	}
+
+	/**
+	 * Build a domain-property candidate from a URL-prefix property.
+	 *
+	 * @param string $property_url Saved property value.
+	 * @return string
+	 */
+	private function domain_property_candidate( $property_url ) {
+		if ( 0 === stripos( $property_url, 'sc-domain:' ) ) {
+			return '';
+		}
+
+		$host = wp_parse_url( $property_url, PHP_URL_HOST );
+		if ( ! $host ) {
+			return '';
+		}
+
+		$host = strtolower( preg_replace( '/^www\./', '', $host ) );
+		return $host ? 'sc-domain:' . $host : '';
+	}
+
+	/**
+	 * Turn a Search Console API error into actionable admin copy.
+	 *
+	 * @param WP_Error $error        API error.
+	 * @param string   $property_url Tested property.
+	 * @return string
+	 */
+	private function permission_error_message( $error, $property_url ) {
+		if ( 'gsc_permission_denied' !== $error->get_error_code() ) {
+			return $error->get_error_message();
+		}
+
+		$email  = sanitize_email( get_option( 'insightistic_api_email', '' ) );
+		$detail = $email
+			? sprintf(
+				/* translators: %1$s: property; %2$s: service-account email. */
+				__( 'Search Console denied access to %1$s for %2$s. In Search Console → Settings → Users and permissions, add this exact service-account email to the selected property with Full permission.', 'insightistic' ),
+				$property_url,
+				$email
+			)
+			: sprintf(
+				/* translators: %s: property. */
+				__( 'Search Console denied access to %s. Add the service-account email from Insightistic → Settings → GA4 to this exact property with Full permission.', 'insightistic' ),
+				$property_url
+			);
+
+		$domain = $this->domain_property_candidate( $property_url );
+		if ( $domain ) {
+			$detail .= ' ' . sprintf(
+				/* translators: %s: domain property syntax. */
+				__( 'If Search Console shows a domain property without https://, enter %s and test again.', 'insightistic' ),
+				$domain
+			);
+		}
+
+		return $detail;
 	}
 
 	/*
@@ -310,7 +445,14 @@ class Insightistic_GSC {
 
 		$end_date   = gmdate( 'Y-m-d', strtotime( '-3 days' ) );
 		$start_date = gmdate( 'Y-m-d', strtotime( '-' . ( $days + 3 ) . ' days' ) );
-		$site_url   = rawurlencode( trailingslashit( $property_url ) );
+		$resolved_property = $this->resolve_accessible_property( $property_url, $token );
+		if ( is_wp_error( $resolved_property ) ) {
+			return $resolved_property;
+		}
+		if ( ! empty( $resolved_property['auto_detected'] ) ) {
+			update_option( 'insightistic_gsc_property_url', $resolved_property['property'] );
+		}
+		$site_url   = $resolved_property['encoded'];
 
 		return array(
 			'daily'   => $this->get_sync_daily( $site_url, $token, $start_date, $end_date ),
@@ -415,10 +557,38 @@ class Insightistic_GSC {
 		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( isset( $decoded['error'] ) ) {
-			return new WP_Error( 'gsc_error', $decoded['error']['message'] ?? __( 'Search Console API error.', 'insightistic' ) );
+			$error   = is_array( $decoded['error'] ) ? $decoded['error'] : array();
+			$message = isset( $error['message'] ) && is_string( $error['message'] )
+				? $error['message']
+				: __( 'Search Console API error.', 'insightistic' );
+			$status  = absint( $error['code'] ?? wp_remote_retrieve_response_code( $response ) );
+			$reason  = '';
+			if ( ! empty( $error['errors'][0]['reason'] ) ) {
+				$reason = sanitize_key( $error['errors'][0]['reason'] );
+			}
+			$code = 403 === $status || in_array( $reason, array( 'forbidden', 'insufficientpermissions' ), true )
+				? 'gsc_permission_denied'
+				: 'gsc_error';
+			return new WP_Error( $code, $message );
 		}
 
 		return $decoded;
+	}
+
+	/**
+	 * Encode a URL property or a domain property for the Search Console API.
+	 * Domain properties use the literal `sc-domain:` prefix and must not gain
+	 * a trailing slash.
+	 *
+	 * @param string $property_url Saved property value.
+	 * @return string
+	 */
+	private function encode_property_url( $property_url ) {
+		$property_url = trim( (string) $property_url );
+		if ( 0 === strpos( $property_url, 'sc-domain:' ) ) {
+			return rawurlencode( rtrim( $property_url, '/' ) );
+		}
+		return rawurlencode( trailingslashit( $property_url ) );
 	}
 
 	/**

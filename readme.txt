@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.7.1
+Stable tag: 4.7.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -282,6 +282,29 @@ Disconnecting on the Insightistic > Account screen stops all calls to Insightist
 
 == Changelog ==
 
+= 4.7.3 (2026-11-18) =
+
+* Fixed: the dedicated Speed Test now uses the same PageSpeed summary, score-ring, Core Web Vitals, opportunities, and diagnostics UI as the dashboard PageSpeed tab without duplicated sections.
+* Fixed: Search Console URL-prefix settings now fall back to an accessible matching domain property and preserve the `sc-domain:` format when saved.
+* Improved: Cloud AI requests use a longer, endpoint-scoped timeout so Search Console and PageSpeed analyses are not cut off by the 15-second connector timeout.
+* Changed: AI result actions now offer a print-ready Download Reports view that includes the loaded report data and Insightistic Cloud AI output and can be saved as PDF by the browser.
+* Improved: account credit display no longer treats legacy plan limits as a live balance; it only shows a balance when the connected API returns the structured credit payload.
+
+= 4.7.2 (2026-11-18) =
+
+* Fixed: Top Posts now supports root-level WordPress permalinks through a bounded GA4 fallback instead of showing an empty card.
+* Added: AI results render immediately below each dashboard toolbar, with metric-specific improvement keys under Overview and Search Console cards.
+* Added: on-demand AI analysis controls for Search Console and PageSpeed.
+* Changed: AI result branding now shows only Insightistic Cloud AI; model and skill-profile controls are no longer exposed in Settings.
+* Changed: the AI connection test validates the account connection without spending an AI credit.
+* Added: Account page AI credit summary and configurable extra-credit pack links (5,000 for $15, 20,000 for $49, and 50,000 for $99).
+* Improved: PageSpeed dashboard reports now include category scores, AI readiness, Core Web Vitals, opportunities, and diagnostics in a cleaner layout.
+* Improved: Addon cards use consistent sizing and aligned actions.
+* Fixed: structured Cloud AI, license, GSC, and Cloudflare errors no longer render as `[object Object]`; nested gateway messages are extracted safely.
+* Improved: Cloudflare connection tests reject a valid token for the wrong zone and explain the required site/zone match; GraphQL access-control failures now include an actionable permission message.
+* Fixed: Search Console domain properties using the `sc-domain:` format are encoded correctly, and permission failures now explain how to add the service account to the exact property.
+* Improved: Speed Test opportunity rows use a responsive, bounded layout for long titles/descriptions and savings values.
+
 = 4.7.1 (2026-11-02) =
 
 * Security: new encryption secrets use only per-site random bytes; if secure random generation fails, encryption is disabled instead of reusing WordPress salts.
@@ -289,7 +312,7 @@ Disconnecting on the Insightistic > Account screen stops all calls to Insightist
 * Security: settings imports now accept only an explicit non-secret allowlist and apply type-based sanitisation before updating options.
 * Changed: renamed the frontend tracking global and client cookie to the `insightistic` namespace (`insightisticTracking` and `insightistic_cid`).
 * Changed: AI Insights now use only Insightistic Cloud AI. Direct connections to third-party AI providers and their settings were removed from the free plugin; stored provider keys are deleted on upgrade.
-* Added: an explicit consent setting for Insightistic Cloud AI (off by default), AI credits remaining in Settings and on each analysis, and a clear message when the monthly credit allowance is used up.
+* Added: an explicit consent setting for Insightistic Cloud AI (off by default) and a clear message when the account AI allowance is used up.
 * Changed: the IndexNow key file is written with the WordPress Filesystem API only, with explicit permissions on that file.
 * Updated: bundled Chart.js to 4.6.1.
 * Changed: IndexNow works without an account. Turn it on in Settings > Engagement to submit URLs directly to api.indexnow.org.
@@ -561,8 +584,8 @@ The GA4 Data API returns data differently when date ranges carry names (`current
 
 == Upgrade Notice ==
 
-= 4.7.1 =
-Every feature is free and unlocked. AI Insights now run only through the optional Insightistic Cloud AI service and need your consent. Previously stored third-party AI keys are removed.
+= 4.7.2 =
+AI results now appear beside the dashboard actions and KPI cards. Top Posts supports root-level permalinks, PageSpeed has richer details, and the Account page contains the AI credit view.
 
 = 2.0.0 =
 Major feature release. Adds Search Console, PageSpeed, Engagement Tracking, and 6 new dashboard cards. No breaking changes  existing GA4 credentials and settings are preserved automatically.

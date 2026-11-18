@@ -188,6 +188,19 @@
 .isp-stat-card:focus-within { outline: 2px solid #3b82f6; outline-offset: 2px; }
 .isp-stat-card-blank .isp-stat-value { color: #9ca3af; }
 
+/* Compact metric-specific AI actions. The full analysis remains above the
+   cards; these slots surface only the recommendation relevant to each KPI. */
+.isp-card-ai-slot { display: none; margin-top: 10px; width: 100%; }
+.isp-card-ai-box { border-top: 1px solid #eef2f7; padding-top: 8px; }
+.isp-card-ai-label { display: block; margin-bottom: 5px; color: #2563eb; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.isp-card-ai-box .isp-ai-inline-item { border: 0; border-left: 2px solid #93c5fd; border-radius: 0; background: transparent; padding: 0 0 0 8px; }
+.isp-card-ai-box .isp-ai-inline-item + .isp-ai-inline-item { margin-top: 8px; }
+.isp-card-ai-box .isp-ai-inline-item .isp-ai-card-impact,
+.isp-card-ai-box .isp-ai-inline-item .isp-rec-meta { display: none; }
+.isp-card-ai-box .isp-ai-inline-item h4 { margin: 0 0 3px; color: #1e3a8a; font-size: 11px; line-height: 1.35; }
+.isp-card-ai-box .isp-ai-inline-item p { margin: 0; color: #64748b; font-size: 11px; line-height: 1.4; }
+.isp-card-ai-box .isp-ai-inline-item .isp-ai-key { display: block; margin-bottom: 3px; color: #64748b; font-size: 9px; font-weight: 700; }
+
 /* Initial-paint skeleton:  empty stat values shimmer until JS fills them. */
 .isp-stat-value:empty { background: linear-gradient(90deg,#eef2f7 0%,#f8fafc 50%,#eef2f7 100%); background-size: 200% 100%; border-radius: 6px; height: 22px; width: 60%; animation: isp-shimmer 1.4s ease-in-out infinite; }
 .isp-stat-change:empty { background: linear-gradient(90deg,#eef2f7 0%,#f8fafc 50%,#eef2f7 100%); background-size: 200% 100%; border-radius: 4px; height: 12px; width: 40%; animation: isp-shimmer 1.4s ease-in-out infinite; }
@@ -353,6 +366,7 @@
 .isp-score-good    .isp-ring-score { color: #059669; }
 .isp-score-moderate .isp-ring-score { color: #d97706; }
 .isp-score-poor     .isp-ring-score { color: #dc2626; }
+.isp-score-neutral .isp-ring-score { color: #64748b; }
 
 .isp-speed-score-label {
     font-size: 12px; font-weight: 700; padding: 4px 14px;
@@ -361,6 +375,7 @@
 .isp-speed-score-label.isp-lbl-good     { background: #f0fdf4; color: #166534; }
 .isp-speed-score-label.isp-lbl-moderate { background: #fffbeb; color: #92400e; }
 .isp-speed-score-label.isp-lbl-poor     { background: #fef2f2; color: #991b1b; }
+.isp-speed-score-label.isp-lbl-neutral  { background: #f1f5f9; color: #475569; }
 
 .isp-speed-legend { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: #374151; }
 .isp-speed-legend-item { display: flex; align-items: center; gap: 10px; }
@@ -403,6 +418,27 @@
 .isp-cwv-badge-moderate { background: #fffbeb; color: #92400e; }
 .isp-cwv-badge-poor     { background: #fef2f2; color: #991b1b; }
 .isp-cwv-badge-unknown  { background: #f3f4f6; color: #6b7280; }
+
+/* Dashboard PageSpeed details. */
+.isp-psi-summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; }
+.isp-psi-summary-card { min-height: 76px; padding: 14px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fafafa; text-align: center; }
+.isp-psi-summary-card strong { display: block; color: #111827; font-size: 25px; line-height: 1.1; }
+.isp-psi-summary-card span { display: block; margin-top: 7px; color: #6b7280; font-size: 11px; }
+.isp-psi-summary-card.is-score-good { border-color: #bbf7d0; background: #f0fdf4; }
+.isp-psi-summary-card.is-score-good strong { color: #047857; }
+.isp-psi-summary-card.is-score-moderate { border-color: #fde68a; background: #fffbeb; }
+.isp-psi-summary-card.is-score-moderate strong { color: #b45309; }
+.isp-psi-summary-card.is-score-poor { border-color: #fecaca; background: #fef2f2; }
+.isp-psi-summary-card.is-score-poor strong { color: #b91c1c; }
+.isp-psi-report-meta { margin: 0 2px 14px; color: #64748b; font-size: 11px; overflow-wrap: anywhere; }
+.isp-psi-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.isp-psi-detail-card { padding: 18px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+.isp-psi-detail-card h3 { margin: 0 0 12px; color: #111827; font-size: 14px; }
+.isp-psi-detail-list { list-style: none; margin: 0; padding: 0; }
+.isp-psi-detail-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+.isp-psi-detail-list li:last-child { border-bottom: 0; }
+.isp-psi-detail-list strong { color: #334155; font-size: 12px; line-height: 1.4; }
+.isp-psi-detail-list span { color: #64748b; font-size: 11px; white-space: nowrap; }
 
 /* ---------- Loading & Initial State -------------------------------------- */
 .isp-initial-state { padding: 40px 20px; text-align: center; }
@@ -676,6 +712,9 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s;
 }
 .isp-addon-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.isp-addons-grid { align-items: start; }
+.isp-addon-card { height: auto; min-height: 250px; }
+.isp-addon-desc { min-height: 62px; }
 .isp-addon-card-top { display: flex; align-items: center; justify-content: space-between; }
 .isp-addon-icon {
     width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
@@ -999,7 +1038,7 @@
 .isp-speedtest-empty h2 { margin: 0 0 8px; color: #0f172a; font-size: 18px; }
 .isp-speedtest-empty p { max-width: 520px; margin: 0 auto; font-size: 13px; line-height: 1.7; }
 
-.isp-speedtest-results { margin-top: 20px; }
+.isp-speedtest-results { margin-top: 20px; min-width: 0; }
 .isp-speedtest-tabs { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .isp-speedtest-when { margin-left: auto; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -1074,9 +1113,12 @@
 .isp-cwv-poor .isp-cwv-val     { color: #dc2626; }
 
 /* Opportunities */
-.isp-opps { display: flex; flex-direction: column; gap: 14px; }
-.isp-opp-top { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #0f172a; }
-.isp-opp-save { color: #b45309; font-weight: 700; white-space: nowrap; }
+.isp-opps { display: flex; flex-direction: column; gap: 10px; }
+.isp-opp { min-width: 0; padding: 13px 14px; border: 1px solid #eef2f7; border-radius: 10px; background: #fbfdff; }
+.isp-opp-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 16px; font-size: 13px; color: #0f172a; }
+.isp-opp-title { min-width: 0; }
+.isp-opp-title strong { display: block; overflow-wrap: anywhere; line-height: 1.4; }
+.isp-opp-save { color: #b45309; font-weight: 700; white-space: nowrap; text-align: right; }
 .isp-opp-bar {
     height: 6px; border-radius: 999px; background: #f1f5f9; overflow: hidden; margin: 7px 0 5px;
 }
@@ -1087,7 +1129,7 @@
     transform-origin: left center;
 }
 @keyframes ispBarGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.isp-opp-desc { margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.55; }
+.isp-opp-desc { margin: 4px 0 0; color: #64748b; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
 
 .isp-diags { list-style: none; margin: 0; padding: 0; }
 .isp-diags li {
@@ -1125,8 +1167,23 @@
     .isp-license-card { padding: 20px 18px; }
     .isp-speedtest-gauges { gap: 16px; }
     .isp-speedtest-when { display: none; }
+    .isp-opp-top { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .isp-opp-save { text-align: left; }
     .isp-license-meta { gap: 18px; }
     .isp-license-banner .isp-btn { margin-left: 0; }
+}
+
+@media (max-width: 900px) {
+    .isp-psi-summary-grid { grid-template-columns: repeat(3, 1fr); }
+    .isp-psi-details-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .isp-psi-summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .isp-psi-detail-list li { display: block; }
+    .isp-psi-detail-list span { display: block; margin-top: 4px; }
+    .isp-ai-credits-heading { display: block; }
+    .isp-ai-credits-total { margin-top: 14px; text-align: left; }
+    .isp-credit-pack-grid { grid-template-columns: 1fr; }
 }
 
 /* ── v4.4.1 UI upgrade: animated gradient gauge + addon polish (JOLLY 2026-09-09) ── */
@@ -1146,6 +1203,22 @@
 .isp-addon-card:hover::before { opacity: 1; }
 .isp-addon-card[data-status="enabled"] { border-color: #bbf7d0; background: linear-gradient(180deg, #f0fdf4 0%, #fff 30%); }
 .isp-addon-toggle-input:checked ~ .isp-addon-toggle-track { background: linear-gradient(90deg, #16a34a, #22d3ee); }
+
+/* AI credits on the optional account page. */
+.isp-ai-credits-card { grid-column: 1 / -1; }
+.isp-ai-credits-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.isp-ai-credits-total { min-width: 150px; padding: 13px 16px; border: 1px solid #bfdbfe; border-radius: 12px; background: #eff6ff; text-align: right; }
+.isp-ai-credits-total strong { display: block; color: #1d4ed8; font-size: 24px; line-height: 1.1; }
+.isp-ai-credits-total span { display: block; margin-top: 4px; color: #475569; font-size: 11px; }
+.isp-ai-credits-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 14px; color: #475569; font-size: 12px; }
+.isp-ai-credits-help { margin: 0 0 12px; color: #475569; font-size: 13px; }
+.isp-ai-credits-empty { margin: 12px 0; }
+.isp-credit-pack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+.isp-credit-pack { display: flex; flex-direction: column; gap: 4px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+.isp-credit-pack strong { color: #0f2044; font-size: 19px; }
+.isp-credit-pack span { color: #64748b; font-size: 11px; }
+.isp-credit-pack b { margin: 4px 0 8px; color: #047857; font-size: 17px; }
+.isp-credit-pack .isp-btn { align-self: flex-start; font-size: 11px; padding: 7px 10px; }
 /* gauge pop-in on first render */
 @keyframes ispGaugePop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .isp-gauge { animation: ispGaugePop 0.5s cubic-bezier(0.22,1,0.36,1) both; }

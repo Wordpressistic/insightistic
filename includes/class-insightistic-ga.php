@@ -760,7 +760,12 @@ class Insightistic_GA {
 	}
 
 	/**
-	 * Get top blog posts (filters by common blog URL patterns).
+	 * Get the site's top published posts.
+	 *
+	 * Many WordPress sites use root-level post permalinks, so filtering GA4 by
+	 * /blog/ or /post/ silently returns an empty card. We keep the fast legacy
+	 * path first, then fall back to a bounded page report and identify real
+	 * WordPress posts locally from their URLs.
 	 */
 	private function get_top_posts( $property_id, $token, $start, $end ) {
 		$url  = "https://analyticsdata.googleapis.com/v1beta/properties/{$property_id}:runReport";
@@ -831,21 +836,62 @@ class Insightistic_GA {
 		);
 
 		$data = $this->api_request( $url, $body, $token );
-		if ( is_wp_error( $data ) || ! isset( $data['rows'] ) ) {
+		$use_fallback = is_wp_error( $data ) || empty( $data['rows'] );
+
+		if ( $use_fallback ) {
+			$fallback_body = $body;
+			unset( $fallback_body['dimensionFilter'] );
+			$fallback_body['limit'] = 100;
+			$data              = $this->api_request( $url, $fallback_body, $token );
+		}
+
+		if ( is_wp_error( $data ) || empty( $data['rows'] ) ) {
 			return array();
 		}
 
 		$result = array();
 		foreach ( $data['rows'] as $row ) {
+			$path = (string) ( $row['dimensionValues'][1]['value'] ?? '' );
+			if ( $use_fallback && ! $this->is_published_post_path( $path ) ) {
+				continue;
+			}
 			$avg_sec  = floatval( $row['metricValues'][1]['value'] );
 			$result[] = array(
 				'title'    => $row['dimensionValues'][0]['value'],
-				'path'     => $row['dimensionValues'][1]['value'],
+				'path'     => $path,
 				'views'    => intval( $row['metricValues'][0]['value'] ),
 				'avg_time' => floor( $avg_sec / 60 ) . ':' . str_pad( (int) ( $avg_sec % 60 ), 2, '0', STR_PAD_LEFT ),
 			);
+			if ( count( $result ) >= 5 ) {
+				break;
+			}
 		}
 		return $result;
+	}
+
+	/**
+	 * Whether a GA4 page path resolves to a published WordPress post.
+	 *
+	 * @param string $path GA4 page path.
+	 * @return bool
+	 */
+	private function is_published_post_path( $path ) {
+		$path = '/' . ltrim( (string) $path, '/' );
+		$post_id = url_to_postid( home_url( ltrim( $path, '/' ) ) );
+		if ( $post_id && 'post' === get_post_type( $post_id ) ) {
+			return 'publish' === get_post_status( $post_id );
+		}
+
+		// Keep the known blog URL convention useful on sites where permalinks
+		// are not resolvable in the current request (for example during a cache
+		// warm-up or when the post was recently migrated).
+		foreach ( array( '/blog/', '/post/', '/article/', '/news/' ) as $prefix ) {
+			if ( false !== strpos( $path, $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/*

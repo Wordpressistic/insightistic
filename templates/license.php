@@ -36,6 +36,15 @@ $insightistic_isp_features_meta = array(
 	'ai_insights' => array( __( 'Insightistic Cloud AI', 'insightistic' ), __( 'Optional. Sends analytics summaries to Insightistic only after you give consent in Settings > AI Insights. Free accounts include a monthly AI credit allowance.', 'insightistic' ) ),
 	'cloud_sync'  => array( __( 'Dashboard sync', 'insightistic' ), __( 'Optional. Analytics leave this site only after you activate a key here.', 'insightistic' ) ),
 );
+$insightistic_isp_credits       = class_exists( 'Insightistic_AI' ) ? Insightistic_AI::credits_summary() : array( 'total' => 0, 'monthly' => 0, 'granted' => 0, 'purchased' => 0, 'known' => false );
+$insightistic_isp_credit_packs  = apply_filters(
+	'insightistic_ai_credit_packs',
+	array(
+		array( 'credits' => 5000, 'price' => '$15' ),
+		array( 'credits' => 20000, 'price' => '$49' ),
+		array( 'credits' => 50000, 'price' => '$99' ),
+	)
+);
 ?>
 <div class="wrap isp-wrap isp-license-wrap">
 
@@ -161,10 +170,6 @@ $insightistic_isp_features_meta = array(
 							?>
 						</dd>
 					</div>
-					<div>
-						<dt><?php esc_html_e( 'Monthly AI credits', 'insightistic' ); ?></dt>
-						<dd><?php echo esc_html( number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['remaining'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) . ' / ' . number_format_i18n( (int) ( $insightistic_isp_state['credits']['monthly_included']['granted'] ?? $insightistic_isp_state['monthly_ai_credits'] ?? 0 ) ) ); ?></dd>
-					</div>
 				</dl>
 
 				<?php if ( $insightistic_isp_blocked ) : ?>
@@ -220,6 +225,64 @@ $insightistic_isp_features_meta = array(
 					<?php esc_html_e( 'Email digests, GA4, Search Console, PageSpeed, Cloudflare, WooCommerce, IndexNow and every other module work without this connection.', 'insightistic' ); ?>
 				</p>
 			</div>
+		</div>
+
+		<div class="isp-license-card isp-ai-credits-card isp-animate-in isp-animate-delay-2">
+			<div class="isp-ai-credits-heading">
+				<div>
+					<h2 class="isp-license-card-title"><?php esc_html_e( 'Insightistic AI Feature', 'insightistic' ); ?></h2>
+					<p class="isp-license-card-sub"><?php esc_html_e( 'Use Cloud AI on demand without a paid Insightistic subscription. Your balance is supplied by the connected account.', 'insightistic' ); ?></p>
+				</div>
+				<div class="isp-ai-credits-total">
+					<strong><?php echo $insightistic_isp_credits['known'] ? esc_html( number_format_i18n( (int) $insightistic_isp_credits['total'] ) ) : esc_html( '—' ); ?></strong>
+					<span><?php esc_html_e( 'credits remaining', 'insightistic' ); ?></span>
+				</div>
+			</div>
+			<div class="isp-ai-credits-meta">
+				<?php if ( $insightistic_isp_credits['known'] ) : ?>
+				<?php /* translators: 1: credits used or remaining this month, 2: monthly credit allowance. */ ?>
+				<span><?php echo esc_html( sprintf( __( 'Monthly: %1$s / %2$s', 'insightistic' ), number_format_i18n( (int) $insightistic_isp_credits['monthly'] ), number_format_i18n( (int) $insightistic_isp_credits['granted'] ) ) ); ?></span>
+				<?php /* translators: %s: number of purchased credits. */ ?>
+				<span><?php echo esc_html( sprintf( __( 'Purchased: %s', 'insightistic' ), number_format_i18n( (int) $insightistic_isp_credits['purchased'] ) ) ); ?></span>
+				<?php else : ?>
+				<span><?php esc_html_e( 'Credit balance is not available from the connected account yet.', 'insightistic' ); ?></span>
+				<?php endif; ?>
+				<?php /* translators: %d: number of AI credits charged for one analysis. */ ?>
+				<span><?php echo esc_html( sprintf( __( '%d credits per AI analysis/report', 'insightistic' ), Insightistic_AI::CREDITS_PER_ANALYSIS ) ); ?></span>
+			</div>
+
+			<?php if ( $insightistic_isp_credits['known'] && (int) $insightistic_isp_credits['total'] <= 0 ) : ?>
+				<div class="isp-notice isp-notice-info isp-ai-credits-empty">
+					<?php esc_html_e( 'Your monthly AI credits are finished. Need more credits? Get extra credits now.', 'insightistic' ); ?>
+				</div>
+			<?php else : ?>
+				<p class="isp-ai-credits-help"><?php esc_html_e( 'Need more credits? Get extra credits now.', 'insightistic' ); ?></p>
+			<?php endif; ?>
+
+			<div class="isp-credit-pack-grid">
+				<?php foreach ( (array) $insightistic_isp_credit_packs as $insightistic_isp_pack ) : ?>
+					<?php
+					$insightistic_isp_pack_credits = absint( $insightistic_isp_pack['credits'] ?? 0 );
+					$insightistic_isp_pack_url     = add_query_arg(
+						array(
+							'ref'     => 'plugin',
+							'credits' => $insightistic_isp_pack_credits,
+						),
+						$insightistic_isp_app_url . '/dashboard/billing'
+					);
+					if ( ! $insightistic_isp_pack_credits ) {
+						continue;
+					}
+					?>
+					<div class="isp-credit-pack">
+						<strong><?php echo esc_html( number_format_i18n( $insightistic_isp_pack_credits ) ); ?></strong>
+						<span><?php esc_html_e( 'AI credits', 'insightistic' ); ?></span>
+						<b><?php echo esc_html( $insightistic_isp_pack['price'] ?? '' ); ?></b>
+						<a class="isp-btn isp-btn-secondary" href="<?php echo esc_url( $insightistic_isp_pack_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Get extra credits', 'insightistic' ); ?></a>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<p class="isp-hint"><?php esc_html_e( 'Credit-pack availability and checkout are controlled by your Insightistic account. Analytics continue working if AI credits are unavailable.', 'insightistic' ); ?></p>
 		</div>
 
 	<?php endif; ?>

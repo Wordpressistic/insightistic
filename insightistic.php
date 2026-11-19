@@ -54,6 +54,7 @@ function insightistic_load() {
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-ai.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-email-automations.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-addons.php',
+		INSIGHTISTIC_PATH . 'includes/class-insightistic-do-next.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-system-status.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-woocommerce.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-admin.php',
@@ -93,6 +94,7 @@ function insightistic_load() {
 	( new Insightistic_AI() )->init();
 	( new Insightistic_Email_Automations() )->init();
 	( new Insightistic_Woocommerce() )->init();
+	Insightistic_Do_Next::init();
 }
 add_action( 'plugins_loaded', 'insightistic_load' );
 

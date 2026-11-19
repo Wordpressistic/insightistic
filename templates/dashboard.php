@@ -49,6 +49,8 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 		</div>
 	</div>
 
+	<?php Insightistic_Do_Next::render_section(); ?>
+
 	<?php if ( ! $insightistic_property_id ) : ?>
 	<!-- ====================================================== SETUP NOTICE -->
 	<div class="isp-setup-notice">

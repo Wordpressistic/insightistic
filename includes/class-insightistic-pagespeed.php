@@ -70,8 +70,11 @@ class Insightistic_PageSpeed {
 		}
 
 		// Run mobile and desktop in parallel-ish sequence.
-		$mobile_raw  = $this->fetch_report( $url, 'mobile', $api_key );
-		$desktop_raw = $this->fetch_report( $url, 'desktop', $api_key );
+		// Use the same four-category report as the dedicated Speed Test page so
+		// this dashboard gets clean category scores, AI readiness, opportunities,
+		// and diagnostics instead of a performance-only payload.
+		$mobile_raw  = $this->fetch_report( $url, 'mobile', $api_key, true );
+		$desktop_raw = $this->fetch_report( $url, 'desktop', $api_key, true );
 
 		if ( is_wp_error( $mobile_raw ) && is_wp_error( $desktop_raw ) ) {
 			wp_send_json_error( $mobile_raw->get_error_message() );
@@ -79,8 +82,8 @@ class Insightistic_PageSpeed {
 
 		$result = array(
 			'url'       => $url,
-			'mobile'    => ! is_wp_error( $mobile_raw ) ? $this->parse_report( $mobile_raw ) : null,
-			'desktop'   => ! is_wp_error( $desktop_raw ) ? $this->parse_report( $desktop_raw ) : null,
+			'mobile'    => ! is_wp_error( $mobile_raw ) ? $this->parse_detailed_report( $mobile_raw ) : null,
+			'desktop'   => ! is_wp_error( $desktop_raw ) ? $this->parse_detailed_report( $desktop_raw ) : null,
 			'cached_at' => time(),
 		);
 
@@ -441,6 +444,7 @@ class Insightistic_PageSpeed {
 		$diagnostics = array_slice( $diagnostics, 0, 8 );
 
 		return array(
+			'score'         => $scores['performance'],
 			'scores'        => $scores,
 			'cwv'           => $cwv,
 			'opportunities' => $opportunities,

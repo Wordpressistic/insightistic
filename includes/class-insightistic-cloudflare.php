@@ -146,6 +146,12 @@ class Insightistic_Cloudflare {
 		}
 
 		$zone_name = $body['result']['name'] ?? '';
+		$zone_account_id = $body['result']['account']['id'] ?? '';
+		$zone_match      = $this->validate_zone_for_site( $zone_name, $zone_account_id );
+		if ( is_wp_error( $zone_match ) ) {
+			wp_send_json_error( $zone_match->get_error_message() );
+		}
+
 		wp_send_json_success(
 			$zone_name
 				/* translators: %s: Cloudflare zone/domain name */
@@ -661,6 +667,17 @@ class Insightistic_Cloudflare {
 					? $decoded['errors'][0]['message']
 					: __( 'Cloudflare returned an error.', 'insightistic' );
 				do_action( 'insightistic_log', 'cloudflare_graphql_error', $decoded['errors'] );
+				if ( false !== stripos( $message, 'does not have access to the path' ) || false !== stripos( $message, 'access controls' ) ) {
+					$site_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+					return new WP_Error(
+						'insightistic_cf_zone_access',
+						sprintf(
+							/* translators: %s: current WordPress site hostname */
+							__( 'Cloudflare rejected this zone for Traffic Insights. Confirm that the Zone ID belongs to %s and that the API token has Analytics → Read access for that zone.', 'insightistic' ),
+							$site_host ? $site_host : __( 'this site', 'insightistic' )
+						)
+					);
+				}
 				return new WP_Error( 'insightistic_cf_graphql', $message );
 			}
 
@@ -682,6 +699,42 @@ class Insightistic_Cloudflare {
 			'insightistic_cf_request_failed',
 			__( 'The Cloudflare request failed after multiple attempts. Please try again shortly.', 'insightistic' )
 		);
+	}
+
+	/**
+	 * Confirm that a successfully authenticated Cloudflare zone belongs to
+	 * this WordPress site. A valid token for another zone must not be treated
+	 * as a valid Traffic Insights configuration.
+	 *
+	 * @param string $zone_name    Cloudflare zone name returned by the API.
+	 * @param string $account_id   Cloudflare account ID returned by the API.
+	 * @return true|WP_Error
+	 */
+	private function validate_zone_for_site( $zone_name, $account_id = '' ) {
+		$site_host = strtolower( trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ), '.' ) );
+		$zone      = strtolower( trim( (string) $zone_name, '.' ) );
+		$account   = trim( (string) get_option( 'insightistic_cloudflare_account_id' ) );
+
+		if ( $site_host && $zone && $site_host !== $zone && substr( $site_host, -1 * ( strlen( $zone ) + 1 ) ) !== '.' . $zone ) {
+			return new WP_Error(
+				'insightistic_cf_zone_site_mismatch',
+				sprintf(
+					/* translators: 1: configured Cloudflare zone, 2: WordPress site hostname */
+					__( 'Cloudflare credentials are valid, but they point to the %1$s zone while this WordPress site is %2$s. Replace the Zone ID and token with credentials for %2$s.', 'insightistic' ),
+					$zone,
+					$site_host
+				)
+			);
+		}
+
+		if ( $account && $account_id && ! hash_equals( $account, (string) $account_id ) ) {
+			return new WP_Error(
+				'insightistic_cf_account_mismatch',
+				__( 'The configured Cloudflare Account ID does not match the selected zone. Update the Account ID or leave it blank, then test the connection again.', 'insightistic' )
+			);
+		}
+
+		return true;
 	}
 
 	/**

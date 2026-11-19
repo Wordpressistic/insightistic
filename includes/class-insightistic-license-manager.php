@@ -289,6 +289,10 @@ class Insightistic_License_Manager {
 	private function store_state( $license ) {
 		$limits    = is_array( $license['limits'] ?? null ) ? $license['limits'] : array();
 		$credits   = is_array( $license['credits'] ?? null ) ? $license['credits'] : array();
+		// Only trust the structured credit payload. Older entitlement fields such
+		// as monthly_ai_credits describe a plan limit, not a live balance, and can
+		// make the Account page show a stale number after an AI request.
+		$credits_supported = isset( $license['credits'] ) && is_array( $license['credits'] );
 		$monthly   = is_array( $credits['monthly_included'] ?? null ) ? $credits['monthly_included'] : array();
 		$purchased = is_array( $credits['purchased'] ?? null ) ? $credits['purchased'] : array();
 		$state     = array(
@@ -303,6 +307,7 @@ class Insightistic_License_Manager {
 			'limits'                       => array_map( 'absint', $limits ),
 			'monthly_ai_credits'           => absint( $license['monthly_ai_credits'] ?? ( $limits['monthly_ai_credits'] ?? 0 ) ),
 			'standard_ai_requests_monthly' => absint( $license['standard_ai_requests_monthly'] ?? ( $limits['standard_ai_requests_monthly'] ?? 0 ) ),
+			'credits_supported'            => (bool) $credits_supported,
 			'credits'                      => array(
 				'period'           => sanitize_text_field( (string) ( $credits['period'] ?? '' ) ),
 				'monthly_included' => array(
@@ -317,6 +322,33 @@ class Insightistic_License_Manager {
 			'validated_at'                 => time(),
 		);
 
+		update_option( 'insightistic_license_state', $state, false );
+
+		return $state;
+	}
+
+	/**
+	 * Store a live credit balance returned by an AI/report request without a
+	 * second network round-trip to validate the whole license.
+	 *
+	 * @param array $credits Structured credit payload from the SaaS API.
+	 * @return array Stored license state.
+	 */
+	public function store_credit_payload( $credits ) {
+		$credits   = is_array( $credits ) ? $credits : array();
+		$monthly   = is_array( $credits['monthly_included'] ?? null ) ? $credits['monthly_included'] : array();
+		$purchased = is_array( $credits['purchased'] ?? null ) ? $credits['purchased'] : array();
+		$state     = self::state();
+		$state['credits_supported'] = true;
+		$state['credits'] = array(
+			'period'           => sanitize_text_field( (string) ( $credits['period'] ?? '' ) ),
+			'monthly_included' => array(
+				'granted'   => absint( $monthly['granted'] ?? 0 ),
+				'remaining' => absint( $monthly['remaining'] ?? 0 ),
+			),
+			'purchased'        => array( 'remaining' => absint( $purchased['remaining'] ?? 0 ) ),
+			'total_usable'     => absint( $credits['total_usable'] ?? 0 ),
+		);
 		update_option( 'insightistic_license_state', $state, false );
 
 		return $state;

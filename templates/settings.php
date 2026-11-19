@@ -29,17 +29,13 @@ $insightistic_monitor_404_on = (bool) get_option( 'insightistic_404_monitor_enab
 // AI.
 $insightistic_ai_enabled       = (int) get_option( 'insightistic_ai_enabled', 0 );
 $insightistic_ai_consent       = (int) get_option( 'insightistic_ai_consent', 0 );
-$insightistic_ai_skill_profile = get_option( 'insightistic_ai_skill_profile', 'basic' );
-$insightistic_cloud_model      = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 $insightistic_cloud_connected  = class_exists( 'Insightistic_License_Manager' ) && Insightistic_License_Manager::is_connected();
-
-// AI credits (from the last license check-in with Insightistic).
-$insightistic_ai_credits = Insightistic_AI::credits_summary();
 
 // Cloudflare Traffic Insights (Phase 0: credentials only).
 $insightistic_cf_zone_id      = get_option( 'insightistic_cloudflare_zone_id', '' );
 $insightistic_cf_account_id   = get_option( 'insightistic_cloudflare_account_id', '' );
 $insightistic_cf_token_stored = (bool) get_option( 'insightistic_cloudflare_api_token_enc' );
+$insightistic_site_host       = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
 
 // Docs.
 $insightistic_video_guide_url = get_option( 'insightistic_video_guide_url', '' );
@@ -263,10 +259,13 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<label class="isp-label" for="gsc_property_url">
 						<?php esc_html_e( 'Search Console Property URL', 'insightistic' ); ?>
 					</label>
-					<input type="url" id="gsc_property_url" name="gsc_property_url" class="isp-input"
+					<input type="text" id="gsc_property_url" name="gsc_property_url" class="isp-input"
 						value="<?php echo esc_attr( $insightistic_gsc_property_url ); ?>"
-						placeholder="https://yoursite.com/" />
-					<p class="isp-hint"><?php esc_html_e( 'Enter the exact property URL as registered in Search Console (e.g. https://yoursite.com/ with trailing slash). For domain properties, leave blank and use sc-domain:yoursite.com format.', 'insightistic' ); ?></p>
+						placeholder="https://yoursite.com/ or sc-domain:yoursite.com" />
+					<p class="isp-hint"><?php esc_html_e( 'Enter the exact property as registered in Search Console. URL-prefix example: https://yoursite.com/ . Domain-property example: sc-domain:yoursite.com . Insightistic will also test the matching domain property when a URL-prefix property is denied.', 'insightistic' ); ?></p>
+					<?php if ( $insightistic_api_email ) : ?>
+					<p class="isp-hint"><strong><?php esc_html_e( 'Service account used for GSC:', 'insightistic' ); ?></strong> <code><?php echo esc_html( $insightistic_api_email ); ?></code></p>
+					<?php endif; ?>
 				</div>
 			</div>
 
@@ -289,7 +288,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<ol class="isp-steps">
 						<li><strong><?php esc_html_e( 'Use the same service account', 'insightistic' ); ?></strong><span><?php esc_html_e( 'No new JSON key needed  same credentials as GA4.', 'insightistic' ); ?></span></li>
 						<li><strong><?php esc_html_e( 'Add to Search Console', 'insightistic' ); ?></strong><span><?php esc_html_e( 'Go to Google Search Console  Settings  Users and permissions  Add user. Paste the service account email and set as Full permission.', 'insightistic' ); ?></span></li>
-						<li><strong><?php esc_html_e( 'Enter property URL', 'insightistic' ); ?></strong><span><?php esc_html_e( 'Enter the URL exactly as it appears in Search Console, including protocol and trailing slash.', 'insightistic' ); ?></span></li>
+						<li><strong><?php esc_html_e( 'Enter the property exactly', 'insightistic' ); ?></strong><span><?php esc_html_e( 'For a URL-prefix property use https://yoursite.com/ . For a domain property shown as example.com, use sc-domain:example.com.', 'insightistic' ); ?></span></li>
 					</ol>
 				</div>
 				<div class="isp-guide-links" style="margin:0 0 14px;">
@@ -570,14 +569,6 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					</p>
 				</div>
 
-				<div class="isp-field">
-					<label class="isp-label"><?php esc_html_e( 'Default AI Skill Profile', 'insightistic' ); ?></label>
-					<select name="ai_skill_profile" class="isp-select">
-						<option value="basic" <?php selected( $insightistic_ai_skill_profile, 'basic' ); ?>><?php esc_html_e( 'Basic Insights', 'insightistic' ); ?></option>
-						<option value="seo_expert" <?php selected( $insightistic_ai_skill_profile, 'seo_expert' ); ?>><?php esc_html_e( 'SEO Expert Insights', 'insightistic' ); ?></option>
-					</select>
-					<p class="isp-hint"><?php esc_html_e( 'Basic gives general analytics insights. SEO Expert prioritizes traffic, CTR, ranking, and content optimization tasks.', 'insightistic' ); ?></p>
-				</div>
 			</div>
 
 			<!-- Insightistic Cloud AI  no key: uses the free account connection. -->
@@ -591,41 +582,26 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 				<div class="isp-notice isp-notice-success">
 					<?php esc_html_e( 'Connected. Insightistic Cloud AI is ready to use.', 'insightistic' ); ?>
 				</div>
-				<div class="isp-field isp-ai-credits">
-					<label class="isp-label"><?php esc_html_e( 'AI credits remaining', 'insightistic' ); ?></label>
-					<p>
-						<strong><?php echo esc_html( number_format_i18n( $insightistic_ai_credits['total'] ) ); ?></strong>
-						<?php if ( $insightistic_ai_credits['granted'] > 0 ) : ?>
-							<?php
-							/* translators: 1: remaining monthly credits, 2: monthly allowance */
-							echo esc_html( sprintf( __( '(%1$s of %2$s free monthly credits left)', 'insightistic' ), number_format_i18n( $insightistic_ai_credits['monthly'] ), number_format_i18n( $insightistic_ai_credits['granted'] ) ) );
-							?>
-						<?php endif; ?>
-					</p>
-					<p class="isp-hint"><?php esc_html_e( 'Free accounts include a limited monthly allowance of AI credits that resets each month. When it runs out, AI analysis pauses until the reset; every other dashboard keeps working. Balance updates at each license check-in.', 'insightistic' ); ?></p>
+				<div class="isp-field">
+					<p class="isp-hint"><?php esc_html_e( 'AI runs are manual and use the credits assigned to your Insightistic account. View the current balance and extra-credit options on Insightistic → Account.', 'insightistic' ); ?></p>
 				</div>
 				<?php else : ?>
 				<div class="isp-notice isp-notice-info">
-					<?php esc_html_e( 'Connect a free Insightistic account to use Insightistic Cloud AI. No AI provider key is stored on this site.', 'insightistic' ); ?>
+					<?php esc_html_e( 'Insightistic Cloud AI is optional. Your analytics, Search Console, PageSpeed, WooCommerce, and add-ons keep working without an account. Connect a free Insightistic account only when you want AI analysis; no provider key is stored on this site.', 'insightistic' ); ?>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=insightistic-license' ) ); ?>"><?php esc_html_e( 'Create a free account →', 'insightistic' ); ?></a>
 				</div>
-				<?php endif; ?>
-
 				<div class="isp-field">
-					<label class="isp-label" for="insightistic_cloud_model"><?php esc_html_e( 'Analysis focus', 'insightistic' ); ?></label>
-					<select id="insightistic_cloud_model" name="insightistic_cloud_model" class="isp-select">
-						<option value="ollama-balanced" <?php selected( $insightistic_cloud_model, 'ollama-balanced' ); ?>><?php esc_html_e( 'Balanced analytics', 'insightistic' ); ?></option>
-						<option value="hermes-seo" <?php selected( $insightistic_cloud_model, 'hermes-seo' ); ?>><?php esc_html_e( 'SEO-focused analysis', 'insightistic' ); ?></option>
-					</select>
-					<p class="isp-hint"><?php esc_html_e( 'Choose the analysis focus. Insightistic Cloud AI picks the model on its side; each run uses AI credits from your free account allowance.', 'insightistic' ); ?></p>
+					<strong><?php esc_html_e( 'How it works', 'insightistic' ); ?></strong>
+					<p class="isp-hint"><?php esc_html_e( '1. Create or connect your free Insightistic account on the Account page. 2. Return here and enable AI plus consent. 3. Load a dashboard and click Get AI Insights. The connection test verifies the account route without spending AI credits.', 'insightistic' ); ?></p>
 				</div>
+				<?php endif; ?>
 
 				<?php if ( $insightistic_cloud_connected && $insightistic_ai_consent ) : ?>
 				<div class="isp-field isp-ai-test-field">
 					<button type="button" class="isp-btn isp-btn-secondary isp-test-ai-provider" data-provider="insightistic_cloud">
 						<?php esc_html_e( 'Test Connection', 'insightistic' ); ?>
 					</button>
-					<p class="isp-hint"><?php esc_html_e( 'Sends a 1-sentence prompt through the Insightistic Cloud AI backend to verify connectivity.', 'insightistic' ); ?></p>
+					<p class="isp-hint"><?php esc_html_e( 'Checks the Insightistic account connection without generating an AI response or spending AI credits.', 'insightistic' ); ?></p>
 					<div class="isp-ai-test-result" style="margin-top:10px;"></div>
 				</div>
 				<?php endif; ?>
@@ -680,7 +656,11 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<input type="text" id="cf_zone_id" name="cf_zone_id" class="isp-input"
 						value="<?php echo esc_attr( $insightistic_cf_zone_id ); ?>"
 						placeholder="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" />
-					<p class="isp-hint"><?php esc_html_e( 'Cloudflare dashboard → your site → Overview → Zone ID (right-hand sidebar).', 'insightistic' ); ?></p>
+					<p class="isp-hint">
+						<?php esc_html_e( 'Cloudflare dashboard → your site → Overview → Zone ID (right-hand sidebar). This WordPress site is', 'insightistic' ); ?>
+						<code><?php echo esc_html( $insightistic_site_host ); ?></code>
+						<?php esc_html_e( '; the selected zone must match it.', 'insightistic' ); ?>
+					</p>
 				</div>
 
 				<div class="isp-field">
@@ -690,7 +670,7 @@ if ( ! function_exists( 'insightistic_format_rotated' ) ) {
 					<input type="text" id="cf_account_id" name="cf_account_id" class="isp-input"
 						value="<?php echo esc_attr( $insightistic_cf_account_id ); ?>"
 						placeholder="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" />
-					<p class="isp-hint"><?php esc_html_e( 'Only needed for account-level reporting added in a later release. Safe to leave blank.', 'insightistic' ); ?></p>
+					<p class="isp-hint"><?php esc_html_e( 'Optional. If entered, it must belong to the selected zone. Leave blank unless your Cloudflare token setup requires it.', 'insightistic' ); ?></p>
 				</div>
 
 				<div class="isp-field">

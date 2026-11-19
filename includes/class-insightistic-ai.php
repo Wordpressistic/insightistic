@@ -72,6 +72,9 @@ class Insightistic_AI {
 	/** The only AI service this plugin talks to. */
 	const PROVIDER = 'insightistic_cloud';
 
+	/** Credit cost advertised by the free-plugin AI experience. */
+	const CREDITS_PER_ANALYSIS = 50;
+
 	/**
 	 * Whether the site owner has explicitly opted in to sending data to
 	 * Insightistic Cloud AI. Off by default.
@@ -85,7 +88,7 @@ class Insightistic_AI {
 	/**
 	 * AI credit balance from the last license check-in.
 	 *
-	 * @return array{total:int,monthly:int,granted:int,purchased:int}
+	 * @return array{total:int,monthly:int,granted:int,purchased:int,known:bool}
 	 */
 	public static function credits_summary() {
 		$state   = class_exists( 'Insightistic_License_Manager' ) ? Insightistic_License_Manager::state() : array();
@@ -93,8 +96,11 @@ class Insightistic_AI {
 		return array(
 			'total'     => absint( $credits['total_usable'] ?? 0 ),
 			'monthly'   => absint( $credits['monthly_included']['remaining'] ?? 0 ),
-			'granted'   => absint( $credits['monthly_included']['granted'] ?? ( $state['monthly_ai_credits'] ?? 0 ) ),
+			'granted'   => absint( $credits['monthly_included']['granted'] ?? 0 ),
 			'purchased' => absint( $credits['purchased']['remaining'] ?? 0 ),
+			'known'     => isset( $state['credits_supported'] )
+				? (bool) $state['credits_supported']
+				: ! empty( $credits ),
 		);
 	}
 
@@ -156,7 +162,7 @@ class Insightistic_AI {
 
 		// Cost guardrails: serve a recent identical result instead of paying
 		// for a duplicate provider call, and block overlapping runs.
-		$model       = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
+		$model       = 'ollama-balanced';
 		$fingerprint = md5( $provider . '|' . $model . '|' . $days . '|' . wp_json_encode( $data ) );
 		$cache_key   = 'insightistic_ai_cache_' . $fingerprint;
 		$lock_key    = 'insightistic_ai_lock_' . get_current_user_id();
@@ -204,10 +210,9 @@ class Insightistic_AI {
 	/**
 	 * Quick connectivity check for a single provider.
 	 *
-	 * Sends a minimal one-sentence prompt and returns either a success
-	 * message or a WP_Error so the Settings UI can surface concrete
-	 * "Key invalid", "Model not found", "Network error" responses without
-	 * waiting on a full insight build.
+	 * Refreshes the HMAC account connection without generating an AI response.
+	 * A connection test must not consume an insight credit or be blocked by the
+	 * provider quota, so it validates the account route used by Cloud AI.
 	 *
 	 * @param string $provider Provider slug.
 	 * @return true|WP_Error
@@ -217,15 +222,15 @@ class Insightistic_AI {
 		if ( ! self::has_consent() ) {
 			return new WP_Error( 'no_consent', __( 'Give consent in Settings > AI Insights before testing Insightistic Cloud AI.', 'insightistic' ) );
 		}
-		$prompt = 'Respond with the JSON {"overall_score": 90, "summary": "ok"}.';
-		$result = $this->call_insightistic_cloud( $prompt );
+		if ( ! class_exists( 'Insightistic_License_Manager' ) || ! Insightistic_License_Manager::is_connected() ) {
+			return new WP_Error( 'no_license', __( 'Connect your free Insightistic account before testing Insightistic Cloud AI.', 'insightistic' ) );
+		}
 
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		$state = ( new Insightistic_License_Manager() )->refresh();
+		if ( is_wp_error( $state ) ) {
+			return $state;
 		}
-		if ( ! is_string( $result ) || '' === trim( $result ) ) {
-			return new WP_Error( 'empty_response', __( 'Provider returned an empty response.', 'insightistic' ) );
-		}
+
 		return true;
 	}
 
@@ -429,8 +434,8 @@ class Insightistic_AI {
 			);
 		}
 
-		$model   = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
-		$profile = null !== $this->active_profile ? $this->active_profile : get_option( 'insightistic_ai_skill_profile', 'basic' );
+		$model   = 'ollama-balanced';
+		$profile = null !== $this->active_profile ? $this->active_profile : 'basic';
 		// The API accepts basic|seo_expert|commerce_expert; any other focus
 		// (e.g. traffic_expert) is already expressed in the system prompt.
 		if ( ! in_array( $profile, array( 'basic', 'seo_expert', 'commerce_expert' ), true ) ) {
@@ -448,19 +453,46 @@ class Insightistic_AI {
 				'prompt'        => $prompt,
 			)
 		);
+		$credits_stored = false;
+		if ( ! empty( $result['data']['credits'] ) && is_array( $result['data']['credits'] ) ) {
+			( new Insightistic_License_Manager() )->store_credit_payload( $result['data']['credits'] );
+			$credits_stored = true;
+		}
 
 		if ( ! $result['ok'] ) {
 			if ( $result['network'] ) {
-				return new WP_Error( 'cloud_network', __( 'Could not reach Insightistic Cloud AI. Please try again shortly.', 'insightistic' ) );
+				$detail = is_string( $result['error'] ?? null ) ? trim( $result['error'] ) : '';
+				return new WP_Error(
+					'cloud_network',
+					$detail
+						? sprintf(
+							/* translators: %s: safe WordPress HTTP transport detail */
+							__( 'Could not reach Insightistic Cloud AI: %s. Check that this site can make outbound HTTPS requests, then try again.', 'insightistic' ),
+							$detail
+						)
+						: __( 'Could not reach Insightistic Cloud AI. Check that this site can make outbound HTTPS requests, then try again.', 'insightistic' )
+				);
 			}
 
-			$code = is_array( $result['data'] ) && ! empty( $result['data']['code'] ) ? $result['data']['code'] : '';
-			if ( 'quota_exceeded' === $code || 'insufficient_credits' === $code || 402 === $result['status'] || 429 === $result['status'] ) {
-				$this->refresh_credits();
+			$raw_code = is_array( $result['data'] ) && isset( $result['data']['code'] ) ? $result['data']['code'] : '';
+			$code     = is_string( $raw_code ) ? sanitize_key( $raw_code ) : '';
+			if ( 'insufficient_credits' === $code || 402 === $result['status'] ) {
+				if ( ! $credits_stored ) {
+					$this->refresh_credits();
+				}
 				return new WP_Error(
 					'cloud_quota',
-					__( 'You have used all of your Insightistic AI credits for this period. Your free monthly credits reset automatically at the start of next month. Your analytics dashboards keep working in the meantime.', 'insightistic' )
+					__( 'Your Insightistic AI credits are finished for this period. Monthly credits reset automatically; analytics dashboards keep working in the meantime.', 'insightistic' )
 				);
+			}
+			if ( 'quota_exceeded' === $code ) {
+				if ( ! $credits_stored ) {
+					$this->refresh_credits();
+				}
+				return new WP_Error( 'cloud_limit', __( 'The connected Insightistic account has reached its current AI usage limit. Refresh the Account page for the latest entitlement status; your analytics dashboards keep working in the meantime.', 'insightistic' ) );
+			}
+			if ( 429 === $result['status'] ) {
+				return new WP_Error( 'cloud_rate_limited', __( 'Insightistic Cloud AI is temporarily rate-limited. Please wait a moment and try again.', 'insightistic' ) );
 			}
 			if ( 'ai_provider_unavailable' === $code ) {
 				return new WP_Error( 'cloud_unavailable', __( 'Insightistic Cloud AI is temporarily unavailable for this site. Please try again later.', 'insightistic' ) );
@@ -469,14 +501,24 @@ class Insightistic_AI {
 				return new WP_Error( 'cloud_unauthorized', __( 'Your Insightistic account connection could not be verified. Open Insightistic → License and reconnect.', 'insightistic' ) );
 			}
 
+			$detail = is_string( $result['error'] ?? null ) ? trim( $result['error'] ) : '';
 			return new WP_Error(
 				'cloud_error',
-				$result['error'] ? $result['error'] : __( 'Insightistic Cloud AI returned an error. Please try again.', 'insightistic' )
+				$detail
+					? sprintf(
+						/* translators: %s: safe Insightistic API error detail */
+						__( 'Insightistic Cloud AI returned an error: %s', 'insightistic' ),
+						$detail
+					)
+					: __( 'Insightistic Cloud AI returned an error. Please try again.', 'insightistic' )
 			);
 		}
 
-		// Credits were spent; refresh the cached balance.
-		$this->refresh_credits();
+		// New API responses include the charged balance. Older API versions do
+		// not, so retain the validation fallback for rolling upgrades.
+		if ( ! $credits_stored ) {
+			$this->refresh_credits();
+		}
 
 		$content = is_array( $result['data'] ) ? ( $result['data']['content'] ?? '' ) : '';
 		if ( ! $content ) {
@@ -498,9 +540,7 @@ class Insightistic_AI {
 	 * System prompt sent to Insightistic Cloud AI.
 	 */
 	private function system_prompt() {
-		$profile = null !== $this->active_profile
-			? $this->active_profile
-			: get_option( 'insightistic_ai_skill_profile', 'basic' );
+		$profile = null !== $this->active_profile ? $this->active_profile : 'basic';
 		$base    = 'You are an expert digital marketing analyst specialising in Google Analytics, revenue attribution and conversion optimisation. '
 			. 'Provide concise, data-driven, actionable insights. '
 			. 'Always respond ONLY with a valid JSON object matching the requested schema. Do not include any text outside the JSON.';
@@ -524,8 +564,9 @@ class Insightistic_AI {
 	 * @return string
 	 */
 	private function build_prompt( $data, $days ) {
-		$prompt  = "Analyse the following Google Analytics 4 data for the last {$days} days and return a JSON object.\n\n";
+		$prompt  = "Analyse the following Insightistic dashboard data for the last {$days} days and return a JSON object. The dataset may contain GA4, Google Search Console, PageSpeed, or another supported dashboard source; infer the source from the available keys and never invent missing metrics.\n\n";
 		$prompt .= "DATA:\n" . wp_json_encode( $data ) . "\n\n";
+		$prompt .= "For every key insight, recommendation, and warning, assign the most relevant metric key from this list: sessions, unique_visitors, pageviews, avg_session, bounce_rate, new_vs_return, revenue, transactions, clicks, impressions, ctr, position, performance, accessibility, best_practices, seo, ai_readiness, lcp, inp, cls, fcp, tbt, speed_index, ttfb, general. Recommendations must include a short improvement_key that an administrator can use to identify the action.\n\n";
 		$prompt .= "Return this exact JSON structure:\n";
 		$prompt .= wp_json_encode(
 			array(
@@ -536,6 +577,8 @@ class Insightistic_AI {
 						'title'       => 'Insight heading',
 						'description' => 'Explanation',
 						'impact'      => 'high|medium|low',
+						'metric'      => 'metric key from the supplied list',
+						'improvement_key' => 'short action key',
 					),
 				),
 				'recommendations' => array(
@@ -545,6 +588,8 @@ class Insightistic_AI {
 						'priority'        => 'high|medium|low',
 						'expected_impact' => 'Expected outcome',
 						'effort'          => 'high|medium|low',
+						'metric'          => 'metric key from the supplied list',
+						'improvement_key' => 'short action key',
 					),
 				),
 				'warnings'        => array(
@@ -552,6 +597,8 @@ class Insightistic_AI {
 						'issue'          => 'Problem',
 						'severity'       => 'high|medium|low',
 						'recommendation' => 'Fix',
+						'metric'         => 'metric key from the supplied list',
+						'improvement_key' => 'short action key',
 					),
 				),
 			)
@@ -576,10 +623,6 @@ class Insightistic_AI {
 		unset( $provider );
 		$provider_label = 'Insightistic Cloud AI';
 
-		$engine_label = 'hermes-seo' === get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' )
-			? __( 'SEO-focused analysis', 'insightistic' )
-			: __( 'Balanced', 'insightistic' );
-
 		$score       = max( 0, min( 100, intval( $data['overall_score'] ?? 0 ) ) );
 		$score_class = $score >= 70 ? 'isp-score-high' : ( $score >= 40 ? 'isp-score-medium' : 'isp-score-low' );
 		$score_color = $score >= 70 ? '#34d399' : ( $score >= 40 ? '#fbbf24' : '#f87171' );
@@ -602,7 +645,6 @@ class Insightistic_AI {
 					<?php esc_html_e( 'AI-Powered Insights', 'insightistic' ); ?>
 					<span class="isp-ai-badge">
 						<?php echo esc_html( $provider_label ); ?>
-						<?php echo $engine_label ? ' &middot; ' . esc_html( $engine_label ) : ''; ?>
 					</span>
 				</div>
 				<?php if ( $score ) : ?>
@@ -634,8 +676,9 @@ class Insightistic_AI {
 				<h3 class="isp-ai-section-title"> <?php esc_html_e( 'Key Insights', 'insightistic' ); ?></h3>
 				<div class="isp-ai-cards">
 					<?php foreach ( $data['key_insights'] as $insight ) : ?>
-					<div class="isp-ai-card isp-impact-<?php echo esc_attr( $insight['impact'] ?? 'medium' ); ?>">
+					<div class="isp-ai-card isp-impact-<?php echo esc_attr( $insight['impact'] ?? 'medium' ); ?>" data-ai-metric="<?php echo esc_attr( $insight['metric'] ?? 'general' ); ?>">
 						<div class="isp-ai-card-impact"><?php echo esc_html( ucfirst( $insight['impact'] ?? 'medium' ) ); ?></div>
+						<?php if ( ! empty( $insight['improvement_key'] ) ) : ?><span class="isp-ai-key"><?php esc_html_e( 'Improvement key:', 'insightistic' ); ?> <?php echo esc_html( $insight['improvement_key'] ); ?></span><?php endif; ?>
 						<h4><?php echo esc_html( $insight['title'] ?? '' ); ?></h4>
 						<p><?php echo esc_html( $insight['description'] ?? '' ); ?></p>
 					</div>
@@ -649,11 +692,12 @@ class Insightistic_AI {
 				<h3 class="isp-ai-section-title"> <?php esc_html_e( 'Recommendations', 'insightistic' ); ?></h3>
 				<div class="isp-ai-recs">
 					<?php foreach ( $data['recommendations'] as $rec ) : ?>
-					<div class="isp-ai-rec isp-priority-<?php echo esc_attr( $rec['priority'] ?? 'medium' ); ?>">
+					<div class="isp-ai-rec isp-priority-<?php echo esc_attr( $rec['priority'] ?? 'medium' ); ?>" data-ai-metric="<?php echo esc_attr( $rec['metric'] ?? 'general' ); ?>">
 						<div class="isp-rec-meta">
 							<span class="isp-rec-priority"><?php echo esc_html( ucfirst( $rec['priority'] ?? 'medium' ) ); ?> <?php esc_html_e( 'Priority', 'insightistic' ); ?></span>
 							<span class="isp-rec-effort"><?php esc_html_e( 'Effort:', 'insightistic' ); ?> <?php echo esc_html( ucfirst( $rec['effort'] ?? '' ) ); ?></span>
 						</div>
+						<?php if ( ! empty( $rec['improvement_key'] ) ) : ?><span class="isp-ai-key"><?php esc_html_e( 'Improvement key:', 'insightistic' ); ?> <?php echo esc_html( $rec['improvement_key'] ); ?></span><?php endif; ?>
 						<h4><?php echo esc_html( $rec['title'] ?? '' ); ?></h4>
 						<p><?php echo esc_html( $rec['description'] ?? '' ); ?></p>
 						<?php if ( ! empty( $rec['expected_impact'] ) ) : ?>
@@ -670,10 +714,11 @@ class Insightistic_AI {
 				<h3 class="isp-ai-section-title"> <?php esc_html_e( 'Issues to Address', 'insightistic' ); ?></h3>
 				<div class="isp-ai-recs">
 					<?php foreach ( $data['warnings'] as $w ) : ?>
-					<div class="isp-ai-rec isp-warning isp-priority-<?php echo esc_attr( $w['severity'] ?? 'medium' ); ?>">
+					<div class="isp-ai-rec isp-warning isp-priority-<?php echo esc_attr( $w['severity'] ?? 'medium' ); ?>" data-ai-metric="<?php echo esc_attr( $w['metric'] ?? 'general' ); ?>">
 						<div class="isp-rec-meta">
 							<span class="isp-rec-priority"><?php echo esc_html( ucfirst( $w['severity'] ?? 'medium' ) ); ?> <?php esc_html_e( 'Severity', 'insightistic' ); ?></span>
 						</div>
+						<?php if ( ! empty( $w['improvement_key'] ) ) : ?><span class="isp-ai-key"><?php esc_html_e( 'Improvement key:', 'insightistic' ); ?> <?php echo esc_html( $w['improvement_key'] ); ?></span><?php endif; ?>
 						<h4><?php echo esc_html( $w['issue'] ?? '' ); ?></h4>
 						<p><?php echo esc_html( $w['recommendation'] ?? '' ); ?></p>
 					</div>
@@ -683,12 +728,7 @@ class Insightistic_AI {
 			<?php endif; ?>
 
 			<div class="isp-ai-footer">
-				<?php esc_html_e( 'AI analysis generated by', 'insightistic' ); ?> <?php echo esc_html( $provider_label ); ?> &bull;
-				<?php
-				$insightistic_credits = self::credits_summary();
-				/* translators: %s: number of AI credits remaining */
-				echo esc_html( sprintf( __( 'AI credits remaining: %s', 'insightistic' ), number_format_i18n( $insightistic_credits['total'] ) ) );
-				?>
+				<?php esc_html_e( 'AI analysis generated by', 'insightistic' ); ?> <?php echo esc_html( $provider_label ); ?>
 			</div>
 		</div>
 		<?php
@@ -735,7 +775,34 @@ class Insightistic_AI {
 			'recommendations' => array(),
 			'warnings'        => array(),
 		);
-		return wp_parse_args( $data, $defaults );
+		$data = wp_parse_args( is_array( $data ) ? $data : array(), $defaults );
+		$metric_keys = array(
+			'sessions', 'unique_visitors', 'pageviews', 'avg_session', 'bounce_rate', 'new_vs_return',
+			'revenue', 'transactions', 'clicks', 'impressions', 'ctr', 'position', 'performance',
+			'accessibility', 'best_practices', 'seo', 'ai_readiness', 'lcp', 'inp', 'cls', 'fcp',
+			'tbt', 'speed_index', 'ttfb', 'general',
+		);
+		foreach ( array( 'key_insights', 'recommendations', 'warnings' ) as $group ) {
+			$normalised = array();
+			foreach ( (array) $data[ $group ] as $item ) {
+				if ( is_string( $item ) ) {
+					$item = array( 'title' => $item, 'description' => '', 'recommendation' => $item );
+				}
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				$metric = sanitize_key( (string) ( $item['metric'] ?? 'general' ) );
+				if ( ! in_array( $metric, $metric_keys, true ) ) {
+					$metric = 'general';
+				}
+				$item['metric']           = $metric;
+				$item['improvement_key']  = sanitize_key( (string) ( $item['improvement_key'] ?? ( 'improve-' . $metric ) ) );
+				$normalised[]             = $item;
+			}
+			$data[ $group ] = $normalised;
+		}
+
+		return $data;
 	}
 }
 

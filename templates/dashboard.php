@@ -123,6 +123,10 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 			<?php endif; ?>
 		</div>
 
+		<!-- AI INSIGHTS: kept directly below the action row so the result is
+		     visible before the metric cards rather than at the bottom of the page. -->
+		<div id="isp-ai-insights" class="isp-ai-container" data-ai-context="overview" style="display:none;"></div>
+
 		<!-- ROW 1 STAT CARDS: Sessions, Visitors, Pageviews, Avg Duration -->
 		<div id="isp-overview-cards" class="isp-overview-cards isp-overview-cards-8">
 			<div class="isp-stat-card" id="isp-card-sessions">
@@ -131,6 +135,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Sessions', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-sessions"></div>
 					<div class="isp-stat-change" id="isp-chg-sessions"></div>
+					<div class="isp-card-ai-slot" data-metric="sessions"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-users">
@@ -139,6 +144,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Unique Visitors', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-users"></div>
 					<div class="isp-stat-change" id="isp-chg-users"></div>
+					<div class="isp-card-ai-slot" data-metric="unique_visitors"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-pageviews">
@@ -147,6 +153,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Pageviews', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-pageviews"></div>
 					<div class="isp-stat-change" id="isp-chg-pageviews"></div>
+					<div class="isp-card-ai-slot" data-metric="pageviews"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-duration">
@@ -155,6 +162,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Avg. Session', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-duration"></div>
 					<div class="isp-stat-change" id="isp-chg-duration"></div>
+					<div class="isp-card-ai-slot" data-metric="avg_session"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-bounce">
@@ -163,6 +171,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Bounce Rate', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-bounce"></div>
 					<div class="isp-stat-change" id="isp-chg-bounce"></div>
+					<div class="isp-card-ai-slot" data-metric="bounce_rate"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-newreturn">
@@ -171,6 +180,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'New vs Return', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-newreturn"></div>
 					<div id="isp-newreturn-bar" class="isp-newreturn-bar"></div>
+					<div class="isp-card-ai-slot" data-metric="new_vs_return"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-revenue">
@@ -179,6 +189,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Revenue', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-revenue"></div>
 					<div class="isp-stat-change" id="isp-chg-revenue"></div>
+					<div class="isp-card-ai-slot" data-metric="revenue"></div>
 				</div>
 			</div>
 			<div class="isp-stat-card" id="isp-card-tx">
@@ -187,6 +198,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-stat-label"><?php esc_html_e( 'Transactions', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-val-tx"></div>
 					<div class="isp-stat-change" id="isp-chg-tx"></div>
+					<div class="isp-card-ai-slot" data-metric="transactions"></div>
 				</div>
 			</div>
 		</div>
@@ -285,9 +297,6 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 			<div id="isp-404-table"><p class="isp-no-data"><?php esc_html_e( 'Loading', 'insightistic' ); ?></p></div>
 		</div>
 
-		<!-- AI INSIGHTS -->
-		<div id="isp-ai-insights" class="isp-ai-container" style="display:none;"></div>
-
 	</div><!-- /#isp-dash-overview -->
 
 	<!-- ========================================= TAB: SEARCH CONSOLE -->
@@ -324,40 +333,50 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 				<span></span>
 				<?php esc_html_e( 'Search Console data has a 23 day delay and shows up to 16 months.', 'insightistic' ); ?>
 			</div>
+			<?php if ( $insightistic_ai_enabled && 'none' !== $insightistic_ai_provider ) : ?>
+			<button id="isp-gsc-ai-analyze" class="isp-btn isp-btn-ai" style="display:none;" title="<?php esc_attr_e( 'AI runs on demand only — never auto-triggered', 'insightistic' ); ?>">
+				<?php esc_html_e( 'Get AI Insights', 'insightistic' ); ?>
+			</button>
+			<?php endif; ?>
 		</div>
+		<div id="isp-gsc-ai-insights" class="isp-ai-container" data-ai-context="gsc" style="display:none;"></div>
 
 		<!-- GSC STAT CARDS -->
 		<div id="isp-gsc-cards" class="isp-overview-cards isp-overview-cards-4" style="display:none;">
-			<div class="isp-stat-card">
+			<div class="isp-stat-card" id="isp-gsc-card-clicks">
 				<div class="isp-stat-icon isp-icon-blue"></div>
 				<div class="isp-stat-body">
 					<div class="isp-stat-label"><?php esc_html_e( 'Total Clicks', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-gsc-clicks"></div>
 					<div class="isp-stat-change" id="isp-gsc-clicks-chg"></div>
+					<div class="isp-card-ai-slot" data-metric="clicks"></div>
 				</div>
 			</div>
-			<div class="isp-stat-card">
+			<div class="isp-stat-card" id="isp-gsc-card-impressions">
 				<div class="isp-stat-icon isp-icon-purple"></div>
 				<div class="isp-stat-body">
 					<div class="isp-stat-label"><?php esc_html_e( 'Impressions', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-gsc-impr"></div>
 					<div class="isp-stat-change" id="isp-gsc-impr-chg"></div>
+					<div class="isp-card-ai-slot" data-metric="impressions"></div>
 				</div>
 			</div>
-			<div class="isp-stat-card">
+			<div class="isp-stat-card" id="isp-gsc-card-ctr">
 				<div class="isp-stat-icon isp-icon-green"></div>
 				<div class="isp-stat-body">
 					<div class="isp-stat-label"><?php esc_html_e( 'Avg. CTR', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-gsc-ctr"></div>
 					<div class="isp-stat-change" id="isp-gsc-ctr-chg"></div>
+					<div class="isp-card-ai-slot" data-metric="ctr"></div>
 				</div>
 			</div>
-			<div class="isp-stat-card">
+			<div class="isp-stat-card" id="isp-gsc-card-position">
 				<div class="isp-stat-icon isp-icon-amber"></div>
 				<div class="isp-stat-body">
 					<div class="isp-stat-label"><?php esc_html_e( 'Avg. Position', 'insightistic' ); ?></div>
 					<div class="isp-stat-value" id="isp-gsc-pos"></div>
 					<div class="isp-stat-change" id="isp-gsc-pos-chg"></div>
+					<div class="isp-card-ai-slot" data-metric="position"></div>
 				</div>
 			</div>
 		</div>
@@ -430,10 +449,26 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 				</button>
 				<div id="isp-psi-cache" class="isp-cache-badge" aria-live="polite" style="display:none;"></div>
 			</div>
+			<?php if ( $insightistic_ai_enabled && 'none' !== $insightistic_ai_provider ) : ?>
+			<button id="isp-psi-ai-analyze" class="isp-btn isp-btn-ai" style="display:none;" title="<?php esc_attr_e( 'AI runs on demand only — never auto-triggered', 'insightistic' ); ?>">
+				<?php esc_html_e( 'Get AI Insights', 'insightistic' ); ?>
+			</button>
+			<?php endif; ?>
 		</div>
+		<div id="isp-psi-ai-insights" class="isp-ai-container" data-ai-context="pagespeed" style="display:none;"></div>
 
 		<!-- SPEED SCORE RINGS -->
 		<div id="isp-psi-results" style="display:none;">
+
+			<div class="isp-psi-summary-grid" aria-label="<?php esc_attr_e( 'PageSpeed category scores', 'insightistic' ); ?>">
+				<?php foreach ( array( 'performance', 'accessibility', 'best-practices', 'seo', 'ai-readiness' ) as $insightistic_psi_summary_key ) : ?>
+				<div class="isp-psi-summary-card" data-summary-key="<?php echo esc_attr( $insightistic_psi_summary_key ); ?>">
+					<strong class="isp-psi-summary-value">—</strong>
+					<span><?php echo esc_html( ucwords( str_replace( '-', ' ', $insightistic_psi_summary_key ) ) ); ?></span>
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<div class="isp-psi-report-meta" id="isp-psi-report-meta"></div>
 
 			<div class="isp-speed-scores">
 				<div class="isp-speed-score-card">
@@ -460,9 +495,9 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 					<div class="isp-speed-score-label" id="isp-desktop-label"></div>
 				</div>
 				<div class="isp-speed-legend">
-					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-good"></span><?php esc_html_e( '90100: Good', 'insightistic' ); ?></div>
-					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-moderate"></span><?php esc_html_e( '5089: Needs Improvement', 'insightistic' ); ?></div>
-					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-poor"></span><?php esc_html_e( '049: Poor', 'insightistic' ); ?></div>
+					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-good"></span><?php esc_html_e( '90–100: Good', 'insightistic' ); ?></div>
+					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-moderate"></span><?php esc_html_e( '50–89: Needs Improvement', 'insightistic' ); ?></div>
+					<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-poor"></span><?php esc_html_e( '0–49: Poor', 'insightistic' ); ?></div>
 				</div>
 			</div>
 
@@ -477,6 +512,17 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 				</div>
 				<div id="isp-cwv-mobile" class="isp-cwv-grid"></div>
 				<div id="isp-cwv-desktop" class="isp-cwv-grid" style="display:none;"></div>
+			</div>
+
+			<div class="isp-psi-details-grid">
+				<div class="isp-psi-detail-card">
+					<h3><?php esc_html_e( 'Priority opportunities', 'insightistic' ); ?></h3>
+					<div id="isp-psi-opportunities"></div>
+				</div>
+				<div class="isp-psi-detail-card">
+					<h3><?php esc_html_e( 'Diagnostics to review', 'insightistic' ); ?></h3>
+					<div id="isp-psi-diagnostics"></div>
+				</div>
 			</div>
 
 		</div><!-- /#isp-psi-results -->
@@ -812,7 +858,7 @@ $insightistic_cf_available = class_exists( 'Insightistic_Cloudflare' ) && Insigh
 		</div>
 
 		<!-- AI INSIGHTS -->
-		<div id="isp-woo-ai-insights" class="isp-ai-container" style="display:none;"></div>
+		<div id="isp-woo-ai-insights" class="isp-ai-container" data-ai-context="woo" style="display:none;"></div>
 
 		<!-- LOADING STATE -->
 		<div id="isp-woo-loading" class="isp-data-container">

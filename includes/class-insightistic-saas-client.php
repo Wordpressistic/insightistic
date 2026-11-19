@@ -101,7 +101,17 @@ class Insightistic_Saas_Client {
 	 * @return array{ok:bool,status:int,data:mixed,error:string|null,network:bool}
 	 */
 	public static function ai_insights( $body ) {
-		return self::request( 'POST', '/api/plugin/ai-insights', $body, true );
+		// Cloud AI may need longer than the short license/check-in timeout while
+		// the hosted model is generating a structured response, especially for
+		// Search Console and PageSpeed payloads. Keep the longer timeout scoped
+		// to this endpoint so routine connector calls remain fast.
+		$timeout = (int) apply_filters( 'insightistic_cloud_ai_timeout', 60 );
+		return self::request( 'POST', '/api/plugin/ai-insights', $body, true, max( 15, min( 120, $timeout ) ) );
+	}
+
+	/** Charge one downloadable AI report through the connected account. */
+	public static function ai_report_charge() {
+		return self::request( 'POST', '/api/plugin/ai-reports', array(), true );
 	}
 
 	/**
@@ -229,9 +239,10 @@ class Insightistic_Saas_Client {
 	 * @param string     $path   API path starting with /api/.
 	 * @param array|null $body   JSON body.
 	 * @param bool       $signed Sign with connector credentials.
+	 * @param int        $timeout HTTP timeout in seconds.
 	 * @return array{ok:bool,status:int,data:mixed,error:string|null,network:bool}
 	 */
-	public static function request( $method, $path, $body = null, $signed = true ) {
+	public static function request( $method, $path, $body = null, $signed = true, $timeout = 15 ) {
 		$url  = self::api_base() . $path;
 		$json = ( null === $body ) ? '' : wp_json_encode( $body );
 
@@ -278,7 +289,7 @@ class Insightistic_Saas_Client {
 
 		$args = array(
 			'method'  => strtoupper( $method ),
-			'timeout' => 15,
+			'timeout' => max( 5, min( 120, absint( $timeout ) ) ),
 			'headers' => $headers,
 		);
 		if ( '' !== $json ) {
@@ -300,13 +311,56 @@ class Insightistic_Saas_Client {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		$ok   = $code >= 200 && $code < 300;
+		$error = $ok ? null : self::response_message(
+			$data,
+			sprintf(
+				/* translators: %d: HTTP status code */
+				__( 'Insightistic returned an error (HTTP %d).', 'insightistic' ),
+				$code
+			)
+		);
 
 		return array(
 			'ok'      => $ok,
 			'status'  => $code,
 			'data'    => $data,
-			'error'   => $ok ? null : ( is_array( $data ) && isset( $data['message'] ) ? $data['message'] : 'HTTP ' . $code ),
+			'error'   => $error,
 			'network' => false,
 		);
+	}
+
+	/**
+	 * Convert a nested JSON error payload into a safe, readable string.
+	 *
+	 * Gateways may return message/error/details as either strings or nested
+	 * objects. Returning the object directly makes WordPress/JavaScript render
+	 * it as "[object Object]" and hides the actual failure from administrators.
+	 *
+	 * @param mixed  $payload JSON-decoded response.
+	 * @param string $fallback Fallback message.
+	 * @return string
+	 */
+	private static function response_message( $payload, $fallback ) {
+		if ( is_string( $payload ) && '' !== trim( $payload ) ) {
+			return trim( $payload );
+		}
+		if ( is_array( $payload ) ) {
+			foreach ( array( 'message', 'error', 'detail', 'details', 'data' ) as $field ) {
+				if ( ! array_key_exists( $field, $payload ) ) {
+					continue;
+				}
+				$message = self::response_message( $payload[ $field ], '' );
+				if ( '' !== $message ) {
+					return $message;
+				}
+			}
+			if ( ! empty( $payload['errors'] ) ) {
+				$message = self::response_message( $payload['errors'], '' );
+				if ( '' !== $message ) {
+					return $message;
+				}
+			}
+		}
+		return $fallback;
 	}
 }

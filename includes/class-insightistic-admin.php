@@ -26,6 +26,7 @@ class Insightistic_Admin {
 		add_action( 'wp_ajax_insightistic_preview_email_digest', array( $this, 'ajax_preview_email_digest' ) );
 		add_action( 'wp_ajax_insightistic_get_addon_report', array( $this, 'ajax_get_addon_report' ) );
 		add_action( 'wp_ajax_insightistic_save_ai_snapshot', array( $this, 'ajax_save_ai_snapshot' ) );
+		add_action( 'wp_ajax_insightistic_charge_ai_report', array( $this, 'ajax_charge_ai_report' ) );
 		add_action( 'wp_ajax_insightistic_test_ai_provider', array( $this, 'ajax_test_ai_provider' ) );
 		add_action( 'wp_ajax_insightistic_license_activate', array( $this, 'ajax_license_activate' ) );
 		add_action( 'wp_ajax_insightistic_license_refresh', array( $this, 'ajax_license_refresh' ) );
@@ -43,7 +44,8 @@ class Insightistic_Admin {
 		return array(
 			'insightistic_cloud' => array(
 				'label' => 'Insightistic Cloud AI',
-				'cost'  => __( 'Free with your account (usage limits apply)', 'insightistic' ),
+				/* translators: %d: number of AI credits charged for one analysis. */
+				'cost'  => sprintf( __( 'Uses %d AI credits per analysis', 'insightistic' ), Insightistic_AI::CREDITS_PER_ANALYSIS ),
 			),
 			'none'               => array(
 				'label' => __( 'None', 'insightistic' ),
@@ -166,7 +168,6 @@ class Insightistic_Admin {
 		$ai_meta     = $this->ai_provider_meta();
 		$ai_label    = $ai_meta[ $ai_provider ]['label'];
 		$ai_cost     = $ai_meta[ $ai_provider ]['cost'];
-		$ai_model    = get_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 
 		wp_localize_script(
 			'insightistic-admin',
@@ -174,10 +175,9 @@ class Insightistic_Admin {
 			array(
 				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'insightistic_nonce' ),
-				'aiEnabled'       => ( get_option( 'insightistic_ai_enabled', 0 ) && Insightistic_AI::has_consent() ) ? 1 : 0,
+				'aiEnabled'       => ( get_option( 'insightistic_ai_enabled', 0 ) && Insightistic_AI::has_consent() && Insightistic_Feature_Gate::can( 'ai_insights' ) ) ? 1 : 0,
 				'aiProvider'      => $ai_provider,
 				'aiProviderLabel' => $ai_label,
-				'aiModel'         => $ai_model,
 				'aiCostHint'      => $ai_cost,
 				'gscConfigured'   => (bool) get_option( 'insightistic_gsc_property_url' ),
 				'psiConfigured'   => (bool) get_option( 'insightistic_pagespeed_api_key_enc' ),
@@ -191,6 +191,7 @@ class Insightistic_Admin {
 				'adminEmail'      => get_option( 'admin_email' ),
 				'license'         => Insightistic_Feature_Gate::js_state(),
 				'homeUrl'         => esc_url( home_url( '/' ) ),
+				'cssUrl'          => esc_url( INSIGHTISTIC_URL . $css_file ),
 				'i18n'            => array(
 					'loading'         => __( 'Loading data', 'insightistic' ),
 					'loadingReport'   => __( 'Loading addon report', 'insightistic' ),
@@ -220,7 +221,8 @@ class Insightistic_Admin {
 					'hourAgo'         => __( '1 hour ago', 'insightistic' ),
 					'hoursAgo'        => __( 'hours ago', 'insightistic' ),
 					'daysAgo'         => __( 'days ago', 'insightistic' ),
-					'aiCopy'          => __( 'Copy insights', 'insightistic' ),
+					'aiDownload'      => __( 'Download Reports', 'insightistic' ),
+					'aiDownloadPopup' => __( 'Please allow pop-ups to open the printable report.', 'insightistic' ),
 					'aiRerun'         => __( 'Re-run', 'insightistic' ),
 					'aiSave'          => __( 'Save snapshot', 'insightistic' ),
 					'aiCopied'        => __( 'Copied', 'insightistic' ),
@@ -420,6 +422,30 @@ class Insightistic_Admin {
 	}
 
 	/**
+	 * Charge one downloadable AI report and return the fresh credit balance.
+	 *
+	 * The report itself is assembled locally from the already visible dashboard
+	 * data, but metering remains server-side and cannot be bypassed in JS.
+	 */
+	public function ajax_charge_ai_report() {
+		check_ajax_referer( 'insightistic_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Insufficient permissions.', 'insightistic' ) );
+		}
+
+		$result = Insightistic_Saas_Client::ai_report_charge();
+		if ( ! $result['ok'] ) {
+			wp_send_json_error( $result['error'] ? $result['error'] : __( 'The report could not be prepared. Please try again.', 'insightistic' ) );
+		}
+
+		if ( ! empty( $result['data']['credits'] ) && is_array( $result['data']['credits'] ) ) {
+			( new Insightistic_License_Manager() )->store_credit_payload( $result['data']['credits'] );
+		}
+
+		wp_send_json_success( array( 'credits' => $result['data']['credits'] ?? array() ) );
+	}
+
+	/**
 	 * Send a one-sentence prompt to Insightistic Cloud AI so users can verify
 	 * their account connection in one click (only after consent).
 	 */
@@ -433,7 +459,7 @@ class Insightistic_Admin {
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $result->get_error_message() );
 		}
-		wp_send_json_success( __( 'Insightistic Cloud AI responded successfully.', 'insightistic' ) );
+		wp_send_json_success( __( 'Insightistic Cloud AI connection verified. No AI credits were used.', 'insightistic' ) );
 	}
 
 	/*
@@ -681,7 +707,10 @@ class Insightistic_Admin {
 		}
 
 		// Search Console
-		update_option( 'insightistic_gsc_property_url', esc_url_raw( wp_unslash( $_POST['gsc_property_url'] ?? '' ) ) );
+		$gsc_property = isset( $_POST['gsc_property_url'] )
+			? sanitize_text_field( wp_unslash( $_POST['gsc_property_url'] ) )
+			: '';
+		update_option( 'insightistic_gsc_property_url', Insightistic_GSC::normalize_property_input( $gsc_property ) );
 
 		// PageSpeed Insights
 		if ( ! empty( $_POST['pagespeed_api_key'] ) ) {
@@ -735,17 +764,11 @@ class Insightistic_Admin {
 		update_option( 'insightistic_ai_consent', isset( $_POST['ai_consent'] ) ? 1 : 0 );
 		update_option( 'insightistic_ai_provider', Insightistic_AI::PROVIDER );
 
-		$skill_profile = sanitize_key( wp_unslash( $_POST['ai_skill_profile'] ?? 'basic' ) );
-		if ( ! in_array( $skill_profile, array( 'basic', 'seo_expert' ), true ) ) {
-			$skill_profile = 'basic';
-		}
-		update_option( 'insightistic_ai_skill_profile', $skill_profile );
-
-		$cloud_model = sanitize_key( wp_unslash( $_POST['insightistic_cloud_model'] ?? 'ollama-balanced' ) );
-		if ( ! in_array( $cloud_model, array( 'ollama-balanced', 'hermes-seo' ), true ) ) {
-			$cloud_model = 'ollama-balanced';
-		}
-		update_option( 'insightistic_insightistic_cloud_model', $cloud_model );
+		// Keep the server contract deterministic. The UI no longer exposes model
+		// or skill-profile controls; Cloud AI chooses the route and the plugin
+		// sends the supported balanced defaults for backwards compatibility.
+		update_option( 'insightistic_ai_skill_profile', 'basic' );
+		update_option( 'insightistic_insightistic_cloud_model', 'ollama-balanced' );
 
 		// Guide links.
 		update_option( 'insightistic_video_guide_url', esc_url_raw( wp_unslash( $_POST['video_guide_url'] ?? '' ) ) );

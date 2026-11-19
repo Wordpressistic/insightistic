@@ -9,7 +9,10 @@
 	var timelineChart = null;
 	var sourcesChart  = null;
 	var currentData   = null;
+	var currentGSCData = null;
+	var currentPSIData = null;
 	var lastAIHtml    = '';
+	var lastAIHtmlByContext = {};
 
 	// Tracks which dashboard panels have been loaded at least once so tab
 	// switches can lazy-load instead of forcing the user to click a button.
@@ -35,6 +38,12 @@
 	}
 
 	function escHtml( str ) {
+		// AJAX error payloads can be objects (for example { code, message }).
+		// Always reduce them to a human-readable string before String() so the
+		// admin UI never exposes the unhelpful "[object Object]".
+		if ( str && 'object' === typeof str ) {
+			str = ajaxPayloadMessage( str ) || '';
+		}
 		return String( str )
 			.replace( /&/g, '&amp;' )
 			.replace( /</g, '&lt;' )
@@ -43,7 +52,7 @@
 	}
 
 	function truncate( str, len ) {
-		return str.length > len ? str.slice( 0, len ) + '' : str;
+		return str.length > len ? str.slice( 0, len ) + '…' : str;
 	}
 
 	function changeClass( val ) {
@@ -127,18 +136,37 @@
 			return '';
 		}
 		if ( 'string' === typeof payload ) {
-			return payload;
+			return $.trim( payload );
 		}
-		if ( payload.message ) {
-			return payload.message;
+		if ( Array.isArray( payload ) ) {
+			for ( var i = 0; i < payload.length; i++ ) {
+				var arrayMessage = ajaxPayloadMessage( payload[ i ] );
+				if ( arrayMessage ) {
+					return arrayMessage;
+				}
+			}
+			return '';
 		}
-		if ( payload.data ) {
-			return ajaxPayloadMessage( payload.data );
+		if ( 'object' !== typeof payload ) {
+			return String( payload );
 		}
-		if ( payload.error ) {
-			return payload.error;
+		// Prefer the API's explicit message, but recurse because some gateway
+		// responses wrap it under data/error/details as an object.
+		var fields = [ 'message', 'error', 'detail', 'details', 'data' ];
+		for ( var fieldIndex = 0; fieldIndex < fields.length; fieldIndex++ ) {
+			var field = fields[ fieldIndex ];
+			if ( Object.prototype.hasOwnProperty.call( payload, field ) ) {
+				var fieldMessage = ajaxPayloadMessage( payload[ field ] );
+				if ( fieldMessage ) {
+					return fieldMessage;
+				}
+			}
 		}
 		return '';
+	}
+
+	function responseMessage( res, fallback ) {
+		return ajaxPayloadMessage( res && res.data ) || ajaxPayloadMessage( res ) || fallback || insightisticPro.i18n.error;
 	}
 
 	/**
@@ -295,6 +323,7 @@
 		// on retries or forced refreshes.
 		destroyCharts();
 		if ( ! auto ) {
+			clearMetricInsightSlots( '#isp-overview-cards' );
 			$( '#isp-overview-cards, #isp-detail-cards, #isp-charts, #isp-content-cards, #isp-table-header, #isp-ai-insights' ).hide();
 		}
 
@@ -322,7 +351,7 @@
 					);
 					renderTrafficGap();
 				} else {
-					dashboardError( ( res && res.data ) || insightisticPro.i18n.error );
+					dashboardError( responseMessage( res ) );
 				}
 			},
 			error: function ( jqXHR, textStatus ) { dashboardError( diagnoseAjaxError( jqXHR, textStatus ) ); },
@@ -602,55 +631,183 @@
 
 	function aiHeaderHtml() {
 		var prov = escHtml( insightisticPro.aiProviderLabel || 'AI' );
-		var model = escHtml( insightisticPro.aiModel || '' );
 		var cost = escHtml( insightisticPro.aiCostHint || '' );
 		return '<div class="isp-ai-panel"><div class="isp-ai-header">' +
 			'<div class="isp-ai-title"><span class="isp-ai-icon"></span>' + escHtml( insightisticPro.i18n.analyzing ) +
-			' <span class="isp-ai-badge">' + prov + ( model ? ' &middot; ' + model : '' ) + '</span></div>' +
+			' <span class="isp-ai-badge">' + prov + '</span></div>' +
 			( cost ? '<div class="isp-ai-cost-hint" title="' + escHtml( insightisticPro.i18n.aiCostTitle || 'Estimated per-run cost' ) + '">' + cost + '</div>' : '' ) +
 			'</div></div>';
 	}
 
 	function aiFooterToolbar() {
 		return '<div class="isp-ai-toolbar">' +
-			'<button type="button" class="isp-link-btn" id="isp-ai-copy">' + escHtml( insightisticPro.i18n.aiCopy || 'Copy insights' ) + '</button>' +
-			'<button type="button" class="isp-link-btn" id="isp-ai-rerun">' + escHtml( insightisticPro.i18n.aiRerun || 'Re-run' ) + '</button>' +
-			'<button type="button" class="isp-link-btn" id="isp-ai-save">' + escHtml( insightisticPro.i18n.aiSave || 'Save snapshot' ) + '</button>' +
+			'<button type="button" class="isp-link-btn" id="isp-ai-download" data-ai-action="download">' + escHtml( insightisticPro.i18n.aiDownload || 'Download Reports' ) + '</button>' +
+			'<button type="button" class="isp-link-btn" id="isp-ai-rerun" data-ai-action="rerun">' + escHtml( insightisticPro.i18n.aiRerun || 'Re-run' ) + '</button>' +
+			'<button type="button" class="isp-link-btn" id="isp-ai-save" data-ai-action="save">' + escHtml( insightisticPro.i18n.aiSave || 'Save snapshot' ) + '</button>' +
 			'<span class="isp-ai-toolbar-status" id="isp-ai-toolbar-status" aria-live="polite"></span>' +
 			'</div>';
 	}
 
-	function runAI() {
-		if ( ! currentData ) return;
-		var $btn   = $( '#isp-ai-analyze' );
-		var $panel = $( '#isp-ai-insights' );
+	/**
+	 * Open a print-ready report containing the currently loaded dashboard data
+	 * and the rendered AI panel. Browsers can save this print view directly as
+	 * a PDF without adding a large third-party PDF library to the plugin.
+	 *
+	 * @param string $context AI context slug.
+	 * @param object $panel   Current AI panel.
+	 */
+	function downloadAIReport( context, $panel ) {
+		var selectors = {
+			gsc: [ '#isp-gsc-cards', '#isp-gsc-tables', '#isp-gsc-devices' ],
+			pagespeed: [ '#isp-psi-results' ],
+			overview: [ '#isp-overview-cards', '#isp-charts', '#isp-detail-cards', '#isp-content-cards', '#isp-data-container' ],
+			woo: [ '#isp-woo-cards', '#isp-woo-charts', '#isp-woo-prod-cards', '#isp-woo-cust-cards', '#isp-woo-geo-cards', '#isp-woo-ops-cards' ],
+			cloudflare: [ '#isp-cf-cards', '#isp-cf-charts', '#isp-cf-detail-cards', '#isp-cf-security' ]
+		}[ context ] || [];
+		var sections = [];
+		$.each( selectors, function ( _, selector ) {
+			var el = document.querySelector( selector );
+			if ( el && $( el ).is( ':visible' ) ) {
+				sections.push( el.outerHTML );
+			}
+		} );
+
+		var aiPanel = $panel.find( '.isp-ai-panel' ).first().prop( 'outerHTML' ) || '';
+		if ( ! sections.length && ! aiPanel ) {
+			return;
+		}
+
+		var labels = {
+			overview: 'Analytics Overview',
+			gsc: 'Google Search Console Report',
+			pagespeed: 'PageSpeed Report',
+			woo: 'WooCommerce Report',
+			cloudflare: 'Traffic Insights Report'
+		};
+		var title = labels[ context ] || 'Insightistic Report';
+		// Open synchronously while the click is still trusted. Passing noopener
+		// here makes Chromium return null even though it opens an empty tab,
+		// which was the cause of the reported about:blank report screen.
+		var reportWindow = window.open( '', '_blank' );
+		if ( ! reportWindow ) {
+			$panel.find( '#isp-ai-toolbar-status' ).text( insightisticPro.i18n.aiDownloadPopup || 'Please allow pop-ups to open the printable report.' );
+			return;
+		}
+		reportWindow.document.write( '<!doctype html><html><head><meta charset="utf-8"><title>Insightistic</title></head><body style="font-family:system-ui,sans-serif;padding:32px;color:#334155"><p>Preparing your Insightistic report…</p></body></html>' );
+		reportWindow.document.close();
+
+		var cssUrl = escHtml( insightisticPro.cssUrl || '' );
+		var body = '<main class="isp-report-document">' +
+			'<div class="isp-report-cover"><div class="isp-report-brand">Insightistic</div>' +
+			'<h1>' + escHtml( title ) + '</h1>' +
+			'<p>Generated ' + escHtml( new Date().toLocaleString() ) + '</p></div>' +
+			( aiPanel ? '<section class="isp-report-ai"><h2>Insightistic Cloud AI</h2>' + aiPanel + '</section>' : '' ) +
+			'<section class="isp-report-data"><h2>Complete Report Data</h2>' + sections.join( '' ) + '</section>' +
+			'</main>';
+		var reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>' + escHtml( title ) + '</title>' +
+			( cssUrl ? '<link rel="stylesheet" href="' + cssUrl + '">' : '' ) +
+			'<style>@page{size:auto;margin:14mm}body{background:#fff!important;color:#111827!important;padding:24px!important}.isp-report-document{max-width:1100px;margin:0 auto}.isp-report-cover{padding:28px 32px;margin-bottom:20px;border-radius:18px;background:linear-gradient(135deg,#0f172a,#155e75);color:#fff}.isp-report-brand{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.8}.isp-report-cover h1{margin:8px 0;font-size:28px;color:#fff}.isp-report-cover p{margin:0;color:rgba(255,255,255,.75)}.isp-report-ai h2,.isp-report-data h2{margin:20px 0 10px;color:#0f172a;font-size:18px}.isp-report-data>*{break-inside:avoid}.isp-report-data .isp-skeleton-wrap,.isp-report-data .isp-ai-toolbar,.isp-report-data button{display:none!important}.isp-report-ai .isp-ai-panel{break-inside:avoid}.isp-report-ai .isp-ai-footer{display:block}.isp-report-data .isp-tab-content,.isp-report-data [style*="display:none"]{display:block!important}.isp-report-data .isp-ai-container{display:none!important}.isp-report-data .isp-chart-card{break-inside:avoid}.isp-report-data canvas{max-width:100%}@media print{body{padding:0!important}.isp-report-cover{print-color-adjust:exact;-webkit-print-color-adjust:exact}.isp-report-ai .isp-ai-panel{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>' + body + '</body></html>';
+		var finishReport = function () {
+			reportWindow.document.open();
+			reportWindow.document.write( reportHtml );
+			reportWindow.document.close();
+			reportWindow.focus();
+			window.setTimeout( function () { reportWindow.print(); }, 400 );
+		};
+
+		$.ajax( {
+			url: insightisticPro.ajaxUrl,
+			method: 'POST',
+			data: { action: 'insightistic_charge_ai_report', nonce: insightisticPro.nonce },
+			success: function ( res ) {
+				if ( res.success ) {
+					finishReport();
+					return;
+				}
+				reportWindow.close();
+				$panel.find( '#isp-ai-toolbar-status' ).text( responseMessage( res ) || 'Report credits are unavailable.' );
+			},
+			error: function ( jqXHR, textStatus ) {
+				reportWindow.close();
+				$panel.find( '#isp-ai-toolbar-status' ).text( diagnoseAjaxError( jqXHR, textStatus ) );
+			}
+		} );
+	}
+
+	function clearMetricInsightSlots( scope ) {
+		$( ( scope || '' ) + ' .isp-card-ai-slot' ).empty().hide();
+	}
+
+	function renderMetricInsightSlots( $panel, scope ) {
+		var groups = {};
+		clearMetricInsightSlots( scope );
+		$panel.find( '[data-ai-metric]' ).each( function () {
+			var metric = $( this ).data( 'ai-metric' ) || 'general';
+			groups[ metric ] = groups[ metric ] || [];
+			groups[ metric ].push( this );
+		} );
+		$( scope + ' .isp-card-ai-slot' ).each( function () {
+			var metric = $( this ).data( 'metric' );
+			var items = groups[ metric ] || groups.general || [];
+			if ( ! items.length ) return;
+			var $box = $( '<div class="isp-card-ai-box"><span class="isp-card-ai-label">AI improvement</span></div>' );
+			$.each( items.slice( 0, 2 ), function ( i, item ) {
+				var $item = $( item ).clone().removeAttr( 'data-ai-metric' ).addClass( 'isp-ai-inline-item' );
+				$box.append( $item );
+			} );
+			$( this ).append( $box ).show();
+		} );
+	}
+
+	function runAIContext( context ) {
+		var config = {
+			overview:  { data: currentData && ( currentData.structured_data || currentData ), button: '#isp-ai-analyze', panel: '#isp-ai-insights', days: '#isp-date-range', scope: '#isp-overview-cards' },
+			gsc:       { data: currentGSCData, button: '#isp-gsc-ai-analyze', panel: '#isp-gsc-ai-insights', days: '#isp-gsc-date-range', scope: '#isp-gsc-cards' },
+			pagespeed: { data: currentPSIData, button: '#isp-psi-ai-analyze', panel: '#isp-psi-ai-insights', days: null, scope: '#isp-psi-results' }
+		}[ context ];
+		if ( ! config || ! config.data ) return;
+		var $btn   = $( config.button );
+		var $panel = $( config.panel );
 		var orig   = $btn.html();
 		$btn.prop( 'disabled', true ).html( '<span class="isp-inline-spinner"></span> ' + escHtml( insightisticPro.i18n.analyzing ) );
+		$panel.attr( 'data-ai-context', context );
 		$panel.html( aiHeaderHtml() ).show();
 		$.ajax( {
 			url: insightisticPro.ajaxUrl, method: 'POST',
-			data: { action: 'insightistic_ai_analyze', data: JSON.stringify( currentData.structured_data ), days: $( '#isp-date-range' ).val() || '28', nonce: insightisticPro.nonce },
+			data: { action: 'insightistic_ai_analyze', data: JSON.stringify( config.data ), days: config.days ? ( $( config.days ).val() || '28' ) : '28', nonce: insightisticPro.nonce },
 			success: function ( res ) {
 				if ( res.success ) {
 					lastAIHtml = res.data.html;
+					lastAIHtmlByContext[ context ] = res.data.html;
 					$panel.html( res.data.html + aiFooterToolbar() );
 					animateGauges( $panel );
+					renderMetricInsightSlots( $panel, config.scope );
+				} else if ( res.data && res.data.html ) {
+					// Feature gates return a rendered lock card rather than a text
+					// error. Preserve that UI instead of stringifying the payload.
+					$panel.html( res.data.html );
 				} else {
-					renderAIError( $panel, res.data || insightisticPro.i18n.error );
+					renderAIError( $panel, responseMessage( res ) );
 				}
 			},
-			error: function () { renderAIError( $panel, insightisticPro.i18n.error ); },
+			error: function ( jqXHR, textStatus ) { renderAIError( $panel, diagnoseAjaxError( jqXHR, textStatus ) ); },
 			complete: function () { $btn.prop( 'disabled', false ).html( orig ); }
 		} );
 	}
 
+	function runAI() { runAIContext( 'overview' ); }
+	function runGSCAI() { runAIContext( 'gsc' ); }
+	function runPageSpeedAI() { runAIContext( 'pagespeed' ); }
+
 	function renderAIError( $panel, msg ) {
 		var errBox = '<div class="isp-ai-error"><div class="isp-notice isp-notice-error">' + escHtml( msg ) + '</div>' +
 			'<button type="button" class="isp-btn isp-btn-secondary" id="isp-ai-retry">' + escHtml( insightisticPro.i18n.retry || 'Retry' ) + '</button></div>';
-		if ( lastAIHtml ) {
+		var context = $panel.attr( 'data-ai-context' ) || $panel.data( 'ai-context' ) || 'overview';
+		var previous = lastAIHtmlByContext[ context ] || ( 'overview' === context ? lastAIHtml : '' );
+		if ( previous ) {
 			// Preserve the previous successful insight  do not blank the
 			// panel on failure.
-			$panel.html( lastAIHtml + errBox + aiFooterToolbar() );
+			$panel.html( previous + errBox + aiFooterToolbar() );
 			animateGauges( $panel );
 		} else {
 			$panel.html( aiHeaderHtml().replace( insightisticPro.i18n.analyzing, '' ) + errBox );
@@ -658,42 +815,43 @@
 	}
 
 	function initAIToolbar() {
-		// One delegated handler shared between the GA4 AI panel and the
-		// Commerce AI panel  the source panel is detected from the click
-		// origin so Re-run targets the right loader.
-		var selector = '#isp-ai-insights, #isp-woo-ai-insights';
-		$( document ).on( 'click', selector + ' #isp-ai-copy', function () {
-			var $panel = $( this ).closest( '.isp-ai-container, #isp-ai-insights, #isp-woo-ai-insights' );
-			var text = $panel.find( '.isp-ai-summary, .isp-ai-card, .isp-ai-rec' ).map( function () {
-				return $( this ).text().trim();
-			} ).get().join( '\n\n' );
-			if ( ! text ) { return; }
-			if ( navigator.clipboard && navigator.clipboard.writeText ) {
-				navigator.clipboard.writeText( text ).then( function () {
-					$panel.find( '#isp-ai-toolbar-status' ).text( insightisticPro.i18n.aiCopied || 'Copied' );
-					setTimeout( function () { $panel.find( '#isp-ai-toolbar-status' ).text( '' ); }, 1500 );
+		// Panels are rendered after dashboard AJAX calls. One namespaced
+		// delegation point keeps all toolbar actions live and avoids duplicate
+		// handlers if a tab is initialised more than once.
+		var buttonSelector = '.isp-ai-container .isp-ai-toolbar [data-ai-action], .isp-ai-container #isp-ai-retry';
+		$( document ).off( 'click.insightisticAiToolbar', buttonSelector );
+		$( document ).on( 'click.insightisticAiToolbar', buttonSelector, function ( event ) {
+			event.preventDefault();
+			var $button = $( this );
+			var $panel = $button.closest( '.isp-ai-container' );
+			var context = $panel.attr( 'data-ai-context' ) || $panel.data( 'ai-context' ) || ( $panel.is( '#isp-gsc-ai-insights' ) ? 'gsc' : ( $panel.is( '#isp-psi-ai-insights' ) ? 'pagespeed' : ( $panel.is( '#isp-woo-ai-insights' ) ? 'woo' : 'overview' ) ) );
+			var action = $button.data( 'ai-action' ) || ( $button.is( '#isp-ai-retry' ) ? 'rerun' : '' );
+
+			if ( 'download' === action ) {
+				downloadAIReport( context, $panel );
+				return;
+			}
+			if ( 'rerun' === action ) {
+				if ( $panel.is( '#isp-woo-ai-insights' ) || 'woo' === context ) { runWooAI(); } else { runAIContext( context ); }
+				return;
+			}
+			if ( 'save' === action ) {
+				var inCommerce = $panel.is( '#isp-woo-ai-insights' ) || 'woo' === context;
+				var payload = inCommerce ? lastWooAIHtml : ( lastAIHtmlByContext[ context ] || lastAIHtml );
+				if ( ! payload ) {
+					$panel.find( '#isp-ai-toolbar-status' ).text( 'No insight content to save.' );
+					return;
+				}
+				$.ajax( {
+					url: insightisticPro.ajaxUrl, method: 'POST',
+					data: { action: 'insightistic_save_ai_snapshot', html: payload, nonce: insightisticPro.nonce },
+					success: function ( res ) {
+						$panel.find( '#isp-ai-toolbar-status' ).text( res.success ? ( insightisticPro.i18n.aiSaved || 'Saved' ) : ( responseMessage( res ) || insightisticPro.i18n.error ) );
+						setTimeout( function () { $panel.find( '#isp-ai-toolbar-status' ).text( '' ); }, 2000 );
+					},
+					error: function ( jqXHR, textStatus ) { $panel.find( '#isp-ai-toolbar-status' ).text( diagnoseAjaxError( jqXHR, textStatus ) ); }
 				} );
 			}
-		} );
-		$( document ).on( 'click', selector + ' #isp-ai-rerun, ' + selector + ' #isp-ai-retry', function () {
-			var inCommerce = $( this ).closest( '#isp-woo-ai-insights' ).length > 0;
-			if ( inCommerce ) { runWooAI(); } else { runAI(); }
-		} );
-		$( document ).on( 'click', selector + ' #isp-ai-save', function () {
-			var inCommerce = $( this ).closest( '#isp-woo-ai-insights' ).length > 0;
-			var $panel = $( this ).closest( '#isp-ai-insights, #isp-woo-ai-insights' );
-			var payload = inCommerce ? lastWooAIHtml : lastAIHtml;
-			$.ajax( {
-				url: insightisticPro.ajaxUrl, method: 'POST',
-				data: { action: 'insightistic_save_ai_snapshot', html: payload, nonce: insightisticPro.nonce },
-				success: function ( res ) {
-					$panel.find( '#isp-ai-toolbar-status' ).text( res.success
-						? ( insightisticPro.i18n.aiSaved || 'Saved' )
-						: ( res.data || insightisticPro.i18n.error ) );
-					setTimeout( function () { $panel.find( '#isp-ai-toolbar-status' ).text( '' ); }, 2000 );
-				},
-				error: function () { $panel.find( '#isp-ai-toolbar-status' ).text( insightisticPro.i18n.error ); }
-			} );
 		} );
 	}
 
@@ -706,7 +864,8 @@
 		var days  = $( '#isp-gsc-date-range' ).val() || '28';
 
 		spinnerBtn( $btn, insightisticPro.i18n.loading );
-		$( '#isp-gsc-cards,#isp-gsc-tables,#isp-gsc-devices' ).hide();
+		$( '#isp-gsc-cards,#isp-gsc-tables,#isp-gsc-devices,#isp-gsc-ai-insights' ).hide();
+		clearMetricInsightSlots( '#isp-gsc-cards' );
 		$( '#isp-gsc-loading' ).html( skeletonHtml() ).show();
 
 		$.ajax( {
@@ -720,6 +879,7 @@
 			dataType: 'json',
 			success: function ( res ) {
 				if ( res && res.success ) {
+					currentGSCData = res.data;
 					dataLoaded.gsc = true;
 					renderGSC( res.data );
 					renderCacheBadge(
@@ -729,7 +889,7 @@
 					);
 				} else {
 					$( '#isp-gsc-loading' ).empty().append(
-						errorBox( ( res && res.data ) || insightisticPro.i18n.error, null, function () { loadGSC( true ); }, 'gsc' )
+						errorBox( responseMessage( res ), null, function () { loadGSC( true ); }, 'gsc' )
 					);
 				}
 			},
@@ -743,6 +903,7 @@
 	}
 
 	function renderGSC( data ) {
+		currentGSCData = data;
 		$( '#isp-gsc-loading' ).hide();
 
 		// Stat cards.
@@ -774,6 +935,9 @@
 			$( '#isp-gsc-pages' ).html( buildGSCTable( data.top_pages, 'page' ) );
 		}
 		$( '#isp-gsc-tables' ).show();
+		if ( insightisticPro.aiEnabled ) {
+			$( '#isp-gsc-ai-analyze' ).show();
+		}
 
 		// Device bars.
 		if ( data.devices && data.devices.length ) {
@@ -829,7 +993,7 @@
 		var url   = $( '#isp-psi-url' ).val() || insightisticPro.defaultUrl;
 
 		spinnerBtn( $btn, insightisticPro.i18n.testing );
-		$( '#isp-psi-results' ).hide();
+		$( '#isp-psi-results,#isp-psi-ai-insights' ).hide();
 		$( '#isp-psi-loading' ).html( skeletonHtml() ).show();
 
 		$.ajax( {
@@ -843,6 +1007,7 @@
 			dataType: 'json',
 			success: function ( res ) {
 				if ( res && res.success ) {
+					currentPSIData = res.data;
 					dataLoaded.psi = true;
 					renderPageSpeed( res.data );
 					renderCacheBadge(
@@ -852,7 +1017,7 @@
 					);
 				} else {
 					$( '#isp-psi-loading' ).empty().append(
-						errorBox( ( res && res.data ) || insightisticPro.i18n.error, null, function () { runPageSpeed( true ); }, 'pagespeed' )
+						errorBox( responseMessage( res ), null, function () { runPageSpeed( true ); }, 'pagespeed' )
 					);
 				}
 			},
@@ -866,7 +1031,10 @@
 	}
 
 	function renderPageSpeed( data ) {
+		currentPSIData = data;
 		$( '#isp-psi-loading' ).hide();
+		renderPsiSummary( data );
+		renderPsiDetails( data );
 
 		// Render both rings.
 		renderScoreRing( 'mobile',  data.mobile  );
@@ -877,6 +1045,49 @@
 		if ( data.desktop ) { $( '#isp-cwv-desktop' ).html( buildCWVGrid( data.desktop.cwv ) ); }
 
 		$( '#isp-psi-results' ).show();
+		if ( insightisticPro.aiEnabled ) {
+			$( '#isp-psi-ai-analyze' ).show();
+		}
+	}
+
+	function renderPsiSummary( data ) {
+		var source = data.mobile || data.desktop || {};
+		var scores = source.scores || {};
+		var values = {
+			'performance': scores.performance,
+			'accessibility': scores.accessibility,
+			'best-practices': scores.best_practices,
+			'seo': scores.seo,
+			'ai-readiness': source.ai_readiness ? source.ai_readiness.score : null
+		};
+		$( '#isp-psi-results .isp-psi-summary-card' ).each( function () {
+			var key = $( this ).data( 'summary-key' );
+			var value = values[ key ];
+			$( this ).find( '.isp-psi-summary-value' ).text( value === null || typeof value === 'undefined' ? '—' : value );
+			$( this ).toggleClass( 'is-score-good', Number( value ) >= 90 ).toggleClass( 'is-score-moderate', Number( value ) >= 50 && Number( value ) < 90 ).toggleClass( 'is-score-poor', Number( value ) >= 0 && Number( value ) < 50 );
+		} );
+		var meta = [];
+		if ( data.url ) meta.push( escHtml( data.url ) );
+		if ( data.cached_at ) meta.push( escHtml( new Date( data.cached_at * 1000 ).toLocaleString() ) );
+		$( '#isp-psi-report-meta' ).html( meta.join( ' <span aria-hidden="true">•</span> ' ) );
+	}
+
+	function renderPsiDetails( data ) {
+		var source = data.mobile || data.desktop || {};
+		var opportunities = source.opportunities || [];
+		var diagnostics = source.diagnostics || [];
+		var list = function ( items, type ) {
+			if ( ! items.length ) return '<p class="isp-no-data">' + escHtml( insightisticPro.i18n.noData ) + '</p>';
+			var html = '<ul class="isp-psi-detail-list">';
+			$.each( items.slice( 0, 6 ), function ( i, item ) {
+				html += '<li><strong>' + escHtml( item.title || '' ) + '</strong>' +
+					( type === 'opportunity' && item.savings_ms ? '<span>' + escHtml( item.savings_ms + ' ms potential saving' ) + '</span>' : '' ) +
+					( type === 'diagnostic' && item.display ? '<span>' + escHtml( item.display ) + '</span>' : '' ) + '</li>';
+			} );
+			return html + '</ul>';
+		};
+		$( '#isp-psi-opportunities' ).html( list( opportunities, 'opportunity' ) );
+		$( '#isp-psi-diagnostics' ).html( list( diagnostics, 'diagnostic' ) );
 	}
 
 	function renderScoreRing( device, data ) {
@@ -908,11 +1119,11 @@
 			.attr( 'class', 'isp-speed-score-label isp-lbl-' + cls );
 	}
 
-	var cwvLabels = { lcp: 'LCP', inp: 'INP / TBT', cls: 'CLS', fcp: 'FCP', tbt: 'TBT', si: 'Speed Index' };
+	var cwvLabels = { lcp: 'LCP', inp: 'INP / TBT', cls: 'CLS', fcp: 'FCP', tbt: 'TBT', si: 'Speed Index', ttfb: 'TTFB' };
 
 	function buildCWVGrid( cwv ) {
 		if ( ! cwv ) return '<p style="color:#9ca3af;padding:16px;">' + escHtml( insightisticPro.i18n.noData ) + '</p>';
-		var keys = [ 'lcp', 'inp', 'cls', 'fcp', 'tbt', 'si' ];
+		var keys = [ 'lcp', 'inp', 'cls', 'fcp', 'tbt', 'si', 'ttfb' ];
 		var html = '';
 		$.each( keys, function ( i, key ) {
 			if ( ! cwv[ key ] ) return;
@@ -977,7 +1188,7 @@
 					);
 				} else {
 					$( '#isp-woo-loading' ).empty().append(
-						errorBox( ( res && res.data ) || insightisticPro.i18n.error, null, function () { loadWoo( true ); }, 'ga4' )
+						errorBox( responseMessage( res ), null, function () { loadWoo( true ); }, 'ga4' )
 					);
 				}
 			},
@@ -1274,8 +1485,10 @@
 					lastWooAIHtml = res.data.html;
 					$panel.html( res.data.html + aiFooterToolbar() );
 					animateGauges( $panel );
+				} else if ( res.data && res.data.html ) {
+					$panel.html( res.data.html );
 				} else {
-					$panel.html( '<div class="isp-notice isp-notice-error" style="margin:16px;">' + escHtml( ( res && res.data ) || insightisticPro.i18n.error ) + '</div>' );
+					$panel.html( '<div class="isp-notice isp-notice-error" style="margin:16px;">' + escHtml( responseMessage( res ) ) + '</div>' );
 				}
 			},
 			error: function ( jqXHR, textStatus ) {
@@ -2231,86 +2444,86 @@
 			'</div>';
 	}
 
-	function renderStrategy( report ) {
+	function renderStrategy( report, deviceLabel ) {
 		if ( ! report ) {
 			return '<div class="isp-notice isp-notice-error">No data for this device.</div>';
 		}
 
-		var html = '';
-		var s = report.scores || {};
+		var html        = '';
+		var s           = report.scores || {};
+		var ai          = report.ai_readiness || null;
+		var device      = deviceLabel || 'Mobile';
+		var scoreTone   = function ( value ) {
+			if ( value === null || value === undefined ) { return ''; }
+			return Number( value ) >= 90 ? ' is-score-good' : ( Number( value ) >= 50 ? ' is-score-moderate' : ' is-score-poor' );
+		};
+		var summary     = [
+			[ 'Performance', s.performance ],
+			[ 'Accessibility', s.accessibility ],
+			[ 'Best practices', s.best_practices ],
+			[ 'SEO', s.seo ],
+			[ 'AI readiness', ai ? ai.score : null ]
+		];
 
-		// AI Agent Readiness hero.
-		var ai = report.ai_readiness || null;
-		if ( ai ) {
-			var checks = '';
-			( ai.checks || [] ).forEach( function ( c ) {
-				checks += '<li class="' + ( c.pass ? 'isp-ai-check-pass' : 'isp-ai-check-fail' ) + '">' +
-					'<span aria-hidden="true">' + ( c.pass ? '✓' : '✕' ) + '</span> ' + escHtml( c.label ) + '</li>';
-			} );
-			html += '' +
-				'<div class="isp-airead-card isp-animate-in">' +
-					'<div class="isp-airead-gauge">' + gaugeHtml( ai.score, 'AI Readiness', 132 ) +
-						'<span class="isp-airead-grade isp-airead-grade-' + escHtml( ai.grade ) + '">' + escHtml( ai.grade ) + '</span>' +
-					'</div>' +
-					'<div class="isp-airead-body">' +
-						'<h3>AI Agent Readiness</h3>' +
-						'<p>How well this page can be read, understood and cited by AI assistants, crawlers and answer engines — blended from SEO, performance, accessibility and machine-readability checks.</p>' +
-						'<ul class="isp-airead-checks">' + checks + '</ul>' +
-					'</div>' +
-				'</div>';
-		}
+		html += '<div class="isp-psi-summary-grid isp-animate-in">';
+		$.each( summary, function ( _, item ) {
+			html += '<div class="isp-psi-summary-card' + scoreTone( item[1] ) + '">' +
+				'<strong>' + ( item[1] === null || item[1] === undefined ? '—' : escHtml( item[1] ) ) + '</strong>' +
+				'<span>' + escHtml( item[0] ) + '</span></div>';
+		} );
+		html += '</div>';
 
-		// Category gauges.
-		html += '<div class="isp-speedtest-gauges isp-animate-in">' +
-			gaugeHtml( s.performance, 'Performance' ) +
-			gaugeHtml( s.seo, 'SEO' ) +
-			gaugeHtml( s.accessibility, 'Accessibility' ) +
-			gaugeHtml( s.best_practices, 'Best Practices' ) +
-		'</div>';
+		// Match the dashboard PageSpeed visual language: a device score hero
+		// below the category summary, followed by a compact legend.
+		var performanceScore = ( s.performance === null || s.performance === undefined ) ? null : Number( s.performance );
+		var performanceBand   = performanceScore === null || isNaN( performanceScore ) ? 'neutral' : ( performanceScore >= 90 ? 'good' : ( performanceScore >= 50 ? 'moderate' : 'poor' ) );
+		var performanceLabel  = 'good' === performanceBand ? 'Good' : ( 'moderate' === performanceBand ? 'Needs Improvement' : ( 'poor' === performanceBand ? 'Poor' : 'Unavailable' ) );
+		var performanceValue  = performanceScore === null || isNaN( performanceScore ) ? null : Math.max( 0, Math.min( 100, performanceScore ) );
+		var performanceOffset  = performanceValue === null ? 339.3 : 339.3 - ( 339.3 * performanceValue / 100 );
+		var performanceGradient = 'ispSpeedTestGrad' + ( renderStrategy._i = ( renderStrategy._i || 0 ) + 1 );
+		html += '<div class="isp-speed-scores isp-animate-in">' +
+			'<div class="isp-speed-score-card"><div class="isp-speed-label">' + escHtml( device ) + '</div>' +
+				'<div class="isp-ring-container isp-score-' + performanceBand + '">' +
+					'<svg class="isp-score-ring" viewBox="0 0 120 120" aria-hidden="true">' +
+						'<defs><linearGradient id="' + performanceGradient + '" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs>' +
+						'<circle class="isp-ring-track" cx="60" cy="60" r="54"/>' +
+						'<circle class="isp-ring-progress" cx="60" cy="60" r="54" stroke="url(#' + performanceGradient + ')" style="stroke-dashoffset:' + performanceOffset.toFixed( 1 ) + '"/>' +
+					'</svg>' +
+					'<div class="isp-ring-score">' + ( performanceValue === null ? '—' : escHtml( Math.round( performanceValue ) ) ) + '</div>' +
+				'</div>' +
+				'<div class="isp-speed-score-label isp-lbl-' + performanceBand + '">' + escHtml( performanceLabel ) + '</div></div>' +
+			'<div class="isp-speed-legend">' +
+				'<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-good"></span>90–100: Good</div>' +
+				'<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-moderate"></span>50–89: Needs Improvement</div>' +
+				'<div class="isp-speed-legend-item"><span class="isp-speed-dot isp-speed-poor"></span>0–49: Poor</div>' +
+			'</div>' +
+			'</div>';
 
 		// Core Web Vitals & lab metrics.
 		var cwv = report.cwv || {};
-		var cwvHtml = '';
-		$.each( [ 'lcp', 'inp', 'cls', 'fcp', 'tbt', 'si', 'ttfb' ], function ( _, key ) {
-			if ( cwv[ key ] ) { cwvHtml += cwvItemHtml( key, cwv[ key ] ); }
-		} );
-		html += '<div class="isp-detail-card isp-animate-in"><div class="isp-detail-card-header">' +
-			'<h3 class="isp-detail-card-title">Core Web Vitals &amp; lab metrics</h3></div>' +
-			'<div class="isp-cwv-grid isp-speedtest-cwv">' + cwvHtml + '</div></div>';
+		html += '<div class="isp-cwv-section isp-animate-in"><div class="isp-section-header">' +
+			'<h2 class="isp-section-title">Core Web Vitals</h2></div>' +
+			'<div class="isp-cwv-grid isp-speedtest-cwv">' + buildCWVGrid( cwv ) + '</div></div>';
 
-		// Opportunities, biggest savings first.
+		// Opportunities and diagnostics use the same compact report lists as the
+		// dashboard PageSpeed tab. Keep each result in one place so the dedicated
+		// Speed Test page does not repeat the opportunities section.
 		var opps = report.opportunities || [];
-		if ( opps.length ) {
-			var maxSave = Math.max.apply( null, opps.map( function ( o ) { return o.savings_ms; } ) );
-			var oppHtml = '';
-			opps.forEach( function ( o ) {
-				var pct = maxSave ? Math.max( 6, Math.round( o.savings_ms / maxSave * 100 ) ) : 0;
-				oppHtml += '' +
-					'<div class="isp-opp">' +
-						'<div class="isp-opp-top"><strong>' + escHtml( o.title ) + '</strong>' +
-						'<span class="isp-opp-save">~' + ( o.savings_ms >= 1000 ? ( o.savings_ms / 1000 ).toFixed( 1 ) + ' s' : o.savings_ms + ' ms' ) + '</span></div>' +
-						'<div class="isp-opp-bar"><span style="width:' + pct + '%"></span></div>' +
-						( o.desc ? '<p class="isp-opp-desc">' + escHtml( o.desc ) + '</p>' : '' ) +
-					'</div>';
-			} );
-			html += '<div class="isp-detail-card isp-animate-in"><div class="isp-detail-card-header">' +
-				'<h3 class="isp-detail-card-title">Top opportunities</h3>' +
-				'<p class="isp-detail-card-sub">Estimated loading-time savings, biggest first.</p></div>' +
-				'<div class="isp-opps">' + oppHtml + '</div></div>';
-		}
-
-		// Diagnostics.
 		var diags = report.diagnostics || [];
-		if ( diags.length ) {
-			var diagHtml = '';
-			diags.forEach( function ( d ) {
-				diagHtml += '<li><strong>' + escHtml( d.title ) + '</strong>' +
-					( d.display ? ' <span>' + escHtml( d.display ) + '</span>' : '' ) + '</li>';
+		var compactList = function ( items, type ) {
+			if ( ! items.length ) return '<p class="isp-no-data">' + escHtml( insightisticPro.i18n.noData ) + '</p>';
+			var listHtml = '<ul class="isp-psi-detail-list">';
+			$.each( items.slice( 0, 6 ), function ( _, item ) {
+				listHtml += '<li><strong>' + escHtml( item.title || '' ) + '</strong>' +
+					( 'opportunity' === type && item.savings_ms ? '<span>' + escHtml( item.savings_ms + ' ms potential saving' ) + '</span>' : '' ) +
+					( 'diagnostic' === type && item.display ? '<span>' + escHtml( item.display ) + '</span>' : '' ) + '</li>';
 			} );
-			html += '<div class="isp-detail-card isp-animate-in"><div class="isp-detail-card-header">' +
-				'<h3 class="isp-detail-card-title">Diagnostics</h3></div>' +
-				'<ul class="isp-diags">' + diagHtml + '</ul></div>';
-		}
+			return listHtml + '</ul>';
+		};
+		html += '<div class="isp-psi-details-grid isp-animate-in">' +
+			'<div class="isp-psi-detail-card"><h3>Priority opportunities</h3>' + compactList( opps, 'opportunity' ) + '</div>' +
+			'<div class="isp-psi-detail-card"><h3>Diagnostics to review</h3>' + compactList( diags, 'diagnostic' ) + '</div>' +
+			'</div>';
 
 		return html;
 	}
@@ -2350,8 +2563,8 @@
 
 		$out.html(
 			tabs +
-			'<div class="isp-speedtest-strategy" data-strategy-panel="mobile">' + renderStrategy( data.mobile ) + '</div>' +
-			'<div class="isp-speedtest-strategy" data-strategy-panel="desktop" style="display:none">' + renderStrategy( data.desktop ) + '</div>'
+			'<div class="isp-speedtest-strategy" data-strategy-panel="mobile">' + renderStrategy( data.mobile, 'Mobile' ) + '</div>' +
+			'<div class="isp-speedtest-strategy" data-strategy-panel="desktop" style="display:none">' + renderStrategy( data.desktop, 'Desktop' ) + '</div>'
 		).show();
 		$( '#isp-speedtest-empty' ).hide();
 
@@ -2430,6 +2643,8 @@
 
 			$( '#isp-load-data' ).on( 'click', function () { loadData( false, false ); } );
 			$( '#isp-ai-analyze' ).on( 'click', runAI );
+			$( '#isp-gsc-ai-analyze' ).on( 'click', runGSCAI );
+			$( '#isp-psi-ai-analyze' ).on( 'click', runPageSpeedAI );
 			$( '#isp-load-gsc' ).on( 'click', function () { loadGSC( false ); } );
 			$( '#isp-run-pagespeed' ).on( 'click', function () { runPageSpeed( false ); } );
 			$( '#isp-load-woo' ).on( 'click', function () { loadWoo( false ); } );

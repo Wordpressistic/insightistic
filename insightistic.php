@@ -3,7 +3,7 @@
  * Plugin Name: Insightistic
  * Plugin URI:  https://wordpressistic.com/insightistic
  * Description: Connect Google Analytics 4, Search Console, PageSpeed, Cloudflare, and WooCommerce to your WordPress dashboard. Core analytics features work without an account. An optional free Insightistic account adds Cloud AI, dashboard sync, and hosted traffic insights.
- * Version:     4.7.3
+ * Version:     4.7.4
  * Author:      WordPressistic
  * Author URI:  https://wordpressistic.com
  * License:     GPL-2.0-or-later
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'INSIGHTISTIC_VERSION', '4.7.3' );
+define( 'INSIGHTISTIC_VERSION', '4.7.4' );
 define( 'INSIGHTISTIC_FILE', __FILE__ );
 define( 'INSIGHTISTIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'INSIGHTISTIC_URL', plugin_dir_url( __FILE__ ) );
@@ -54,7 +54,6 @@ function insightistic_load() {
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-ai.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-email-automations.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-addons.php',
-		INSIGHTISTIC_PATH . 'includes/class-insightistic-do-next.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-system-status.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-woocommerce.php',
 		INSIGHTISTIC_PATH . 'includes/class-insightistic-admin.php',
@@ -94,7 +93,6 @@ function insightistic_load() {
 	( new Insightistic_AI() )->init();
 	( new Insightistic_Email_Automations() )->init();
 	( new Insightistic_Woocommerce() )->init();
-	Insightistic_Do_Next::init();
 }
 add_action( 'plugins_loaded', 'insightistic_load' );
 

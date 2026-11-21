@@ -4,7 +4,7 @@ Tags: analytics, search console, pagespeed, ga4, woocommerce
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.7.3
+Stable tag: 4.7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -281,6 +281,10 @@ This plugin contacts external services only after you save credentials or explic
 Disconnecting on the Insightistic > Account screen stops all calls to Insightistic.
 
 == Changelog ==
+
+= 4.7.4 (2026-11-22) =
+
+* Fix: Recover a stale IndexNow key, write the current key file, and retry queued URLs after the SaaS key is restored.
 
 = 4.7.3 (2026-11-18) =
 

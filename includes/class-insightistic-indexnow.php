@@ -368,6 +368,19 @@ class Insightistic_IndexNow {
 			$chunk = array_slice( $queue, 0, self::FLUSH_CHUNK );
 			$res   = self::is_connected() ? Insightistic_Saas_Client::indexnow_submit( $chunk ) : self::direct_submit( $chunk );
 
+			// A restored SaaS database can lose the key while WordPress still
+			// has a cached confirmation. Fetch and provision the current key.
+			if ( ! $res['ok'] && 'indexnow_not_initialized' === ( $res['data']['code'] ?? '' ) && self::is_connected() ) {
+				$settings                       = self::settings();
+				$settings['key']                = '';
+				$settings['key_file_confirmed'] = false;
+				update_option( self::OPT, $settings, false );
+
+				if ( self::ensure_key() ) {
+					$res = Insightistic_Saas_Client::indexnow_submit( $chunk );
+				}
+			}
+
 			if ( ! $res['ok'] ) {
 				$code = ( is_array( $res['data'] ) && ! empty( $res['data']['code'] ) )
 					? (string) $res['data']['code']
@@ -429,13 +442,14 @@ class Insightistic_IndexNow {
 			if ( $settings['key_file_confirmed'] ) {
 				// Self-heal: the key file must keep being served from the root.
 				if ( ! self::key_file_exists( $settings['key'] ) ) {
-					self::write_key_file( $settings['key'] );
+					return self::write_key_file( $settings['key'] );
 				}
 				return true;
 			}
 
 			// Key cached but never confirmed — finish that step only.
-			return self::confirm_key( $settings['key'] );
+			return ( self::key_file_exists( $settings['key'] ) || self::write_key_file( $settings['key'] ) )
+				&& self::confirm_key( $settings['key'] );
 		}
 
 		$res = Insightistic_Saas_Client::indexnow_get_key();
@@ -452,6 +466,7 @@ class Insightistic_IndexNow {
 
 		$settings['key']          = $key;
 		$settings['key_source']   = 'saas';
+		$settings['key_file_confirmed'] = false;
 		$settings['key_location'] = ! empty( $res['data']['key_location'] )
 			? sanitize_text_field( (string) $res['data']['key_location'] )
 			: home_url( '/' . $key . '.txt' );
